@@ -1,0 +1,10 @@
+{
+  "environment": {
+    "services": {
+      "appodeal": "https://api.appodeal.com",
+      "ad_mob": "https://apps.admob.com"
+    }
+  },
+  "manifest": {
+  }
+}
