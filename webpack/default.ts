@@ -99,9 +99,23 @@ export default (env: webpack.Configuration): webpack.Configuration => {
                 name: PACKAGE.name,
                 author: "Appodeal Inc.",
                 main: "main.js",
+                productName: PACKAGE.productName,
                 version: PACKAGE.version,
                 description: PACKAGE.description,
                 dependencies: PACKAGE.dependencies || {}
+            }),
+            new GenerateJsonPlugin('electron-builder.json', {
+                appId: "com.appodeal.AdMob.desktop",
+                artifactName: "${name}-${version}-${os}-${arch}.${ext}",
+                directories: {
+                    buildResources: '../resources',
+                    output: '../dist'
+                },
+                dmg: {
+                    background: '../resources/dmg/background.png',
+                    iconSize: 140,
+                    iconTextSize: 18
+                }
             })
         ]
     };

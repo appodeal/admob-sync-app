@@ -1,9 +1,10 @@
 {
   "name": "admob-sync-app",
   "author": "Appodeal Inc.",
+  "productName": "AdMob Sync",
+  "description": "Appodela AdmobSync application",
   "private": true,
   "version": "0.1.0",
-  "description": "Appodela AdmobSync application",
   "scripts": {
     "start": "webpack --watch --progress --config=webpack/development.ts",
     "electron": "electron ./build",
