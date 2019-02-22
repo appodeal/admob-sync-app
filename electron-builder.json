@@ -1,0 +1,16 @@
+{
+  "appId": "com.appodeal.AdMob.desktop",
+  "artifactName": "${name}-${version}-${os}-${arch}.${ext}",
+  "directories": {
+    "app": "./",
+    "output": "release"
+  },
+  "files": [
+    "build/**/*"
+  ],
+  "mac": {
+    "target": [
+      "zip"
+    ]
+  }
+}
