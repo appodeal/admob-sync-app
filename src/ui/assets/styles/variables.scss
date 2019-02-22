@@ -1,0 +1,24 @@
+:root {
+
+  // palette, don't use these variables directly in css properties
+  --red: #e11916;
+  --red-light: #F2A3A3;
+  --white: #ffffff;
+  --gray-light: #CED1D4;
+  --gray: #92969A;
+  --dark-blue: #252C39;
+
+  // colors
+  --main-bg-color: var(--white);
+  --main-text-color: var(--dark-blue);
+  --main-border-color: var(--gray-light);
+  --main-link-color: var(--dark-blue);
+  --main-link-hover-color: var(--white);
+  --main-link-disabled-color: var(--gray);
+  --brand-color: var(--red);
+  --brand-highlight-color: var(--red-light);
+
+  // sizes
+  --base-font-size: 14px;
+
+}

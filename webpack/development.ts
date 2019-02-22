@@ -9,11 +9,10 @@ let envConfig = require(path.join(SRC_PATH, '../config/development.json'));
 export default (env: webpack.Configuration): webpack.Configuration => {
     return merge(defaults(env), {
         mode: 'development',
-        devtool: 'inline-source-map',
         plugins: [
             environment(env, envConfig, {
                 development: true,
-                index: './build/index.html'
+                settingsPage: './settings.html'
             })
         ]
     })

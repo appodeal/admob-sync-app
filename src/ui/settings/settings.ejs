@@ -1,0 +1,16 @@
+<% let logo = require('../assets/images/logo.svg') %>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <base href="./">
+    <meta charset="UTF-8">
+    <title>APPODEAL | AdMob Sync</title>
+</head>
+<body>
+<div style="display: <%= require('os').type ? 'block' : 'none' %>;"></div>
+<header class="window-title">
+    <img src="<%= logo %>" alt="Appodeal" draggable="false">
+    <h1>AdMob Sync</h1>
+</header>
+</body>
+</html>

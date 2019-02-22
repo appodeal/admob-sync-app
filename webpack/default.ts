@@ -1,24 +1,29 @@
-import webpack from 'webpack';
-import * as path from 'path';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import CSSExtractPlugin from 'mini-css-extract-plugin';
+import ScriptExtHtmlWebpackPlugin from 'script-ext-html-webpack-plugin';
+import CleanWebpackPlugin from 'clean-webpack-plugin';
+import GenerateJsonPlugin from 'generate-json-webpack-plugin';
+import * as path from 'path';
+import webpack from 'webpack';
 
-export const ROOT_PATH = path.resolve('.');
-export const SRC_PATH = path.join(ROOT_PATH, './src');
-export const BUILD_PATH = path.join(ROOT_PATH, 'build');
+
+export const SRC_PATH = path.resolve(__dirname, '../src');
+export const BUILD_PATH = path.resolve(__dirname, '../build');
+const PACKAGE = require(path.join(__dirname, '../package.json'));
 
 export default (env: webpack.Configuration): webpack.Configuration => {
     return {
         context: SRC_PATH,
         entry: {
-            main: path.join(SRC_PATH, 'main.ts'),
-            index: path.join(SRC_PATH, 'index.ts'),
+            main: path.join(SRC_PATH, './main.ts'),
+            settings: path.join(SRC_PATH, './ui/settings/settings.ts')
         },
-        target:'electron-renderer',
+        target: 'electron-renderer',
         output: {
             path: BUILD_PATH,
             filename: '[name].js'
         },
+        devtool: 'source-map',
         module: {
             rules: [
                 {
@@ -27,35 +32,37 @@ export default (env: webpack.Configuration): webpack.Configuration => {
                 },
                 {
                     test: /\.(png|svg)$/,
-                    use: [{
-                        loader: 'file-loader',
-                        options: {
-                            name: '[name].[ext]',
-                            publicPath: '/assets/images',
-                            outputPath: 'assets/images'
+                    use: [
+                        {
+                            loader: 'file-loader',
+                            options: {
+                                name: '[name].[ext]',
+                                publicPath: './assets/images',
+                                outputPath: './assets/images'
+                            }
                         }
-                    }]
-                    // loader: 'file-loader?name=assets/[name].[ext]',
+                    ]
                 },
                 {
                     test: /\.(woff2|ttf|eot)$/,
-                    use: [{
-                        loader: 'file-loader',
-                        options: {
-                            name: '[name].[ext]',
-                            publicPath: '/assets/fonts',
-                            outputPath: 'assets/fonts'
+                    use: [
+                        {
+                            loader: 'file-loader',
+                            options: {
+                                name: '[name].[ext]',
+                                publicPath: './fonts',
+                                outputPath: './assets/fonts'
+                            }
                         }
-                    }]
+                    ]
                 },
                 {
-                    test: /\.scss$/, use: [CSSExtractPlugin.loader,
+                    test: /\.scss$/, use: [
+                        CSSExtractPlugin.loader,
                         {
                             loader: 'css-loader',
                             options: {
-                                localIdentName: '[path][local]-[hash:base64:5]',
-                                modules: true,
-                                sourceMap: true,
+                                sourceMap: true
                             }
                         },
                         {
@@ -65,21 +72,36 @@ export default (env: webpack.Configuration): webpack.Configuration => {
                             }
                         }
                     ]
-                },
+                }
             ]
         },
         resolve: {
             extensions: ['.tsx', '.json', '.ts', '.js']
         },
         plugins: [
+            new CleanWebpackPlugin(BUILD_PATH, {
+                root: path.resolve(__dirname, '../')
+            }),
             new HtmlWebpackPlugin({
                 hash: true,
-                template: path.join(SRC_PATH, 'index.ejs'),
-                chunks: ['index'],
-                filename: 'index.html'
+                template: path.join(SRC_PATH, './ui/settings/settings.ejs'),
+                chunks: ['settings'],
+                inject: 'head',
+                filename: 'settings.html'
+            }),
+            new ScriptExtHtmlWebpackPlugin({
+                defaultAttribute: 'defer'
             }),
             new CSSExtractPlugin({
                 filename: 'assets/[name].css'
+            }),
+            new GenerateJsonPlugin('package.json', {
+                name: PACKAGE.name,
+                author: "Appodeal Inc.",
+                main: "main.js",
+                version: PACKAGE.version,
+                description: PACKAGE.description,
+                dependencies: PACKAGE.dependencies || {}
             })
         ]
     };

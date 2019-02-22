@@ -1,0 +1,35 @@
+@import "assets/styles/variables";
+@import "assets/styles/fonts";
+
+
+:root {
+  --title-height: 38px;
+  --window-padding: 13px;
+
+  font-family: 'Roboto', sans-serif;
+  height: 100%;
+  font-size: var(--base-font-size);
+}
+
+body {
+  min-height: 100%;
+  margin: 0;
+  box-sizing: border-box;
+  position: relative;
+  padding: var(--title-height) var(--window-padding) var(--window-padding);
+}
+
+.window-title {
+  -webkit-app-region: drag;
+  -webkit-user-select: none;
+
+  min-height: var(--title-height);
+  height: 70px;
+  width: 100vw;
+  margin: calc(-1 * var(--title-height)) calc(-1 * var(--window-padding)) var(--window-padding);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--brand-color);
+  background-image: linear-gradient(to bottom, var(--brand-color), #d40300);
+}

@@ -1,0 +1,20 @@
+.window-title {
+  h1 {
+    font-family: "Roboto", sans-serif;
+    font-weight: 300;
+    color: #fff;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    font-size: 1.7em;
+
+    &::before {
+      content: '';
+      display: block;
+      margin: 0 15px;
+      width: 2px;
+      height: 30px;
+      background-color: #fff;
+    }
+  }
+}

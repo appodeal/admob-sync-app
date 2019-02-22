@@ -6,7 +6,7 @@ declare interface Services {
 declare interface Environment {
     readonly services: Services
     readonly development: boolean;
-    readonly index?: string
+    readonly settingsPage?: string
 }
 
 declare const environment: Environment;

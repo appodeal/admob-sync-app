@@ -1,16 +1,15 @@
 {
   "appId": "com.appodeal.AdMob.desktop",
+  "productName": "AdMob Sync",
   "artifactName": "${name}-${version}-${os}-${arch}.${ext}",
   "directories": {
     "app": "./",
     "output": "release"
   },
-  "files": [
-    "build/**/*"
-  ],
+  "darkModeSupport": true,
   "mac": {
     "target": [
-      "zip"
+      "dmg"
     ]
   }
 }
