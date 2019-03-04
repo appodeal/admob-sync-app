@@ -1,0 +1,158 @@
+schema {
+    query: Queries
+    mutation: Mutations
+}
+
+type Queries {
+    # Return current user
+    currentUser: User
+
+    # Get detailed information about user
+    user(id: ID!): User!
+
+    criticalVersion: String!
+
+    error401: String
+}
+
+type Mutations {
+    setAdmobAccountCredentials(
+    email: String!,
+    clientId: String!,
+    clientSecret: String!,
+    accountId: String!
+): Boolean
+
+    startSync(
+    # syncSessionID (uuid)
+    id: ID
+): Boolean
+
+    endSync(
+    # syncSessionID (uuid)
+    id: ID
+): Boolean
+
+    syncApp(
+    id: ID,
+    syncSessionID: ID,
+    createdAdUnits: [CreatedAdUnit!],
+    updatedAdUnits: [UpdatedAdUnit!]
+): Boolean
+    signIn(email: String, password: String): Boolean
+    signOut: Boolean
+}
+
+input CreatedAdUnit {
+    code: String!
+    adType: AdType!
+    ecpmFloor: Float!
+    format: Format!
+}
+
+input UpdatedAdUnit {
+    id: ID!
+    code: String!
+    adType: AdType!
+    ecpmFloor: Float!
+    format: Format!
+}
+
+type User {
+    id: ID!
+    email: ID!
+    isDccEnabled: Boolean!
+    accounts: [AdmobAccount!]
+
+    account(
+    # Admob AccountID
+    id: ID!
+): AdmobAccount!
+}
+
+type AdmobAccount {
+    # Admob AccountID
+    id: ID!
+    email: String!
+
+    # strict sort order (by ID or created at)
+    apps(
+    #default 1
+    page: Int,
+
+    #default 100
+    pageSize: Int
+): AppCollectionPagination!
+}
+
+type AppCollectionPagination {
+    nodes: [App!]!
+    pageInfo: PageInfo!
+    totalCount: Int!
+}
+
+type PageInfo {
+    currentPage: Int!
+    totalPages: Int!
+    pageSize: Int!
+}
+
+enum Platform {
+    IOS
+    ANDROID
+    # do not search in store, do not link app with store!
+    AMAZON
+}
+
+type App {
+    id: ID!
+    name: String!
+    bundleId: String!
+    platform: Platform!
+    admobAppId: Int
+    bidFloors: [EcpmFloors!]!
+    adUnits: [AdUnit!]!
+}
+
+enum AdType {
+    # Interstitials
+    INTERSTITIAL
+
+    # Videos
+    VIDEO
+
+    # Banners
+    BANNER
+
+    # Native Ads
+    NATIVE
+
+    # MREC
+    MREC
+
+    # Rewarded Videos
+    REWARDED_VIDEO
+}
+
+type EcpmFloors {
+    adType: AdType!
+    ecpmFloor: [Float!]
+}
+
+enum Format {
+    UNDEFINED
+    IMAGE
+    RICHMEDIA
+    TEXT
+    IMAGE_AND_TEXT
+    SIMPLE_VIDEO
+    REWARDED
+}
+
+type AdUnit {
+    id: ID!
+    code: String!
+    adType: AdType!
+    ecpmFloor: Float!
+    format: Format!
+}

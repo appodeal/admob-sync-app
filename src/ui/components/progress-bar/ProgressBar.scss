@@ -1,0 +1,87 @@
+:root {
+  --progress-size: 350px;
+  --progress-weight: 20px;
+}
+
+.progress-bar {
+  width: var(--progress-size, 300px);
+  height: var(--progress-size, 300px);
+  position: relative;
+}
+
+.progress-bg {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: var(--progress-weight) solid #ccc;
+}
+
+.progress-info {
+  width: calc(100% - 2 * var(--progress-weight));
+  height: calc(100% - 2 * var(--progress-weight));
+  position: absolute;
+  top: var(--progress-weight);
+  left: var(--progress-weight);
+  display: flex;
+  flex-flow: column nowrap;
+  align-items: center;
+  justify-content: center;
+}
+
+.progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  --first: inherit;
+  --second: inherit;
+}
+
+.first {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+}
+.second {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 50%;
+  bottom: 0;
+  overflow: hidden;
+}
+
+.first::before {
+  content: "";
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: var(--progress-weight) solid red;
+  box-sizing: border-box;
+  border-left: none;
+  border-top-right-radius: calc(var(--progress-size) / 2);
+  border-bottom-right-radius: calc(var(--progress-size) / 2);
+  transform-origin: 0 50%;
+  transform: rotate(calc(var(--first, 0deg) - 180deg));
+  transition: transform .3s linear;
+}
+
+.second::before {
+  content: "";
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: var(--progress-weight) solid red;
+  box-sizing: border-box;
+  border-right: none;
+  border-top-left-radius: calc(var(--progress-size) / 2);
+  border-bottom-left-radius: calc(var(--progress-size) / 2);
+  transform-origin: 100% 50%;
+  transform: rotate(calc(var(--second, 0deg) - 180deg));
+  transition: transform .3s linear;
+}
