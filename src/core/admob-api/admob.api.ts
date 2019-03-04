@@ -6,14 +6,14 @@ import {AdmobAccount} from 'interfaces/appodeal.interfaces';
 import {AppTranslator} from 'lib/admob-app.translator';
 import {AdUnitTranslator} from 'lib/admop-ad-unit.translator';
 import {createScript, openWindow} from 'lib/common';
+import {deleteSession, getJsonFile, saveJsonFile} from 'lib/json-storage';
 import {getTranslator} from 'lib/translators/translator.helpers';
 import trim from 'lodash.trim';
 import uuid from 'uuid/v1';
 
 
 export class AdmobApiService {
-    private sessions = new Map<string, Session>();
-
+    private sessions: Map<string, string>;
 
     private host = trim(environment.services.ad_mob, '/');
     private xsrfToken: string;
@@ -29,7 +29,21 @@ export class AdmobApiService {
     }
 
     constructor (private errorFactory: ErrorFactoryService) {
+        getJsonFile('admob-sessions').then(sessions => {
+           this.sessions = sessions ? new Map(Object.entries(sessions)) : new Map();
+        });
+    }
 
+    private getSession (account: AdmobAccount): Session {
+        let sessionId = this.sessions.get(account.id);
+        return session.fromPartition(`persist:${sessionId}`);
+    }
+
+    private saveSessions (sessions: Map<string, string>) {
+        return saveJsonFile('admob-sessions', [...sessions.entries()].reduce((acc, [accId, sessionId]) => {
+            acc[accId] = sessionId;
+            return acc;
+        }, {}));
     }
 
     setXrfToken (xsrfToken) {
@@ -133,7 +147,8 @@ export class AdmobApiService {
 
     async signIn (): Promise<AdmobAccount> {
         let url = 'https://apps.admob.com/v2/home',
-            windowSession = session.fromPartition(`persist:${uuid()}`),
+            sessionId = uuid(),
+            windowSession = session.fromPartition(`persist:${sessionId}`),
             win = await openWindow(url, {
                 frame: true,
                 titleBarStyle: 'default',
@@ -174,7 +189,11 @@ export class AdmobApiService {
             };
         })) as AdmobAccount;
         win.close();
-        this.sessions.set(account.id, windowSession);
+        if (this.sessions.has(account.id)) {
+            await deleteSession(this.sessions.get(account.id));
+        }
+        this.sessions.set(account.id, sessionId);
+        await this.saveSessions(this.sessions);
         return account;
     }
 

@@ -2,6 +2,7 @@ import {AdmobApiService} from 'core/admob-api/admob.api';
 import {AppodealApiService} from 'core/appodeal/api/appodeal.api';
 import {BrowserWindow, ipcMain} from 'electron';
 import {AdmobAccount, AppodealAccount} from 'interfaces/appodeal.interfaces';
+import {getJsonFile, saveJsonFile} from 'lib/json-storage';
 import {action, observable, observe, set} from 'mobx';
 
 
@@ -20,6 +21,14 @@ export interface AppState {
 
 
 export class Store {
+    static getAdmobAccounts (): Promise<Array<AdmobAccount>> {
+        return getJsonFile('admob-accounts');
+    }
+
+    static saveAdmobAccounts (accounts: Array<AdmobAccount>): Promise<void> {
+        return saveJsonFile('admob-accounts', accounts);
+    }
+
     @observable readonly state: AppState = {
         appodealAccount: AppodealApiService.emptyAccount,
         adMobAccounts: [],
@@ -32,6 +41,10 @@ export class Store {
     ) {
         ipcMain.on('store', () => this.emitState());
         observe(this.state, () => this.emitState());
+
+        Store.getAdmobAccounts().then(accounts => {
+            set<AppState>(this.state, 'adMobAccounts', accounts || []);
+        });
     }
 
     private emitState () {
@@ -73,7 +86,16 @@ export class Store {
     adMobSignIn () {
         return this.adMobApi.signIn()
             .then(account => {
-                set<AppState>(this.state, 'adMobAccounts', [...this.state.adMobAccounts, account]);
+                let existingAccount = this.state.adMobAccounts.find(acc => acc.id === account.id),
+                    accounts;
+                if (existingAccount) {
+                    Object.assign(existingAccount, account);
+                    accounts = [...this.state.adMobAccounts];
+                } else {
+                    accounts = [...this.state.adMobAccounts, account];
+                }
+                set<AppState>(this.state, 'adMobAccounts', accounts);
+                Store.saveAdmobAccounts(accounts);
                 return account;
             });
     }
