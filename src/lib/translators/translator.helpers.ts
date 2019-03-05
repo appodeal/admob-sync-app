@@ -1,5 +1,5 @@
-import {RawTranslator} from './raw.translator';
-import {Translator} from './translator.type';
+import {RawTranslator} from './base-translators/raw.translator';
+import {Translator} from './base-translators/translator.type';
 
 
 /**

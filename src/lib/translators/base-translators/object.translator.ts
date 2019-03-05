@@ -1,4 +1,4 @@
-import {getTranslator, invertMap, normalizeMap, PropertyMap, ReversePropertyMap} from './translator.helpers';
+import {getTranslator, invertMap, normalizeMap, PropertyMap, ReversePropertyMap} from '../translator.helpers';
 import {ITranslator} from './translator.interface';
 import {Translator} from './translator.type';
 

@@ -1,5 +1,5 @@
-import {AdUnitTranslator} from 'lib/admop-ad-unit.translator';
-import {getTranslator} from 'lib/translators/translator.helpers';
+import {AdUnitTranslator} from './admop-ad-unit.translator';
+import {getTranslator} from './translator.helpers';
 
 
 describe('AdUnitTranslator', () => {

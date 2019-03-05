@@ -1,12 +1,14 @@
 import {ErrorFactoryService} from 'core/error-factory/error-factory.service';
 import {InternalError} from 'core/error-factory/errors/internal-error';
 import {session, Session} from 'electron';
-import {AdMobAdUnit, AdMobApp} from 'interfaces/admob.interfaces';
+
 import {AdmobAccount} from 'interfaces/appodeal.interfaces';
-import {AppTranslator} from 'lib/admob-app.translator';
-import {AdUnitTranslator} from 'lib/admop-ad-unit.translator';
 import {createScript, openWindow} from 'lib/common';
 import {deleteSession, getJsonFile, saveJsonFile} from 'lib/json-storage';
+import {AppTranslator} from 'lib/translators/admob-app.translator';
+import {AdUnitTranslator} from 'lib/translators/admop-ad-unit.translator';
+import {AdMobAdUnit} from 'lib/translators/interfaces/admob-ad-unit.interface';
+import {AdMobApp} from 'lib/translators/interfaces/admob-app.interface';
 import {getTranslator} from 'lib/translators/translator.helpers';
 import trim from 'lodash.trim';
 import uuid from 'uuid/v1';
@@ -30,7 +32,7 @@ export class AdmobApiService {
 
     constructor (private errorFactory: ErrorFactoryService) {
         getJsonFile('admob-sessions').then(sessions => {
-           this.sessions = sessions ? new Map(Object.entries(sessions)) : new Map();
+            this.sessions = sessions ? new Map(Object.entries(sessions)) : new Map();
         });
     }
 
