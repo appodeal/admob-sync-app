@@ -36,26 +36,18 @@ type Mutations {
     syncApp(
     id: ID,
     syncSessionID: ID,
-    createdAdUnits: [CreatedAdUnit!],
-    updatedAdUnits: [UpdatedAdUnit!]
+    admobAppId: ID!
+    adUnits: [AdUnit!]!
 ): Boolean
-    signIn(email: String, password: String): Boolean
+
+    signIn(email: String!, password: String!): Session
+    refreshAccessToken(refreshToken: String!): Session
     signOut: Boolean
 }
 
-input CreatedAdUnit {
-    code: String!
-    adType: AdType!
-    ecpmFloor: Float!
-    format: Format!
-}
-
-input UpdatedAdUnit {
-    id: ID!
-    code: String!
-    adType: AdType!
-    ecpmFloor: Float!
-    format: Format!
+type Session {
+    accessToken: String!
+    refreshToken: String!
 }
 
 type User {
@@ -109,9 +101,9 @@ type App {
     name: String!
     bundleId: String!
     platform: Platform!
-    admobAppId: Int
-    bidFloors: [EcpmFloors!]!
-    adUnits: [AdUnit!]!
+    isDeleted: Boolean!
+    admobAppId: ID
+    ecpmFloors: [EcpmFloors!]!
 }
 
 enum AdType {
@@ -136,6 +128,7 @@ enum AdType {
 
 type EcpmFloors {
     adType: AdType!
+    format: Format!
     ecpmFloor: [Float!]
 }
 
@@ -149,8 +142,7 @@ enum Format {
     REWARDED
 }
 
-type AdUnit {
-    id: ID!
+input AdUnit {
     code: String!
     adType: AdType!
     ecpmFloor: Float!

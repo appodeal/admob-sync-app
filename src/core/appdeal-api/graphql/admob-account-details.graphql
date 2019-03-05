@@ -1,0 +1,28 @@
+query currentUser ($id: ID!, $page: Int, $pageSize: Int) {
+    currentUser {
+        id
+        account(id: $id) {
+            apps(page: $page, pageSize: $pageSize ) {
+                nodes {
+                    id
+                    name
+                    platform
+                    bundleId
+                    admobAppId
+                    isDeleted
+                    ecpmFloors {
+                        adType
+                        format
+                        ecpmFloor
+                    }
+                }
+                pageInfo {
+                    currentPage
+                    totalPages
+                    pageSize
+                }
+                totalCount
+            }
+        }
+    }
+}

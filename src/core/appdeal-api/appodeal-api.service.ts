@@ -3,20 +3,28 @@ import ApolloClient, {MutationOptions, OperationVariables, QueryOptions} from 'a
 import {ApolloLink, FetchResult, Observable} from 'apollo-link';
 import {BatchHttpLink} from 'apollo-link-batch-http';
 import {ErrorResponse, onError} from 'apollo-link-error';
-import {ErrorFactoryService} from 'core/error-factory/error-factory.service';
 import {AuthorizationError} from 'core/error-factory/errors/authorization.error';
-import {InternalError} from 'core/error-factory/errors/internal-error';
 import {session} from 'electron';
 import gql from 'graphql-tag';
 import {AppodealAccount} from 'interfaces/appodeal.interfaces';
 import {createFetcher} from 'lib/fetch';
-import criticalVersionQuery from './critical-version.query.graphql';
-import currentUserQuery from './current-user.query.graphql';
-import signInMutation from './sign-in.mutation.graphql';
-import signOutMutation from './sign-out.mutation.graphql';
+import {AdMobApp} from 'lib/translators/interfaces/admob-app.interface';
+import {ErrorFactoryService} from '../error-factory/error-factory.service';
+import {InternalError} from '../error-factory/errors/internal-error';
+import adMobAccountQuery from './graphql/admob-account-details.graphql';
+import criticalVersionQuery from './graphql/critical-version.query.graphql';
+import currentUserQuery from './graphql/current-user.query.graphql';
+import endSync from './graphql/endSync.graphql';
+import signInMutation from './graphql/sign-in.mutation.graphql';
+import signOutMutation from './graphql/sign-out.mutation.graphql';
+import startSync from './graphql/startSync.graphql';
+import syncApp from './graphql/syncApp.graphql';
+import {AdMobAccountDetails} from './interfaces/admob-account.interface';
+import {AppodealAdUnit, AppodealApp} from './interfaces/appodeal-app.interface';
 
 
 export class AppodealApiService {
+
     static emptyAccount: AppodealAccount = {
         id: null,
         email: null,
@@ -39,9 +47,7 @@ export class AppodealApiService {
 
     };
 
-    constructor (
-        errorFactory: ErrorFactoryService
-    ) {
+    constructor (errorFactory: ErrorFactoryService) {
         const errorLink = onError((errorResponse: ErrorResponse) => {
             const error = errorFactory.create(errorResponse);
             this.handleError(error);
@@ -114,11 +120,45 @@ export class AppodealApiService {
             });
     }
 
-    fetchApps (admobEmail: string) {
-
+    fetchApps (adMobAccountId: string, page = 1, pageSize = 100): Promise<AdMobAccountDetails> {
+        return this.query<any>({
+            query: adMobAccountQuery,
+            variables: {
+                id: adMobAccountId,
+                page,
+                pageSize
+            }
+        }).then(result => <AdMobAccountDetails>(result.currentUser.account));
     }
 
-    //
+    reportSyncStart (syncId: string) {
+        return this.mutate({
+            mutation: startSync,
+            variables: {
+                id: syncId
+            }
+        });
+    }
 
+    reportSyncEnd (syncId: string) {
+        return this.mutate({
+            mutation: endSync,
+            variables: {
+                id: syncId
+            }
+        });
+    }
+
+    reportAppSynced (app: AppodealApp, syncId: string, adMobApp: AdMobApp, adUnits: AppodealAdUnit[]) {
+        return this.mutate({
+            mutation: syncApp,
+            variables: {
+                id: app.id,
+                syncSessionID: syncId,
+                admobAppId: adMobApp.appId,
+                adUnits: adUnits
+            }
+        });
+    }
 
 }

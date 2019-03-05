@@ -1,0 +1,3 @@
+mutation startSync ($id: ID!) {
+    startSync(id: $id)
+}

@@ -1,5 +1,5 @@
 import {AdmobApiService} from 'core/admob-api/admob.api';
-import {AppodealApiService} from 'core/appodeal/api/appodeal.api';
+import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
 import {BrowserWindow, ipcMain} from 'electron';
 import {AdmobAccount, AppodealAccount} from 'interfaces/appodeal.interfaces';
 import {getJsonFile, saveJsonFile} from 'lib/json-storage';

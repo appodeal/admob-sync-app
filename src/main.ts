@@ -1,11 +1,12 @@
 import {AccountsConnector} from 'core/accounts-connector';
-import {AppodealApiService} from 'core/appodeal/api/appodeal.api';
 import {AdmobApiService} from 'core/admob-api/admob.api';
+import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
+
 import {ErrorFactoryService} from 'core/error-factory/error-factory.service';
 import {Store} from 'core/store';
-import {app, BrowserWindow, Menu, Tray} from 'electron';
+import {SyncConnector} from 'core/sync-connector';
+import {app, Menu, Tray} from 'electron';
 import {showAboutDialog} from 'lib/about';
-import {openWindow} from 'lib/common';
 import {getTrayIcon} from 'lib/icon';
 import {openSettingsWindow} from 'lib/settings';
 import {initThemeSwitcher} from 'lib/theme';
@@ -44,12 +45,40 @@ app.on('ready', () => {
             new AppodealApiService(errorFactory),
             new AdmobApiService(errorFactory)
         ),
-        accountsConnector = new AccountsConnector(store);
+        accountsConnector = new AccountsConnector(store),
+        syncConnector = new SyncConnector(store);
 
     store.appodealFetchUser().then(account => {
         if (account === AppodealApiService.emptyAccount) {
             openSettingsWindow();
         }
-    });
+    }).catch(e => console.log(e));
 
+
+    const cleanUpOnExit = async function () {
+        await accountsConnector.destory();
+        await syncConnector.destory();
+    };
+
+
+    process.on('SIGTERM', () => app.quit());
+    process.on('SIGINT', () => app.quit());
+    let cleanUpFinished = false;
+    app.on('before-quit', async (e) => {
+        console.log('before-quit', cleanUpFinished);
+        if (cleanUpFinished) {
+            return;
+        }
+        try {
+            e.preventDefault();
+            await cleanUpOnExit();
+        } finally {
+            cleanUpFinished = true;
+            app.quit();
+        }
+    });
+});
+
+process.on('uncaughtException', function (err) {
+    console.error('Caught exception: ', err);
 });

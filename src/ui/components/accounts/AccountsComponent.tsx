@@ -6,6 +6,7 @@ import {classNames} from 'lib/dom';
 import React, {FormEvent} from 'react';
 import style from './Accounts.scss';
 
+
 export interface AccountsComponentProps {
     appodealAccount: AppodealAccount
     adMobAccounts: Array<AdmobAccount>
@@ -34,7 +35,7 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
         let adMobAccount = this.props.adMobAccounts.find(acc => acc.email === account.email);
         if (adMobAccount) {
             this.selectAccount(adMobAccount);
-        } else if(account.email === this.props.appodealAccount.email) {
+        } else if (account.email === this.props.appodealAccount.email) {
             this.selectAccount(this.props.appodealAccount);
         }
     }
@@ -59,6 +60,10 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
     onAddAccount () {
         sendToMain('accounts', action(ActionTypes.adMobAddAccount))
             .then(account => this.updateSelectedAccount(account as UserAccount));
+    }
+
+    runSync () {
+        sendToMain('accounts', action(ActionTypes.runSync, this.state.selectedAccount));
     }
 
     onRemoveAccount () {
@@ -92,7 +97,7 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
             </form>;
         } else {
             return <div>
-
+                <button type="button" onClick={() => this.runSync()}>Run Sync</button>
             </div>;
         }
     }

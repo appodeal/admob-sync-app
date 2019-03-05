@@ -23,4 +23,6 @@ export class AccountsConnector {
             return account;
         }
     }
+
+    destory () {}
 }
