@@ -33,6 +33,33 @@
       "target": "portable"
     }
   },
+  "jest": {
+    "clearMocks": true,
+    "coverageDirectory": "coverage",
+    "collectCoverageFrom": [
+      "./src/**/*.{ts,tsx}"
+    ],
+    "globals": {
+      "ts-jest": {
+        "tsConfig": "tsconfig.json"
+      }
+    },
+    "moduleFileExtensions": [
+      "js",
+      "ts",
+      "tsx"
+    ],
+    "moduleDirectories": [
+      "node_modules",
+      "src"
+    ],
+    "testMatch": [
+      "**/*.spec.+(ts|tsx|js)"
+    ],
+    "transform": {
+      "^.+\\.(ts|tsx)$": "ts-jest"
+    }
+  },
   "devDependencies": {
     "@brigad/ideal-image-loader": "^1.1.0",
     "@types/graphql": "^14.0.7",
