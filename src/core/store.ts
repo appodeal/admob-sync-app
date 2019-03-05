@@ -86,17 +86,29 @@ export class Store {
     adMobSignIn () {
         return this.adMobApi.signIn()
             .then(account => {
-                let existingAccount = this.state.adMobAccounts.find(acc => acc.id === account.id),
-                    accounts;
-                if (existingAccount) {
-                    Object.assign(existingAccount, account);
-                    accounts = [...this.state.adMobAccounts];
-                } else {
-                    accounts = [...this.state.adMobAccounts, account];
+                if (account) {
+                    let existingAccount = this.state.adMobAccounts.find(acc => acc.id === account.id),
+                        accounts;
+                    if (existingAccount) {
+                        Object.assign(existingAccount, account);
+                        accounts = [...this.state.adMobAccounts];
+                    } else {
+                        accounts = [...this.state.adMobAccounts, account];
+                    }
+                    set<AppState>(this.state, 'adMobAccounts', accounts);
+                    Store.saveAdmobAccounts(accounts);
                 }
-                set<AppState>(this.state, 'adMobAccounts', accounts);
-                Store.saveAdmobAccounts(accounts);
                 return account;
+            });
+    }
+
+    @action
+    adMobRemoveAccount (accountId: string) {
+        return this.adMobApi.removeAccount(accountId)
+            .then(() => {
+                let accounts = this.state.adMobAccounts.filter(acc => acc.id !== accountId);
+                set<AppState>(this.state, 'adMobAccounts', accounts);
+                return Store.saveAdmobAccounts(accounts);
             });
     }
 }

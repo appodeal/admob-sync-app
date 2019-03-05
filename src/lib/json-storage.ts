@@ -1,5 +1,6 @@
 import {app} from 'electron';
 import fs from 'fs';
+import rimraf from 'rimraf';
 import path from 'path';
 
 
@@ -30,7 +31,7 @@ export function saveJsonFile (fileName: string, data: any): Promise<void> {
 
 export function deleteSession (sessionId: string): Promise<void> {
     return new Promise((resolve, reject) => {
-        fs.rmdir(path.resolve(app.getPath('userData'), `./Partitions/${sessionId}`), (err) => {
+        rimraf(path.resolve(app.getPath('userData'), `./Partitions/${sessionId}`), (err) => {
             if (err) {
                 reject(err);
             } else {

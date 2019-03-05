@@ -1,3 +1,10 @@
+import {
+    closeAdMobSignInWindow,
+    createAdmobSession,
+    extractAccountInfo,
+    openAdMobSignInWindow,
+    waitForSignIn
+} from 'core/admob-api/admob-signin.helper';
 import {ErrorFactoryService} from 'core/error-factory/error-factory.service';
 import {InternalError} from 'core/error-factory/errors/internal-error';
 import {session, Session} from 'electron';
@@ -5,11 +12,9 @@ import {AdMobAdUnit, AdMobApp} from 'interfaces/admob.interfaces';
 import {AdmobAccount} from 'interfaces/appodeal.interfaces';
 import {AppTranslator} from 'lib/admob-app.translator';
 import {AdUnitTranslator} from 'lib/admop-ad-unit.translator';
-import {createScript, openWindow} from 'lib/common';
 import {deleteSession, getJsonFile, saveJsonFile} from 'lib/json-storage';
 import {getTranslator} from 'lib/translators/translator.helpers';
 import trim from 'lodash.trim';
-import uuid from 'uuid/v1';
 
 
 export class AdmobApiService {
@@ -30,7 +35,7 @@ export class AdmobApiService {
 
     constructor (private errorFactory: ErrorFactoryService) {
         getJsonFile('admob-sessions').then(sessions => {
-           this.sessions = sessions ? new Map(Object.entries(sessions)) : new Map();
+            this.sessions = sessions ? new Map(Object.entries(sessions)) : new Map();
         });
     }
 
@@ -146,55 +151,42 @@ export class AdmobApiService {
     }
 
     async signIn (): Promise<AdmobAccount> {
-        let url = 'https://apps.admob.com/v2/home',
-            sessionId = uuid(),
-            windowSession = session.fromPartition(`persist:${sessionId}`),
-            win = await openWindow(url, {
-                frame: true,
-                titleBarStyle: 'default',
-                minHeight: 700,
-                height: 700,
-                webPreferences: {
-                    session: windowSession
+        let {id, session} = createAdmobSession();
+        let window = await openAdMobSignInWindow(session),
+            addedAccount: AdmobAccount;
+        waitForSignIn(window)
+            .then(window => extractAccountInfo(window))
+            .then(({account, window}) => {
+                if (account) {
+                    if (this.sessions.has(account.id)) {
+                        deleteSession(this.sessions.get(account.id));
+                    }
+                    this.sessions.set(account.id, id);
+                    this.saveSessions(this.sessions);
                 }
+                addedAccount = account;
+                window.close();
             });
-        await new Promise(resolve => {
-            win.webContents.on('did-navigate', (_, address) => {
-                if (new RegExp('^https://apps.admob.com/v2/home').test(address)) {
-                    win.webContents.removeAllListeners('did-navigate');
-                    resolve();
+        return new Promise(resolve => {
+            window.once('close', () => {
+                let sessionIds = [...this.sessions.values()];
+                if (!sessionIds.includes(id)) {
+                    deleteSession(id);
                 }
+                resolve(addedAccount || null);
             });
         });
-        let account = await win.webContents.executeJavaScript(createScript(() => {
-            let getXsrf = () => {
-                    return window['$acx'].xsrfToken;
-                },
-                getId = () => {
-                    return /pub-\d+/.exec(document.documentElement.innerHTML)[0];
-                },
-                getEmail = () => {
-                    try {
-                        let parsedAmrpd = JSON.parse(window['amrpd']),
-                            userInfo = parsedAmrpd[32][3];
-                        return userInfo[1];
-                    } catch (e) {
-                        return '';
-                    }
-                };
-            return {
-                id: getId(),
-                email: getEmail(),
-                xsrfToken: getXsrf()
-            };
-        })) as AdmobAccount;
-        win.close();
-        if (this.sessions.has(account.id)) {
-            await deleteSession(this.sessions.get(account.id));
+    }
+
+    async removeAccount (accountId: string) {
+        let sessionId = this.sessions.get(accountId);
+        if (sessionId) {
+            this.sessions.delete(accountId);
+            await Promise.all([
+                deleteSession(sessionId),
+                this.saveSessions(this.sessions)
+            ]);
         }
-        this.sessions.set(account.id, sessionId);
-        await this.saveSessions(this.sessions);
-        return account;
     }
 
 }

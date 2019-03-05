@@ -4,6 +4,7 @@ import {action, ActionTypes} from 'lib/actions';
 import {sendToMain} from 'lib/common';
 import {classNames} from 'lib/dom';
 import React, {FormEvent} from 'react';
+import {remote} from 'electron';
 import style from './Accounts.scss';
 
 export interface AccountsComponentProps {
@@ -31,11 +32,13 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
     }
 
     private updateSelectedAccount (account: UserAccount) {
-        let adMobAccount = this.props.adMobAccounts.find(acc => acc.email === account.email);
-        if (adMobAccount) {
-            this.selectAccount(adMobAccount);
-        } else if(account.email === this.props.appodealAccount.email) {
-            this.selectAccount(this.props.appodealAccount);
+        if (account) {
+            let adMobAccount = this.props.adMobAccounts.find(acc => acc.email === account.email);
+            if (adMobAccount) {
+                this.selectAccount(adMobAccount);
+            } else if (account.email === this.props.appodealAccount.email) {
+                this.selectAccount(this.props.appodealAccount);
+            }
         }
     }
 
@@ -58,11 +61,14 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
 
     onAddAccount () {
         sendToMain('accounts', action(ActionTypes.adMobAddAccount))
-            .then(account => this.updateSelectedAccount(account as UserAccount));
+            .then(account => this.updateSelectedAccount(account as UserAccount))
+            .then(() => {
+                remote.getCurrentWindow().focus();
+            });
     }
 
-    onRemoveAccount () {
-
+    onRemoveAccount (account: UserAccount) {
+        sendToMain('accounts', action(ActionTypes.adMobRemoveAccount, {accountId: account.id}));
     }
 
     renderAccountForm () {
@@ -126,7 +132,7 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
                     <button type="button" className={style.add} onClick={() => this.onAddAccount()}></button>
                     <button type="button"
                             disabled={this.state.selectedAccount === this.props.appodealAccount}
-                            onClick={() => this.onRemoveAccount()}
+                            onClick={() => this.onRemoveAccount(this.state.selectedAccount)}
                     ></button>
                 </div>
                 <div className={style.accountDetails}>
