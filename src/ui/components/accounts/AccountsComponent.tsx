@@ -1,4 +1,5 @@
-import {AdmobAccount, AppodealAccount} from 'interfaces/appodeal.interfaces';
+import {AppodealAccount} from 'core/appdeal-api/interfaces/appodeal.account.interface';
+import {AdmobAccount} from 'interfaces/appodeal.interfaces';
 import {UserAccount} from 'interfaces/common.interfaces';
 import {action, ActionTypes} from 'lib/actions';
 import {sendToMain} from 'lib/common';
@@ -66,6 +67,10 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
         sendToMain('accounts', action(ActionTypes.runSync, this.state.selectedAccount));
     }
 
+    openAdmob () {
+        sendToMain('accounts', action(ActionTypes.openAdmobPage, this.state.selectedAccount));
+    }
+
     onRemoveAccount () {
 
     }
@@ -98,6 +103,7 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
         } else {
             return <div>
                 <button type="button" onClick={() => this.runSync()}>Run Sync</button>
+                <button type="button" onClick={() => this.openAdmob()}>Open Admob</button>
             </div>;
         }
     }

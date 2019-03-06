@@ -1,7 +1,8 @@
-import {AdmobApiService} from 'core/admob-api/admob.api';
+import {AdmobSignInService} from 'core/admob/sign-in/admob-sign-in';
 import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
+import {AppodealAccount} from 'core/appdeal-api/interfaces/appodeal.account.interface';
 import {BrowserWindow, ipcMain} from 'electron';
-import {AdmobAccount, AppodealAccount} from 'interfaces/appodeal.interfaces';
+import {AdmobAccount} from 'interfaces/appodeal.interfaces';
 import {getJsonFile, saveJsonFile} from 'lib/json-storage';
 import {action, observable, observe, set} from 'mobx';
 
@@ -36,8 +37,7 @@ export class Store {
     };
 
     constructor (
-        private appodealApi: AppodealApiService,
-        private adMobApi: AdmobApiService
+        private appodealApi: AppodealApiService
     ) {
         ipcMain.on('store', () => this.emitState());
         observe(this.state, () => this.emitState());
@@ -84,7 +84,7 @@ export class Store {
 
     @action
     adMobSignIn () {
-        return this.adMobApi.signIn()
+        return AdmobSignInService.signIn()
             .then(account => {
                 let existingAccount = this.state.adMobAccounts.find(acc => acc.id === account.id),
                     accounts;

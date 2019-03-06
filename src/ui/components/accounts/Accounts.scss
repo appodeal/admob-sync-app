@@ -145,5 +145,8 @@
         color: #ff5d5d;
       }
     }
+    button + button {
+      margin-left: 10px;
+    }
   }
 }

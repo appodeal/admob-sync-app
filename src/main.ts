@@ -1,5 +1,4 @@
 import {AccountsConnector} from 'core/accounts-connector';
-import {AdmobApiService} from 'core/admob-api/admob.api';
 import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
 
 import {ErrorFactoryService} from 'core/error-factory/error-factory.service';
@@ -41,12 +40,12 @@ app.on('ready', () => {
 
 
     let errorFactory = new ErrorFactoryService(),
+        appodealApi = new AppodealApiService(errorFactory),
         store = new Store(
-            new AppodealApiService(errorFactory),
-            new AdmobApiService(errorFactory)
+            appodealApi
         ),
         accountsConnector = new AccountsConnector(store),
-        syncConnector = new SyncConnector(store);
+        syncConnector = new SyncConnector(store, appodealApi);
 
     store.appodealFetchUser().then(account => {
         if (account === AppodealApiService.emptyAccount) {

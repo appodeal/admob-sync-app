@@ -3,10 +3,10 @@ import ApolloClient, {MutationOptions, OperationVariables, QueryOptions} from 'a
 import {ApolloLink, FetchResult, Observable} from 'apollo-link';
 import {BatchHttpLink} from 'apollo-link-batch-http';
 import {ErrorResponse, onError} from 'apollo-link-error';
+import {AppodealAccount} from 'core/appdeal-api/interfaces/appodeal.account.interface';
 import {AuthorizationError} from 'core/error-factory/errors/authorization.error';
 import {session} from 'electron';
 import gql from 'graphql-tag';
-import {AppodealAccount} from 'interfaces/appodeal.interfaces';
 import {createFetcher} from 'lib/fetch';
 import {AdMobApp} from 'lib/translators/interfaces/admob-app.interface';
 import {ErrorFactoryService} from '../error-factory/error-factory.service';

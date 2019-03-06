@@ -25,10 +25,9 @@ export function createFetcher (session: Session): Fetcher {
                             .on('end', () => {
                                 response.removeAllListeners();
                                 let buffer = Buffer.concat(chunks),
-                                    text = buffer.toString(),
-                                    json = JSON.parse(text);
+                                    text = buffer.toString();
                                 resolve({
-                                    json: () => Promise.resolve(json),
+                                    json: () => Promise.resolve(JSON.parse(text)),
                                     text: () => Promise.resolve(text)
                                 });
                             });

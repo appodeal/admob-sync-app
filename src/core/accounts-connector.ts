@@ -1,7 +1,9 @@
+import {AdmobSignInService} from 'core/admob/sign-in/admob-sign-in';
 import {Store} from 'core/store';
 import {Action, ActionTypes} from 'lib/actions';
 import {onActionFromRenderer} from 'lib/common';
 import {openSettingsWindow} from 'lib/settings';
+import openAdmobWindow = AdmobSignInService.openAdmobWindow;
 
 
 export class AccountsConnector {
@@ -21,6 +23,9 @@ export class AccountsConnector {
             let account = this.store.adMobSignIn();
             openSettingsWindow();
             return account;
+        case ActionTypes.openAdmobPage:
+            openAdmobWindow(payload);
+            return;
         }
     }
 
