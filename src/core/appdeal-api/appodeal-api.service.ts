@@ -3,10 +3,10 @@ import ApolloClient, {MutationOptions, OperationVariables, QueryOptions} from 'a
 import {ApolloLink, FetchResult, Observable} from 'apollo-link';
 import {BatchHttpLink} from 'apollo-link-batch-http';
 import {ErrorResponse, onError} from 'apollo-link-error';
+import {AuthContext} from 'core/appdeal-api/AuthContext';
 import {AppodealAccount} from 'core/appdeal-api/interfaces/appodeal.account.interface';
 import {AuthorizationError} from 'core/error-factory/errors/authorization.error';
 import {session} from 'electron';
-import gql from 'graphql-tag';
 import {createFetcher} from 'lib/fetch';
 import {AdMobApp} from 'lib/translators/interfaces/admob-app.interface';
 import {ErrorFactoryService} from '../error-factory/error-factory.service';
@@ -15,12 +15,36 @@ import adMobAccountQuery from './graphql/admob-account-details.graphql';
 import criticalVersionQuery from './graphql/critical-version.query.graphql';
 import currentUserQuery from './graphql/current-user.query.graphql';
 import endSync from './graphql/endSync.graphql';
+import refreshTokenMutation from './graphql/refresh-token-mutation.graphql';
 import signInMutation from './graphql/sign-in.mutation.graphql';
 import signOutMutation from './graphql/sign-out.mutation.graphql';
 import startSync from './graphql/startSync.graphql';
 import syncApp from './graphql/syncApp.graphql';
 import {AdMobAccountDetails} from './interfaces/admob-account.interface';
 import {AppodealAdUnit, AppodealApp} from './interfaces/appodeal-app.interface';
+
+
+const pluck = (object, ...props) => {
+    let prop;
+    let value = object;
+    do {
+        prop = props.shift();
+        value = value[prop];
+    } while (props.length && value !== undefined);
+    return value;
+};
+
+const pluckParams = (dataAttribute) => ['data', dataAttribute].flat(2).filter(v => v);
+
+
+export interface ApiQueryOptions<V> extends QueryOptions<V> {
+    dataAttribute?: string | string[];
+}
+
+
+export interface ApiMutationOptions<T, V> extends MutationOptions<T, V> {
+    dataAttribute?: string | string[];
+}
 
 
 export class AppodealApiService {
@@ -36,15 +60,24 @@ export class AppodealApiService {
     private fetcher = createFetcher(this.session);
 
     public onError: (e: InternalError) => void;
+    authContext: AuthContext;
 
 
-    public query<T, TVariables = OperationVariables> (options: QueryOptions<TVariables>): Promise<T> {
-        return this.client.query<T, TVariables>(options).then(result => result.data);
+    public query<T, TVariables = OperationVariables> (options: ApiQueryOptions<TVariables>): Promise<T> {
+        return this.client.query<T, TVariables>(<QueryOptions<TVariables>>options)
+            .then(result => pluck(result, ...pluckParams(options.dataAttribute)))
+            .catch(apolloError => {
+                throw <InternalError>apolloError.networkError;
+            });
     }
 
-    public mutate<T, TVariables = OperationVariables> (options: MutationOptions<T, TVariables>): Promise<T> {
-        return this.client.mutate(options).then(result => result.data);
+    public mutate<T, TVariables = OperationVariables> (options: ApiMutationOptions<T, TVariables>): Promise<T> {
 
+        return this.client.mutate(<MutationOptions<T, TVariables>>options)
+            .then(result => pluck(result, ...pluckParams(options.dataAttribute)))
+            .catch(apolloError => {
+                throw <InternalError>apolloError.networkError;
+            });
     };
 
     constructor (errorFactory: ErrorFactoryService) {
@@ -55,6 +88,10 @@ export class AppodealApiService {
         });
 
         const defaultApolloLink = new BatchHttpLink({uri: environment.services.appodeal, fetch: this.fetcher});
+
+        this.authContext = new AuthContext(this);
+
+
         this.client = new ApolloClient({
             defaultOptions: {
                 query: {
@@ -63,6 +100,7 @@ export class AppodealApiService {
             },
             link: ApolloLink.from([
                 errorLink,
+                this.authContext.createLink(),
                 defaultApolloLink
             ]),
             cache: new InMemoryCache()
@@ -70,17 +108,20 @@ export class AppodealApiService {
 
     }
 
+    private initialized = false;
+
+    async init (): Promise<any> {
+        if (this.initialized) {
+            return;
+        }
+
+        return this.authContext.init().then(() => this.initialized = true);
+    }
+
     handleError (e: InternalError) {
         if (this.onError && e) {
             this.onError(e);
         }
-    }
-
-    // for test purpose
-    error401 (): Promise<string> {
-        return this.query<{ criticalVersion: string }>({
-            query: gql`query {error401}`
-        }).then(result => result.criticalVersion);
     }
 
     getCriticalPluginVersion (): Promise<string> {
@@ -95,13 +136,31 @@ export class AppodealApiService {
             variables: {
                 email,
                 password
-            }
-        });
+            },
+            dataAttribute: ['signIn']
+        }).then(this.authContext.storeSessionFromResponse)
+            .catch(e => {
+                this.authContext.invalidateAccessToken();
+                throw e;
+            });
+    }
+
+    refreshAccessToken (refreshToken) {
+        return this.mutate<any>({
+            mutation: refreshTokenMutation,
+            variables: {
+                refreshToken
+            },
+            dataAttribute: ['refreshAccessToken']
+        }).then(this.authContext.storeSessionFromResponse);
     }
 
     signOut () {
         return this.mutate({
             mutation: signOutMutation
+        }).then(res => {
+            this.authContext.invalidateAccessToken();
+            return res;
         });
     }
 
@@ -114,6 +173,7 @@ export class AppodealApiService {
             })
             .catch(err => {
                 if (err instanceof AuthorizationError) {
+                    this.authContext.invalidateAccessToken();
                     return AppodealApiService.emptyAccount;
                 }
                 throw err;

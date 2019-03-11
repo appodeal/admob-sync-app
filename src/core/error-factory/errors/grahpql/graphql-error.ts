@@ -3,11 +3,12 @@ import {InternalError} from '../internal-error';
 
 
 enum GraphQLErrorType {
-    Unauthorized = 'unauthorized'
+    Unauthorized = 'unauthorized',
+    InvaliToken = 'invalid_token'
 }
 
 export const isCriticalGraphQLError = x => !x.path;
-export const isAuthorizationGraphQLError = error => error.extensions && error.extensions.errorType === GraphQLErrorType.Unauthorized;
+export const isAuthorizationGraphQLError = error => error.extensions && [GraphQLErrorType.Unauthorized, GraphQLErrorType.InvaliToken].includes(error.extensions.errorType)
 
 export class GraphQLError extends InternalError {
 

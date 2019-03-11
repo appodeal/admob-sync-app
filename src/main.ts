@@ -47,11 +47,17 @@ app.on('ready', () => {
         accountsConnector = new AccountsConnector(store),
         syncConnector = new SyncConnector(store, appodealApi);
 
-    store.appodealFetchUser().then(account => {
-        if (account === AppodealApiService.emptyAccount) {
-            openSettingsWindow();
-        }
-    }).catch(e => console.log(e));
+
+    appodealApi.init()
+        .then(() => store.appodealFetchUser())
+        .then(account => {
+            if (account === AppodealApiService.emptyAccount) {
+                openSettingsWindow();
+            }
+        }).catch(e => {
+        console.error('FAILED TO FETCH CURRENT USER');
+        console.log(e);
+    });
 
 
     const cleanUpOnExit = async function () {
