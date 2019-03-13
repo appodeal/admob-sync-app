@@ -23,11 +23,13 @@ export class AccountsConnector {
             let account = this.store.adMobSignIn();
             openSettingsWindow();
             return account;
+        case ActionTypes.selectAdmobAccount:
+            return this.store.loadSelectedAdMobAccountLogs(payload);
         case ActionTypes.openAdmobPage:
             openAdmobWindow(payload);
             return;
         }
     }
 
-    destory () {}
+    destroy () {}
 }

@@ -1,7 +1,10 @@
+require('source-map-support').install();
+
 import {AccountsConnector} from 'core/accounts-connector';
 import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
 
 import {ErrorFactoryService} from 'core/error-factory/error-factory.service';
+import {LogsConnector} from 'core/logs-connector';
 import {Store} from 'core/store';
 import {SyncConnector} from 'core/sync-connector';
 import {app, Menu, Tray} from 'electron';
@@ -11,6 +14,7 @@ import {openSettingsWindow} from 'lib/settings';
 import {initThemeSwitcher} from 'lib/theme';
 
 
+console.debug('electron versions', process.versions);
 let tray: Tray;
 
 
@@ -45,18 +49,26 @@ app.on('ready', () => {
             appodealApi
         ),
         accountsConnector = new AccountsConnector(store),
+        logsConnector = new LogsConnector(store, appodealApi),
         syncConnector = new SyncConnector(store, appodealApi);
 
-    store.appodealFetchUser().then(account => {
-        if (account === AppodealApiService.emptyAccount) {
-            openSettingsWindow();
-        }
-    }).catch(e => console.log(e));
+
+    appodealApi.init()
+        .then(() => store.appodealFetchUser())
+        .then(account => {
+            if (account === AppodealApiService.emptyAccount) {
+                openSettingsWindow();
+            }
+        }).catch(e => {
+        console.error('FAILED TO FETCH CURRENT USER');
+        console.log(e);
+    });
 
 
     const cleanUpOnExit = async function () {
-        await accountsConnector.destory();
-        await syncConnector.destory();
+        await accountsConnector.destroy();
+        await syncConnector.destroy();
+        await logsConnector.destroy();
     };
 
 
