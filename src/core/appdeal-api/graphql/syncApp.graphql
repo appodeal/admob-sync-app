@@ -1,3 +1,0 @@
-mutation syncApp ($id: ID!, $syncSessionID: ID, $admobAppId: ID!, $adUnits: [AdUnit!]!) {
-    syncApp(id: $id, syncSessionID: $syncSessionID, admobAppId: $admobAppId, adUnits: $adUnits )
-}

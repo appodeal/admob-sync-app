@@ -1,6 +1,6 @@
-import {AccountsComponent} from '../accounts/AccountsComponent';
 import {classNames} from 'lib/dom';
 import React from 'React';
+import {AccountsComponent} from '../accounts/AccountsComponent';
 import style from './Root.scss';
 
 

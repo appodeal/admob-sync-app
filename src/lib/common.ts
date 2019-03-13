@@ -1,7 +1,7 @@
 import {BrowserWindow, BrowserWindowConstructorOptions, ipcMain, ipcRenderer} from 'electron';
 import {Action} from 'lib/actions';
 import path from 'path';
-import uuid from 'uuid/v1';
+import uuid from 'uuid';
 import {getBgColor, getCurrentTheme, onThemeChanges} from './theme';
 
 function getConfig (config: BrowserWindowConstructorOptions, backgroundColor: string): BrowserWindowConstructorOptions {
@@ -88,7 +88,7 @@ export function onActionFromRenderer (channel: string, cb: (action: Action) => v
 
 export function sendToMain (channel: string, action: Action) {
     return new Promise((resolve, reject) => {
-        let id = uuid();
+        let id = uuid.v4();
         ipcRenderer.send(channel, {id, action});
         ipcRenderer.once(`${channel}:response:${id}`, (event, {error, result}) => {
             if (result) {

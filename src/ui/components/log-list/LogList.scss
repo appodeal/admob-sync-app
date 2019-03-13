@@ -1,0 +1,64 @@
+.list {
+  height: 100%;
+  max-height: 100%;
+  max-width: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.line {
+  max-width: calc(100% - 40px);
+  background-color: #212225;
+  height: 43px;
+
+  padding: 0 20px;
+  justify-content: space-between;
+  display: flex;
+
+  .time {
+    width: 160px;
+    margin-left: 10px;
+    line-height: 43px;
+    grid-area: time;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .name {
+    line-height: 43px;
+    grid-area: name;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    display: none;
+  }
+
+  .actions {
+    line-height: 43px;
+    grid-area: actions;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  &:nth-child(2n) {
+    background-color: #2B2C2F;
+  }
+
+}
+
+@media (min-width: 1050px) {
+  .line {
+    width: 100%;
+    grid-template-areas: "time name actions";
+    grid-template-columns: 170px auto auto;
+
+    .name {
+      display: block;
+    }
+  }
+}
+
+
+
