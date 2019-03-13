@@ -1,15 +1,16 @@
-import {AdmobAccount, AppodealAccount} from 'interfaces/appodeal.interfaces';
+import {remote} from 'electron';
+import {AdMobAccount, AppodealAccount} from 'interfaces/appodeal.interfaces';
 import {UserAccount} from 'interfaces/common.interfaces';
 import {action, ActionTypes} from 'lib/actions';
 import {sendToMain} from 'lib/common';
 import {classNames} from 'lib/dom';
 import React, {FormEvent} from 'react';
-import {remote} from 'electron';
 import style from './Accounts.scss';
+
 
 export interface AccountsComponentProps {
     appodealAccount: AppodealAccount
-    adMobAccounts: Array<AdmobAccount>
+    adMobAccounts: Array<AdMobAccount>
 }
 
 interface AccountsComponentState {
@@ -68,7 +69,11 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
     }
 
     onRemoveAccount (account: UserAccount) {
-        sendToMain('accounts', action(ActionTypes.adMobRemoveAccount, {accountId: account.id}));
+        sendToMain('accounts', action(ActionTypes.adMobRemoveAccount, {account}));
+    }
+
+    onAccountSetup () {
+        sendToMain('accounts', action(ActionTypes.adMobSetupAccount, {account: this.state.selectedAccount}));
     }
 
     renderAccountForm () {
@@ -98,7 +103,7 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
             </form>;
         } else {
             return <div>
-
+                <button type="button" onClick={() => this.onAccountSetup()}>Setup</button>
             </div>;
         }
     }

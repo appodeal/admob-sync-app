@@ -1,18 +1,16 @@
 import {AccountsConnector} from 'core/accounts-connector';
-import {AppodealApiService} from 'core/appodeal/api/appodeal.api';
 import {AdmobApiService} from 'core/admob-api/admob.api';
+import {AppodealApiService} from 'core/appodeal/api/appodeal.api';
 import {ErrorFactoryService} from 'core/error-factory/error-factory.service';
 import {Store} from 'core/store';
-import {app, BrowserWindow, Menu, Tray} from 'electron';
+import {app, Menu, Tray} from 'electron';
 import {showAboutDialog} from 'lib/about';
-import {openWindow} from 'lib/common';
 import {getTrayIcon} from 'lib/icon';
 import {openSettingsWindow} from 'lib/settings';
 import {initThemeSwitcher} from 'lib/theme';
 
 
 let tray: Tray;
-
 
 initThemeSwitcher();
 

@@ -3,11 +3,7 @@ export enum ActionTypes {
     appodealSignOut = 'appodealSignOut',
     adMobAddAccount = 'adMobAddAccount',
     adMobRemoveAccount = 'adMobRemoveAccount',
-    openAdmobPage = 'openAdmobPage',
-    changeAdmobAccount = 'changeAdmobAccount',
-    updateAdmobCredentials = 'updateAdmobCredentials',
-    fetchAppodealUser = 'fetchAppodealUser',
-    loginToAdmob = 'loginToAdmob',
+    adMobSetupAccount = 'adMobSetupAccount'
 }
 
 

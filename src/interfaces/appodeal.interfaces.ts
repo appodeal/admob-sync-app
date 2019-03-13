@@ -1,10 +1,10 @@
 import {UserAccount} from 'interfaces/common.interfaces';
 
 
-export interface AdmobAccount extends UserAccount {
+export interface AdMobAccount extends UserAccount {
     xsrfToken: string;
 }
 
 export interface AppodealAccount extends UserAccount {
-    accounts: Array<AdmobAccount>;
+    accounts: Array<AdMobAccount>;
 }

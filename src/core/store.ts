@@ -1,7 +1,8 @@
+import {AdMobSessions} from 'core/admob-api/admob-sessions.helper';
 import {AdmobApiService} from 'core/admob-api/admob.api';
 import {AppodealApiService} from 'core/appodeal/api/appodeal.api';
 import {BrowserWindow, ipcMain} from 'electron';
-import {AdmobAccount, AppodealAccount} from 'interfaces/appodeal.interfaces';
+import {AdMobAccount, AppodealAccount} from 'interfaces/appodeal.interfaces';
 import {getJsonFile, saveJsonFile} from 'lib/json-storage';
 import {action, observable, observe, set} from 'mobx';
 
@@ -15,17 +16,17 @@ export interface SyncProgress {
 
 export interface AppState {
     appodealAccount: AppodealAccount;
-    adMobAccounts: Array<AdmobAccount>;
+    adMobAccounts: Array<AdMobAccount>;
     syncProgress: SyncProgress;
 }
 
 
 export class Store {
-    static getAdmobAccounts (): Promise<Array<AdmobAccount>> {
+    static getAdmobAccounts (): Promise<Array<AdMobAccount>> {
         return getJsonFile('admob-accounts');
     }
 
-    static saveAdmobAccounts (accounts: Array<AdmobAccount>): Promise<void> {
+    static saveAdmobAccounts (accounts: Array<AdMobAccount>): Promise<void> {
         return saveJsonFile('admob-accounts', accounts);
     }
 
@@ -84,7 +85,7 @@ export class Store {
 
     @action
     adMobSignIn () {
-        return this.adMobApi.signIn()
+        return AdMobSessions.signIn()
             .then(account => {
                 if (account) {
                     let existingAccount = this.state.adMobAccounts.find(acc => acc.id === account.id),
@@ -103,10 +104,10 @@ export class Store {
     }
 
     @action
-    adMobRemoveAccount (accountId: string) {
-        return this.adMobApi.removeAccount(accountId)
+    adMobRemoveAccount (account: AdMobAccount) {
+        return AdMobSessions.removeSession(account)
             .then(() => {
-                let accounts = this.state.adMobAccounts.filter(acc => acc.id !== accountId);
+                let accounts = this.state.adMobAccounts.filter(acc => acc.id !== account.id);
                 set<AppState>(this.state, 'adMobAccounts', accounts);
                 return Store.saveAdmobAccounts(accounts);
             });

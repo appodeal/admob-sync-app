@@ -26,16 +26,16 @@ function getConfig (config: BrowserWindowConstructorOptions, backgroundColor: st
 export function openWindow (
     filePathOrUrl: string,
     config: BrowserWindowConstructorOptions = {},
-    onclose: () => void = () => undefined
+    onclose: (window?: BrowserWindow) => void = () => undefined
 ): Promise<BrowserWindow> {
     return new Promise(resolve => {
         let window = new BrowserWindow(getConfig(config, getBgColor())),
             changeTheme = async theme => {
                 window.setBackgroundColor(getBgColor());
-                return window.webContents.executeJavaScript(`(${(theme => {
+                return window.webContents.executeJavaScript(createScript(theme => {
                     document.documentElement.classList.toggle('dark', theme === 'dark');
                     document.documentElement.classList.toggle('light', theme === 'light');
-                }).toString()})('${theme}');`);
+                }, theme));
             },
             stopListenThemeChange = onThemeChanges(mode => {
                 changeTheme(mode);
@@ -56,14 +56,16 @@ export function openWindow (
 
         window.webContents.once('dom-ready', async () => {
             await changeTheme(getCurrentTheme());
-            window.show();
+            if (!(typeof config.show === 'boolean' && !config.show)) {
+                window.show();
+            }
             resolve(window);
         });
 
         window.once('close', () => {
             stopListenThemeChange();
             ipcMain.removeListener('windowControl', commandListener);
-            onclose();
+            onclose(window);
         });
 
     });
@@ -102,10 +104,71 @@ export function sendToMain (channel: string, action: Action) {
 }
 
 export function createScript (fn: (...args: Array<any>) => void, ...args) {
-    return `(async function (argsJson) {
-    let args = JSON.parse(argsJson);
-    return (${fn.toString()})(...args);
-    })('${JSON.stringify(args)}')`;
+    return `(async function (...args) {
+    let safeJsonParse = json => {
+        let result;
+        try {
+            result = JSON.parse(json);
+        } catch (e) {
+            result = json;
+        }
+        return result; 
+    };
+    return (${fn.toString()})(...args.map(arg => {
+        if (typeof arg === 'function') {
+            return arg;
+        } else {
+            return safeJsonParse(arg);
+        }
+    }));
+    })(${args.map(arg => { 
+        if (typeof arg === 'function') {
+            return arg.toString();
+        } else if (typeof arg === 'string') {
+            return `'${arg}'`;
+        } else {
+            return `'${JSON.stringify(arg)}'`;
+        }
+    }).join(', ')})`;
+}
+
+export function getRandomNumberString (length: number): string {
+    let digits = new Array(length);
+    for (let i = 0; i < length; i++) {
+        digits[i] = Math.round(Math.random() * 10);
+    }
+    return digits.join('');
+}
+
+export function goToPage (window: BrowserWindow, filePathOrUrl: string) {
+    if (/^https?:\/\/[^\/]+/i.test(filePathOrUrl)) {
+        window.loadURL(filePathOrUrl);
+    } else {
+        window.loadFile(filePathOrUrl);
+    }
+    return waitForNavigation(window, filePathOrUrl);
+}
+
+export function waitForNavigation (window: BrowserWindow, urlFragment: string = null): Promise<void> {
+    return new Promise(resolve => {
+        let resolver = () => {
+            window.webContents.once('dom-ready', () => resolve());
+        };
+        if (urlFragment) {
+            let checker = new RegExp(`^${urlFragment.replace(/[\.\?]/g, match => `\\${match}`)}`, 'i');
+            window.webContents.on('did-navigate', (_, address) => {
+                if (checker.test(address)) {
+                    window.webContents.removeAllListeners('did-navigate');
+                    resolver();
+                }
+            });
+        } else {
+            window.webContents.once('did-navigate', () => {
+                resolver()
+            });
+        }
+
+    });
 }
 
 

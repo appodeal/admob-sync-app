@@ -1,18 +1,8 @@
-import {
-    closeAdMobSignInWindow,
-    createAdmobSession,
-    extractAccountInfo,
-    openAdMobSignInWindow,
-    waitForSignIn
-} from 'core/admob-api/admob-signin.helper';
 import {ErrorFactoryService} from 'core/error-factory/error-factory.service';
 import {InternalError} from 'core/error-factory/errors/internal-error';
-import {session, Session} from 'electron';
 import {AdMobAdUnit, AdMobApp} from 'interfaces/admob.interfaces';
-import {AdmobAccount} from 'interfaces/appodeal.interfaces';
 import {AppTranslator} from 'lib/admob-app.translator';
 import {AdUnitTranslator} from 'lib/admop-ad-unit.translator';
-import {deleteSession, getJsonFile, saveJsonFile} from 'lib/json-storage';
 import {getTranslator} from 'lib/translators/translator.helpers';
 import trim from 'lodash.trim';
 
@@ -34,22 +24,8 @@ export class AdmobApiService {
     }
 
     constructor (private errorFactory: ErrorFactoryService) {
-        getJsonFile('admob-sessions').then(sessions => {
-            this.sessions = sessions ? new Map(Object.entries(sessions)) : new Map();
-        });
     }
 
-    private getSession (account: AdmobAccount): Session {
-        let sessionId = this.sessions.get(account.id);
-        return session.fromPartition(`persist:${sessionId}`);
-    }
-
-    private saveSessions (sessions: Map<string, string>) {
-        return saveJsonFile('admob-sessions', [...sessions.entries()].reduce((acc, [accId, sessionId]) => {
-            acc[accId] = sessionId;
-            return acc;
-        }, {}));
-    }
 
     setXrfToken (xsrfToken) {
         this.xsrfToken = xsrfToken;
@@ -148,45 +124,6 @@ export class AdmobApiService {
             this.handleError(error);
             throw e;
         });
-    }
-
-    async signIn (): Promise<AdmobAccount> {
-        let {id, session} = createAdmobSession();
-        let window = await openAdMobSignInWindow(session),
-            addedAccount: AdmobAccount;
-        waitForSignIn(window)
-            .then(window => extractAccountInfo(window))
-            .then(({account, window}) => {
-                if (account) {
-                    if (this.sessions.has(account.id)) {
-                        deleteSession(this.sessions.get(account.id));
-                    }
-                    this.sessions.set(account.id, id);
-                    this.saveSessions(this.sessions);
-                }
-                addedAccount = account;
-                window.close();
-            });
-        return new Promise(resolve => {
-            window.once('close', () => {
-                let sessionIds = [...this.sessions.values()];
-                if (!sessionIds.includes(id)) {
-                    deleteSession(id);
-                }
-                resolve(addedAccount || null);
-            });
-        });
-    }
-
-    async removeAccount (accountId: string) {
-        let sessionId = this.sessions.get(accountId);
-        if (sessionId) {
-            this.sessions.delete(accountId);
-            await Promise.all([
-                deleteSession(sessionId),
-                this.saveSessions(this.sessions)
-            ]);
-        }
     }
 
 }
