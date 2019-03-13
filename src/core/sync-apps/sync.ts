@@ -1,9 +1,8 @@
 import {AdmobApiService} from 'core/admob/api/admob.api';
 import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
+import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
 import {AdType, AppodealAdUnit, AppodealApp, AppodealPlatform, Format} from 'core/appdeal-api/interfaces/appodeal-app.interface';
 import {AppodealAccount} from 'core/appdeal-api/interfaces/appodeal.account.interface';
-
-import {AdmobAccount} from 'interfaces/appodeal.interfaces';
 import stringify from 'json-stable-stringify';
 import {AppTranslator} from 'lib/translators/admob-app.translator';
 import {AdMobPlatform} from 'lib/translators/admob.constants';
@@ -19,7 +18,6 @@ import {SyncErrorEvent, SyncEvent, SyncEventsTypes, SyncReportProgressEvent} fro
 
 const isObject = (v) => v !== null && typeof v === 'object';
 
-type AdmobAppId = string;
 type AdUnitTemplateId = string;
 type AdUnitId = string;
 
@@ -38,40 +36,48 @@ export class Sync {
 
     public events = new SyncEventEmitter();
 
-
+    /**
+     * if there is any error during the sync
+     */
+    public hasErrors = false;
     private terminated = true;
-    // some uniq syncId
-    private id: string;
+
     private context = new SyncContext();
 
     constructor (
         private adMobApi: AdmobApiService,
         private appodealApi: AppodealApiService,
-        private adMobAccount: AdmobAccount,
+        private adMobAccount: AdMobAccount,
         private appodealAccount: AppodealAccount,
-        private logger: Partial<Console>
+        private logger: Partial<Console>,
+        // some uniq syncId
+        public readonly id: string
     ) {
-        this.id = uuid.v4();
+        this.id = id || uuid.v4();
     }
 
     stop (reason: string) {
+        if (this.terminated) {
+            this.logger.info(`Sync already stopped. New Stop Reason: ${reason}`);
+            return;
+        }
         this.terminated = true;
-        this.logger.log(`Stopping Sync Reason: ${reason}`);
+        this.logger.info(`Stopping Sync Reason: ${reason}`);
     }
 
     async run () {
-        this.logger.log(`Sync started`);
+        this.logger.info(`Sync started`);
         this.terminated = false;
-        await this.appodealApi.reportSyncStart(this.id);
+        await this.appodealApi.reportSyncStart(this.id, this.adMobAccount.id);
         for await (const value of this.doSync()) {
-            this.logger.log(value);
+            this.logger.info(value);
             if (this.terminated) {
-                this.logger.log(`Sync Terminated`);
+                this.logger.info(`Sync Terminated`);
                 this.emit(SyncEventsTypes.Stopped);
                 return this.appodealApi.reportSyncEnd(this.id);
             }
         }
-        this.logger.log(`Sync finished completely`);
+        this.logger.info(`Sync finished completely`);
         this.emit(SyncEventsTypes.Stopped);
         return this.appodealApi.reportSyncEnd(this.id);
     }
@@ -91,6 +97,7 @@ export class Sync {
     }
 
     emitError (error: Error) {
+        this.hasErrors = true;
         return this.events.emit(<SyncErrorEvent>{
             type: SyncEventsTypes.Error,
             id: this.id,
@@ -102,7 +109,7 @@ export class Sync {
         try {
             yield* this.fetchDataToSync();
         } catch (e) {
-            this.logger.log('Failed to fetchDataToSync', e);
+            this.logger.error('Failed to fetchDataToSync ', e);
             this.emitError(e);
             this.emit(SyncEventsTypes.Stopped);
             return;
@@ -111,7 +118,7 @@ export class Sync {
         try {
             yield* this.syncApps();
         } catch (e) {
-            this.logger.log('Failed to syncApps', e);
+            this.logger.error('Failed to syncApps ', e);
             this.emitError(e);
             this.emit(SyncEventsTypes.Stopped);
             return;
@@ -122,16 +129,27 @@ export class Sync {
 
 
         this.emit(SyncEventsTypes.Started);
-        this.logger.log(`Sync Started
+        this.logger.info(`Sync Params
+        uuid: ${this.id}
         AppodealAccount: '${this.appodealAccount.id}}': '${this.appodealAccount.email}}'
         AdmobAccount: '${this.adMobAccount.id}}': '${this.adMobAccount.email}}'
         `);
 
         yield `refrech Admob xsrf Token`;
-        await this.adMobApi.refreshXsrfToken();
+        try {
+            await this.adMobApi.refreshXsrfToken();
+        } catch (e) {
+            this.emitError(e);
+            this.emit(SyncEventsTypes.UserActionsRequired);
+            this.terminated = true;
+            yield 'Terminated as User Actions is Required';
+            return;
+        }
+
         yield `Admob xsrf Token Updated`;
 
         this.emit(SyncEventsTypes.CalculatingProgress);
+
 
         this.context.loadAdMob(await this.adMobApi.fetchAppsWitAdUnits());
         yield 'Admob Apps and AdUnits fetched';
@@ -159,7 +177,7 @@ export class Sync {
 
         for (const app of this.context.getAppodealApps()) {
             try {
-                this.logger.log('------------------------');
+                this.logger.info('------------------------');
                 yield* this.syncApp(app);
                 synced++;
             } catch (e) {
@@ -174,11 +192,11 @@ export class Sync {
                 total: this.context.getAppodealAppsCount()
             });
         }
-        this.logger.log('------------------------');
+        this.logger.info('------------------------');
     }
 
 
-    toAdMobPlatform (app: AppodealApp): AdMobPlatform {
+    static toAdMobPlatform (app: AppodealApp): AdMobPlatform {
         if (app.platform === AppodealPlatform.IOS) {
             return AdMobPlatform.IOS;
         }
@@ -187,7 +205,7 @@ export class Sync {
 
     async* syncDeletedApp (app: AppodealApp, adMobApp: AdMobApp) {
         if (!adMobApp) {
-            this.logger.log('deleted App not found in admob');
+            this.logger.info('deleted App not found in admob');
             return;
         }
         yield `found App in Admob Try to delete its AdUnits`;
@@ -215,17 +233,17 @@ export class Sync {
 
         let adMobApp = this.findAdMobApp(app, this.context.adMob.apps);
         if (adMobApp) {
-            this.logger.log(`Appodeal App [${app.id}] ${app.name} -> AdMobApp [${adMobApp.appId}] ${adMobApp.name}`);
+            this.logger.info(`Appodeal App [${app.id}] ${app.name} -> AdMobApp [${adMobApp.appId}] ${adMobApp.name}`);
         }
 
         if (app.isDeleted) {
             yield* this.syncDeletedApp(app, adMobApp);
-            this.logger.log(`deleted app [${app.id}] ${app.name} sync finished`);
+            this.logger.info(`deleted app [${app.id}] ${app.name} sync finished`);
             return;
         }
 
         if (!adMobApp) {
-            this.logger.log(`Unable to find App. Try to create new`);
+            this.logger.info(`Unable to find App. Try to create new`);
             adMobApp = await this.createAdMobApp(app);
             this.context.addAdMobApp(adMobApp);
             yield `App created`;
@@ -244,13 +262,13 @@ export class Sync {
          * and we should not link this apps with google play!!!
          */
         if (!adMobApp.applicationStoreId && app.platform !== AppodealPlatform.AMAZON) {
-            this.logger.log(`Search app in ${app.platform === AppodealPlatform.ANDROID ? 'Google Play' : 'App Store'}`);
+            this.logger.info(`Search app in ${app.platform === AppodealPlatform.ANDROID ? 'Google Play' : 'App Store'}`);
             try {
                 adMobApp = await this.linkAppWithStore(app, adMobApp);
                 this.context.updateAdMobApp(adMobApp);
             } catch (e) {
                 // log error & go further
-                this.logger.log(`Error while linking app with store`);
+                this.logger.info(`Error while linking app with store`);
                 this.logger.error(e);
                 this.emitError(e);
             }
@@ -259,7 +277,7 @@ export class Sync {
         const actualAdUnits = await this.syncAdUnits(app, adMobApp, this.context.getAdMobAppAdUnits(adMobApp));
         yield `AdUnits actualized`;
 
-        await this.appodealApi.reportAppSynced(app, this.id, adMobApp, actualAdUnits);
+        await this.appodealApi.reportAppSynced(app, this.id, this.adMobAccount.id, adMobApp, actualAdUnits);
         yield `End Sync  App [${app.id}] ${app.name}`;
     }
 
@@ -285,12 +303,12 @@ export class Sync {
             }
         });
 
-        this.logger.log(`AdUnits to create ${templatesToCreate.size}. AdUnit to Delete ${adUnitsToDelete.length}. Unchanged AdUnits ${appodealAdUnits.length}`);
+        this.logger.info(`AdUnits to create ${templatesToCreate.size}. AdUnit to Delete ${adUnitsToDelete.length}. Unchanged AdUnits ${appodealAdUnits.length}`);
 
         for (const adUnitTemplate of templatesToCreate.values()) {
             const newAdUnit = await this.createAdMobAdUnit({...adUnitTemplate, appId: adMobApp.appId});
             this.context.addAdMobAdUnit(newAdUnit);
-            this.logger.log('AdUnit Created', adUnitTemplate);
+            this.logger.info('AdUnit Created', adUnitTemplate);
             appodealAdUnits.push(this.convertToAppodealAdUnit(newAdUnit, adUnitTemplate));
         }
 
@@ -318,7 +336,7 @@ export class Sync {
             `(${Object.values(AdType).map((v: string) => v.toLowerCase()).join('|')})`,
             `(${Object.values(Format).map((v: string) => v.toLowerCase()).join('|')})`
         ].join('\/') + '/?');
-        this.logger.log('[AppAdUnits name pattern] ', pattern);
+        this.logger.info(`[AppAdUnits name pattern] ${pattern.toString()}`);
 
         return adUnits.filter(adUnit => pattern.test(adUnit.name));
     }
@@ -451,32 +469,32 @@ export class Sync {
 
 
     findAdMobApp (app: AppodealApp, apps: AdMobApp[]): AdMobApp {
-        const adMobPlatform = this.toAdMobPlatform(app);
+        const adMobPlatform = Sync.toAdMobPlatform(app);
         let adMobApp = apps.find(adMobApp => adMobApp.applicationStoreId === app.bundleId && adMobApp.platform === adMobPlatform);
 
         if (adMobApp) {
-            this.logger.log('[FindAdMobApp] Found by bundle ID');
+            this.logger.info('[FindAdMobApp] Found by bundle ID');
             return adMobApp;
         }
 
         if (app.admobAppId) {
             adMobApp = apps.find(adMobApp => adMobApp.appId === app.admobAppId);
             if (adMobApp) {
-                this.logger.log('[FindAdMobApp] Found by adMobAppId');
+                this.logger.info('[FindAdMobApp] Found by adMobAppId');
                 return adMobApp;
             } else {
-                this.logger.log('[FindAdMobApp] has INVALID adMobAppId');
+                this.logger.info('[FindAdMobApp] has INVALID adMobAppId');
             }
         }
 
         const namePattern = new RegExp(`^Appodeal/${app.id}/.*$`);
         adMobApp = apps.find(adMobApp => namePattern.test(adMobApp.name));
         if (adMobApp) {
-            this.logger.log('[FindAdMobApp] Found by NAME pattern');
+            this.logger.info('[FindAdMobApp] Found by NAME pattern');
             return adMobApp;
         }
 
-        this.logger.log('[FindAdMobApp] Failed to find App');
+        this.logger.info('[FindAdMobApp] Failed to find App');
         return null;
     }
 
@@ -485,7 +503,7 @@ export class Sync {
 
         const adMobApp: Partial<AdMobApp> = {
             name: ['Appodeal', app.id, app.name].join('/').substr(0, MAX_APP_NAME_LENGTH),
-            platform: this.toAdMobPlatform(app)
+            platform: Sync.toAdMobPlatform(app)
         };
 
         return this.adMobApi.post('AppService', 'Create', getTranslator(AppTranslator).encode(adMobApp))
@@ -531,12 +549,12 @@ export class Sync {
             1: app.bundleId,
             2: 0,
             3: 100,
-            4: this.toAdMobPlatform(app)
+            4: Sync.toAdMobPlatform(app)
         }).then((response: SearchAppResponse) => response[1] ? response[2].map(getTranslator(AppTranslator).decode) : []);
 
         const publishedApp = searchAppResponse.find(publishedApp => publishedApp.applicationStoreId === app.bundleId);
         if (publishedApp) {
-            this.logger.log(`App found in store`);
+            this.logger.info(`App found in store`);
 
             adMobApp = {...adMobApp, ...publishedApp};
             return await this.adMobApi.postRaw('AppService', 'Update', <UpdateAppRequest>{
@@ -544,7 +562,7 @@ export class Sync {
                 2: {1: ['application_store_id', 'vendor']}
             }).then((res: UpdateAppResponse) => getTranslator(AppTranslator).decode(res[1]));
         }
-        this.logger.log(`App NOT found in store`);
+        this.logger.info(`App NOT found in store`);
         return adMobApp;
     }
 

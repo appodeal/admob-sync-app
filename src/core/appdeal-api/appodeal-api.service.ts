@@ -11,15 +11,18 @@ import {createFetcher} from 'lib/fetch';
 import {AdMobApp} from 'lib/translators/interfaces/admob-app.interface';
 import {ErrorFactoryService} from '../error-factory/error-factory.service';
 import {InternalError} from '../error-factory/errors/internal-error';
+
 import adMobAccountQuery from './graphql/admob-account-details.graphql';
 import criticalVersionQuery from './graphql/critical-version.query.graphql';
 import currentUserQuery from './graphql/current-user.query.graphql';
-import endSync from './graphql/endSync.graphql';
+import endSync from './graphql/end-sync.mutation.graphql';
 import refreshTokenMutation from './graphql/refresh-token-mutation.graphql';
 import signInMutation from './graphql/sign-in.mutation.graphql';
 import signOutMutation from './graphql/sign-out.mutation.graphql';
-import startSync from './graphql/startSync.graphql';
-import syncApp from './graphql/syncApp.graphql';
+import startSync from './graphql/start-sync.mutation.graphql';
+import submitLogMutation from './graphql/submit-log.mutation.graphql';
+import syncApp from './graphql/sync-app.mutation.graphql';
+
 import {AdMobAccountDetails} from './interfaces/admob-account.interface';
 import {AppodealAdUnit, AppodealApp} from './interfaces/appodeal-app.interface';
 
@@ -191,11 +194,12 @@ export class AppodealApiService {
         }).then(result => <AdMobAccountDetails>(result.currentUser.account));
     }
 
-    reportSyncStart (syncId: string) {
+    reportSyncStart (syncId: string, admobAccountId: string) {
         return this.mutate({
             mutation: startSync,
             variables: {
-                id: syncId
+                id: syncId,
+                admobAccountId
             }
         });
     }
@@ -209,14 +213,26 @@ export class AppodealApiService {
         });
     }
 
-    reportAppSynced (app: AppodealApp, syncId: string, adMobApp: AdMobApp, adUnits: AppodealAdUnit[]) {
+    reportAppSynced (app: AppodealApp, syncId: string, admobAccountId: string, adMobApp: AdMobApp, adUnits: AppodealAdUnit[]) {
         return this.mutate({
             mutation: syncApp,
             variables: {
                 id: app.id,
-                syncSessionID: syncId,
+                syncSessionId: syncId,
                 admobAppId: adMobApp.appId,
+                admobAccountId,
                 adUnits: adUnits
+            }
+        });
+    }
+
+    submitLog (adMobAccountId: string, syncId: string, rawLog: string) {
+        return this.mutate({
+            mutation: submitLogMutation,
+            variables: {
+                adMobAccountId,
+                syncId,
+                rawLog
             }
         });
     }

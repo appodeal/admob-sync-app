@@ -4,6 +4,7 @@ import {AppodealAccount} from 'core/appdeal-api/interfaces/appodeal.account.inte
 import {BrowserWindow, ipcMain} from 'electron';
 import {AdmobAccount} from 'interfaces/appodeal.interfaces';
 import {getJsonFile, saveJsonFile} from 'lib/json-storage';
+import {getLogsList, LogFileInfo} from 'lib/sync-logs/logger';
 import {action, observable, observe, set} from 'mobx';
 
 
@@ -68,6 +69,7 @@ export class Store {
         return this.appodealApi.fetchCurrentUser()
             .then(account => {
                 set<AppState>(this.state, 'appodealAccount', account);
+                set<AppState>(this.state, 'adMobAccounts', account.accounts || []);
                 return account;
             });
 
@@ -78,8 +80,17 @@ export class Store {
         return this.appodealApi.signOut()
             .then(() => {
                 set<AppState>(this.state, 'appodealAccount', AppodealApiService.emptyAccount);
+                set<AppState>(this.state, 'adMobAccounts', []);
                 return AppodealApiService.emptyAccount;
             });
+    }
+
+    @action
+    loadSelectedAdMobAccountLogs (account: AdmobAccount): Promise<LogFileInfo[]> {
+        return getLogsList(account).catch(e => {
+            console.error(e);
+            return [];
+        });
     }
 
     @action

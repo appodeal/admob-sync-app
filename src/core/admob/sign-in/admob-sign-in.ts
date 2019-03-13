@@ -1,3 +1,4 @@
+import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
 import {session} from 'electron';
 import {AdmobAccount} from 'interfaces/appodeal.interfaces';
 import {createScript, openWindow} from 'lib/common';
@@ -19,7 +20,7 @@ export namespace AdmobSignInService {
         return sessions;
     };
 
-    export async function getSession (account: AdmobAccount) {
+    export async function getSession (account: AdMobAccount) {
         const sessions = await loadSessions();
         let sessionId = sessions.get(account.id);
         return session.fromPartition(`persist:${sessionId}`);

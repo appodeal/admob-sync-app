@@ -1,0 +1,3 @@
+mutation submitLog ($admobAccountId: ID!, $syncId: ID!, $rawLog: String!) {
+    submitLog(admobAccountId: $admobAccountId, syncId:$syncId, rawLog: $rawLog)
+}

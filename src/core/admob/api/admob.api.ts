@@ -52,12 +52,12 @@ export class AdmobApiService {
     async refreshXsrfToken () {
         const response = await this.fetchHomePage();
         const body = await response.text();
-        const xsrfToken = body.match(/xsrfToken: '([^\']*)'/)[1];
-        if (!xsrfToken) {
+        const mathResult = body.match(/xsrfToken: '([^\']*)'/);
+        if (!mathResult || !mathResult[1]) {
             // may be user's action required
             throw new Error('failed to refresh xsrfToken');
         }
-        this.setXrfToken(xsrfToken);
+        this.setXrfToken(mathResult[1]);
     }
 
     fetchHomePage (): Promise<Response> {
@@ -148,7 +148,7 @@ export class AdmobApiService {
             `__ar=${encodeURIComponent(JSON.stringify(payload))}`
         ).catch(e => {
             this.logger.error(`Failed to Post to AdMob '${serviceName}' '${method}'`);
-            this.logger.log(payload);
+            this.logger.info(payload);
             this.logger.error(e);
             this.handleError(e);
             throw e;
