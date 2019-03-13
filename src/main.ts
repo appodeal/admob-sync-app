@@ -14,6 +14,9 @@ import {openSettingsWindow} from 'lib/settings';
 import {initThemeSwitcher} from 'lib/theme';
 
 
+if (!environment.development) {
+    console.debug = () => {};
+}
 console.debug('electron versions', process.versions);
 let tray: Tray;
 

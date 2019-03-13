@@ -65,8 +65,16 @@ export class AppodealApiService {
     public onError: (e: InternalError) => void;
     authContext: AuthContext;
 
+    private logRequest (operations, opType, variables) {
+        operations.definitions.filter(op => op.kind === 'OperationDefinition').forEach(
+            op => console.debug(`[graphql] [${opType}] ${op.name ?
+                op.name.value :
+                operations.loc.source}(${JSON.stringify(variables || {})})`)
+        );
+    }
 
     public query<T, TVariables = OperationVariables> (options: ApiQueryOptions<TVariables>): Promise<T> {
+        this.logRequest(options.query, 'query', options.variables);
         return this.client.query<T, TVariables>(<QueryOptions<TVariables>>options)
             .then(result => pluck(result, ...pluckParams(options.dataAttribute)))
             .catch(apolloError => {
@@ -75,7 +83,7 @@ export class AppodealApiService {
     }
 
     public mutate<T, TVariables = OperationVariables> (options: ApiMutationOptions<T, TVariables>): Promise<T> {
-
+        this.logRequest(options.mutation, 'mutation', options.variables);
         return this.client.mutate(<MutationOptions<T, TVariables>>options)
             .then(result => pluck(result, ...pluckParams(options.dataAttribute)))
             .catch(apolloError => {
