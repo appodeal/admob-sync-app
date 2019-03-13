@@ -1,4 +1,3 @@
-import {AdMobSetup} from 'core/admob-api/admob-setup.helper';
 import {Store} from 'core/store';
 import {Action, ActionTypes} from 'lib/actions';
 import {onActionFromRenderer} from 'lib/common';
@@ -21,8 +20,6 @@ export class AccountsConnector {
             return this.store.adMobSignIn();
         case ActionTypes.adMobRemoveAccount:
             return this.store.adMobRemoveAccount(payload.account);
-        case ActionTypes.adMobSetupAccount:
-            return AdMobSetup.startSetup(payload.account);
         }
     }
 }

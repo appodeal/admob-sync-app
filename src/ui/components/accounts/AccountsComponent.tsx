@@ -72,10 +72,6 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
         sendToMain('accounts', action(ActionTypes.adMobRemoveAccount, {account}));
     }
 
-    onAccountSetup () {
-        sendToMain('accounts', action(ActionTypes.adMobSetupAccount, {account: this.state.selectedAccount}));
-    }
-
     renderAccountForm () {
         let appodealAccount = this.props.appodealAccount;
         if (this.state.selectedAccount === appodealAccount) {
@@ -103,7 +99,7 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
             </form>;
         } else {
             return <div>
-                <button type="button" onClick={() => this.onAccountSetup()}>Setup</button>
+
             </div>;
         }
     }
