@@ -1,0 +1,62 @@
+.windowsControls {
+  --color: #fff;
+  --bg-color: transparent;
+  --color-hover: var(--color);
+  --bg-color-hover: rgba(255, 255, 255, 0.3);
+
+
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 1;
+  display: flex;
+  flex-flow: row nowrap;
+
+  button {
+    font-family: 'Segoe UI', sans-serif;
+    width: 45px;
+    height: 30px;
+    padding: 0;
+    margin: 0;
+    background: var(--bg-color);
+    border: none;
+    display: flex;
+    flex: 0 0 auto;
+    justify-content: center;
+    align-items: center;
+
+    &:focus {
+      outline: none;
+    }
+
+    &:hover {
+      background-color: var(--bg-color-hover);
+
+      svg {
+        stroke: var(--color-hover);
+      }
+    }
+
+    svg {
+      flex: 0 0 auto;
+      width: 10px;
+      height: 10px;
+
+      fill: var(--color);
+      stroke: var(--color);
+    }
+  }
+
+  .minimize {
+
+  }
+
+  .maximize {
+
+  }
+
+  .close {
+
+  }
+
+}

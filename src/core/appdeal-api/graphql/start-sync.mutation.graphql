@@ -1,0 +1,3 @@
+mutation startSync ($id: ID!, $admobAccountId: ID!) {
+    startSync(id: $id, admobAccountId: $admobAccountId)
+}

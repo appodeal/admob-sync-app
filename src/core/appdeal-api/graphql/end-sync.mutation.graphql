@@ -1,0 +1,3 @@
+mutation endSync ($id: ID!) {
+    endSync(id: $id)
+}

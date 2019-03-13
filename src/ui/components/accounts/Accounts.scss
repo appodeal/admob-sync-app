@@ -1,0 +1,152 @@
+.accounts {
+  flex: 1 0 auto;
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  grid-template-rows: auto 1fr 20px;
+  grid-gap: 0 10px;
+  grid-template-areas: 'description description' 'list details' 'list-controls details';
+
+  .description {
+    grid-area: description;
+    margin-bottom: 20px;
+  }
+
+  .accountsList {
+    grid-area: list;
+    border: 1px solid #727274;
+    margin: 0;
+    padding: 0;
+    list-style-type: none;
+    background-color: #262525;
+    overflow: auto;
+
+    li {
+      padding: 0;
+      display: grid;
+      grid-template-columns: 46px 1fr;
+      grid-template-rows: 23px 23px;
+      grid-template-areas: 'icon account-name' 'icon account-email';
+      max-width: 100%;
+      overflow: hidden;
+
+      &.hr {
+        display: block;
+        padding: 3px 7px;
+
+        &::before {
+          content: '';
+          display: block;
+          height: 1px;
+          background-color: #373737;
+        }
+      }
+
+      img {
+        grid-area: icon;
+        width: 32px;
+        height: 32px;
+        align-self: center;
+        justify-self: center;
+        background-color: var(--brand-color);
+      }
+
+      .accountName {
+        grid-area: account-name;
+        font-weight: 600;
+        justify-self: start;
+        align-self: end;
+      }
+
+      .accountEmail {
+        grid-area: account-email;
+        display: block;
+        justify-self: start;
+        align-self: start;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+        font-size: 0.9em;
+        color: #9d9d9d;
+      }
+
+      &.selected {
+        background-color: #0058d0;
+
+        .accountEmail {
+          color: #bcd2f3;
+        }
+      }
+    }
+  }
+
+  .accountControls {
+    border: 1px solid #727274;
+    border-top: none;
+    display: flex;
+
+    button {
+      border: none;
+      border-right: 1px solid #727274;
+      margin: 0;
+      border-radius: 0;
+      background: transparent;
+      color: #e2e2e2;
+      width: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      box-sizing: content-box;
+      padding: 0;
+      box-shadow: none;
+
+      &:active {
+        background-color: #626162;
+      }
+
+      &:disabled {
+        color: #727274;
+      }
+
+      &::before {
+        content: '';
+        display: block;
+        height: 1px;
+        width: 11px;
+        position: absolute;
+
+        background-color: currentColor;
+      }
+
+      &.add::after {
+        content: '';
+        display: block;
+        width: 1px;
+        height: 11px;
+        background-color: currentColor;
+        margin-left: 0;
+      }
+    }
+  }
+
+  .accountDetails {
+    grid-area: details;
+    border: 1px solid #504f4f;
+    background-color: #403f3f;
+    border-radius: 4px;
+    padding: 20px;
+
+    .status {
+      &.connected {
+        color: #6af36a;
+      }
+      &.disconnected {
+        color: #ff5d5d;
+      }
+    }
+    button + button {
+      margin-left: 10px;
+    }
+  }
+}

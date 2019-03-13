@@ -1,35 +1,149 @@
 @import "assets/styles/variables";
 @import "assets/styles/fonts";
 
+:global {
 
-:root {
-  --title-height: 38px;
-  --window-padding: 13px;
+  :root {
+    --title-height: 70px;
+    --window-padding: 20px;
 
-  font-family: 'Roboto', sans-serif;
-  height: 100%;
-  font-size: var(--base-font-size);
+    &.dark {
+      --bg-color: rgb(56,55,55);
+      --text-color: rgb(223,222,222);
+    }
+
+    &.light {
+      --bg-color: rgb(236,236,236);
+      --text-color: rgb(53,53,53);
+    }
+
+    font-family: 'Roboto', sans-serif;
+    height: 100%;
+    font-size: var(--base-font-size);
+    background-color: var(--bg-color);
+    color: var(--text-color);
+  }
+
+  body {
+    margin: 0;
+    box-sizing: border-box;
+    height: 100vh;
+    position: relative;
+    padding: calc(var(--title-height) + var(--window-padding)) var(--window-padding) var(--window-padding);
+    display: flex;
+    flex-direction: column;
+  }
+
+  :not(input) {
+    user-select: none;
+  }
+
+  #content {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+  }
+
+  button {
+    -webkit-app-region: no-drag;
+    padding: 0 13px;
+    height: 19px;
+    line-height: 1;
+    border: none;
+    background-color: #626162;
+    box-shadow: inset 0 0.2px 0 0 #fff, 0 0.5px 1px #222;
+    color: #fff;
+    font-size: 13px;
+    border-radius: 5px;
+
+    &.active, &.primary, &[type="submit"] {
+      background-image: linear-gradient(to bottom, #1869e6, #155ecc);
+    }
+
+    &:active {
+      background-image: linear-gradient(to bottom, #1973f9, #166ae8) !important;
+    }
+
+  }
+
+  :focus {
+    outline: none;
+  }
+
+  .window-title {
+    -webkit-app-region: drag;
+    -webkit-user-select: none;
+
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--title-height);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--brand-color);
+    background-image: linear-gradient(to bottom, var(--brand-color), #d40300);
+
+    h1 {
+      font-family: "Roboto", sans-serif;
+      font-weight: 300;
+      color: #fff;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      font-size: 1.7em;
+
+      &::before {
+        content: '';
+        display: block;
+        margin: 0 15px;
+        width: 2px;
+        height: 30px;
+        background-color: #fff;
+      }
+    }
+  }
+
+  form {
+    display: grid;
+    grid-template-columns: minmax(max-content, 1fr) minmax(1fr, 300px);
+    grid-auto-rows: 24px;
+    grid-gap: 20px 10px;
+
+    label {
+      border: none;
+      max-width: 200px;
+      align-self: center;
+      justify-self: end;
+      grid-column: 1 / span 1;
+      font-weight: 500;
+    }
+
+    input, textarea, select, output {
+      min-width: 200px;
+      align-self: center;
+      justify-self: start;
+      grid-column: 2 / span 1;
+    }
+
+    input {
+      height: 24px;
+      padding: 0 7px;
+      background-color: #262525;
+      border: 1px solid #727274;
+      color: var(--text-color);
+      font-size: var(--base-font-size);
+      line-height: 1;
+    }
+
+    .actions {
+      grid-column: 2 / span 1;
+      display: flex;
+    }
+
+  }
+
 }
 
-body {
-  min-height: 100%;
-  margin: 0;
-  box-sizing: border-box;
-  position: relative;
-  padding: var(--title-height) var(--window-padding) var(--window-padding);
-}
-
-.window-title {
-  -webkit-app-region: drag;
-  -webkit-user-select: none;
-
-  min-height: var(--title-height);
-  height: 70px;
-  width: 100vw;
-  margin: calc(-1 * var(--title-height)) calc(-1 * var(--window-padding)) var(--window-padding);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: var(--brand-color);
-  background-image: linear-gradient(to bottom, var(--brand-color), #d40300);
-}

@@ -9,6 +9,7 @@ import webpack from 'webpack';
 
 export const SRC_PATH = path.resolve(__dirname, '../src');
 export const BUILD_PATH = path.resolve(__dirname, '../build');
+export const DIST_PATH = path.resolve(__dirname, '../dist');
 const PACKAGE = require(path.join(__dirname, '../package.json'));
 
 export default (env: webpack.Configuration): webpack.Configuration => {
@@ -16,7 +17,7 @@ export default (env: webpack.Configuration): webpack.Configuration => {
         context: SRC_PATH,
         entry: {
             main: path.join(SRC_PATH, './main.ts'),
-            settings: path.join(SRC_PATH, './ui/settings/settings.ts')
+            settings: path.join(SRC_PATH, './ui/settings/settings.tsx')
         },
         target: 'electron-renderer',
         output: {
@@ -31,11 +32,15 @@ export default (env: webpack.Configuration): webpack.Configuration => {
                     use: ['ts-loader']
                 },
                 {
-                    test: /\.(png|svg)$/,
+                    test: /\.(png|svg)$/i,
                     use: [
                         {
-                            loader: 'file-loader',
+                            loader: '@brigad/ideal-image-loader',
                             options: {
+                                webp: false,
+                                base64: false,
+                                palette: false,
+                                warnOnMissingSrcset: true,
                                 name: '[name].[ext]',
                                 publicPath: './assets/images',
                                 outputPath: './assets/images'
@@ -62,6 +67,7 @@ export default (env: webpack.Configuration): webpack.Configuration => {
                         {
                             loader: 'css-loader',
                             options: {
+                                modules: true,
                                 sourceMap: true
                             }
                         },
@@ -72,14 +78,27 @@ export default (env: webpack.Configuration): webpack.Configuration => {
                             }
                         }
                     ]
+                },
+                {
+                    test: /\.(graphql|gql)$/,
+                    exclude: /node_modules/,
+                    loader: 'graphql-tag/loader'
                 }
             ]
         },
         resolve: {
-            extensions: ['.tsx', '.json', '.ts', '.js']
+            extensions: ['.tsx', '.json', '.ts', '.js', '.svg'],
+            modules: [
+                'node_modules',
+                '@typings',
+                path.resolve(__dirname, '../src')
+            ]
         },
         plugins: [
             new CleanWebpackPlugin(BUILD_PATH, {
+                root: path.resolve(__dirname, '../')
+            }),
+            new CleanWebpackPlugin(DIST_PATH, {
                 root: path.resolve(__dirname, '../')
             }),
             new HtmlWebpackPlugin({
@@ -102,8 +121,9 @@ export default (env: webpack.Configuration): webpack.Configuration => {
                 productName: PACKAGE.productName,
                 version: PACKAGE.version,
                 description: PACKAGE.description,
-                dependencies: PACKAGE.dependencies || {}
-            }),
+                dependencies: PACKAGE.dependencies || {},
+                devDependencies: PACKAGE.devDependencies || {}
+            })/*,
             new GenerateJsonPlugin('electron-builder.json', {
                 appId: "com.appodeal.AdMob.desktop",
                 artifactName: "${name}-${version}-${os}-${arch}.${ext}",
@@ -111,12 +131,22 @@ export default (env: webpack.Configuration): webpack.Configuration => {
                     buildResources: '../resources',
                     output: '../dist'
                 },
+                files: {
+
+                },
+                mac: {
+                    darkModeSupport: true
+                },
+                win: {
+                    target: 'portable',
+                    icon: './ui/assets/icon-128.png'
+                },
                 dmg: {
                     background: '../resources/dmg/background.png',
                     iconSize: 140,
                     iconTextSize: 18
                 }
-            })
+            })*/
         ]
     };
 }
