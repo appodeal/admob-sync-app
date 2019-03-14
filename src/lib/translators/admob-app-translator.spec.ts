@@ -1,5 +1,5 @@
-import {AppTranslator} from 'lib/admob-app.translator';
-import {getTranslator} from 'lib/translators/translator.helpers';
+import {AppTranslator} from './admob-app.translator';
+import {getTranslator} from './translator.helpers';
 
 
 describe('AppTranslator', () => {

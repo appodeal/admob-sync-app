@@ -1,9 +1,10 @@
 import {AdMobSessions} from 'core/admob-api/admob-sessions.helper';
-import {AdmobApiService} from 'core/admob-api/admob.api';
-import {AppodealApiService} from 'core/appodeal/api/appodeal.api';
+import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
+import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
+import {AppodealAccount} from 'core/appdeal-api/interfaces/appodeal.account.interface';
 import {BrowserWindow, ipcMain} from 'electron';
-import {AdMobAccount, AppodealAccount} from 'interfaces/appodeal.interfaces';
 import {getJsonFile, saveJsonFile} from 'lib/json-storage';
+import {getLogsList, LogFileInfo} from 'lib/sync-logs/logger';
 import {action, observable, observe, set} from 'mobx';
 
 
@@ -37,8 +38,7 @@ export class Store {
     };
 
     constructor (
-        private appodealApi: AppodealApiService,
-        private adMobApi: AdmobApiService
+        private appodealApi: AppodealApiService
     ) {
         ipcMain.on('store', () => this.emitState());
         observe(this.state, () => this.emitState());
@@ -69,6 +69,7 @@ export class Store {
         return this.appodealApi.fetchCurrentUser()
             .then(account => {
                 set<AppState>(this.state, 'appodealAccount', account);
+                set<AppState>(this.state, 'adMobAccounts', account.accounts || []);
                 return account;
             });
 
@@ -79,8 +80,17 @@ export class Store {
         return this.appodealApi.signOut()
             .then(() => {
                 set<AppState>(this.state, 'appodealAccount', AppodealApiService.emptyAccount);
+                set<AppState>(this.state, 'adMobAccounts', []);
                 return AppodealApiService.emptyAccount;
             });
+    }
+
+    @action
+    loadSelectedAdMobAccountLogs (account: AdMobAccount): Promise<LogFileInfo[]> {
+        return getLogsList(account).catch(e => {
+            console.error(e);
+            return [];
+        });
     }
 
     @action

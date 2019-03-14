@@ -70,7 +70,7 @@ export function nodeFetch<T extends any> (
                 response.removeAllListeners();
                 let data = Buffer.concat(chunks).toString();
                 resolve({
-                    text: () => Promise.resolve(data),
+                    text: async () => data,
                     json: async () => JSON.parse(data)
                 });
             });

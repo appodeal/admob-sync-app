@@ -1,5 +1,5 @@
+import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
 import {app, BrowserWindow, Session, session} from 'electron';
-import {AdMobAccount} from 'interfaces/appodeal.interfaces';
 import {createScript, openWindow, waitForNavigation} from 'lib/common';
 import {getJsonFile, saveJsonFile} from 'lib/json-storage';
 import path from "path";
@@ -131,6 +131,20 @@ export namespace AdMobSessions {
                 account,
                 window
             }));
+    }
+
+    export async function openAdmobWindow (account: AdMobAccount) {
+        const windowSession = await getSession(account);
+        let url = 'https://apps.admob.com/v2/home';
+        return openWindow(url, {
+            frame: true,
+            titleBarStyle: 'default',
+            minHeight: 700,
+            height: 700,
+            webPreferences: {
+                session: windowSession
+            }
+        });
     }
 
 }

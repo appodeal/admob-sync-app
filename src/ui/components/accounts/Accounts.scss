@@ -144,6 +144,9 @@
     border-radius: 4px;
     padding: 20px;
 
+    button + button {
+      margin-left: 10px;
+    }
 
   }
 }

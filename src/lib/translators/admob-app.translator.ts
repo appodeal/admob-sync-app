@@ -1,6 +1,6 @@
-import {AdMobApp, MonetizationEngineInfo, ServingSettings} from 'interfaces/admob.interfaces';
-import {BooleanTranslator} from 'lib/translators/boolean.translator';
-import {ObjectTranslator} from 'lib/translators/object.translator';
+import {BooleanTranslator} from './base-translators/boolean.translator';
+import {ObjectTranslator} from './base-translators/object.translator';
+import {AdMobApp, MonetizationEngineInfo, ServingSettings} from './interfaces/admob-app.interface';
 
 
 export class ServingSettingsTranslator extends ObjectTranslator<ServingSettings> {

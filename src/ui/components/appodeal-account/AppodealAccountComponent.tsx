@@ -1,4 +1,4 @@
-import {AppodealAccount} from 'interfaces/appodeal.interfaces';
+import {AppodealAccount} from 'core/appdeal-api/interfaces/appodeal.account.interface';
 import {classNames} from 'lib/dom';
 import React from 'react';
 import style from './AppodealAccount.scss';

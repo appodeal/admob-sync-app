@@ -32,7 +32,9 @@ export function buttonClick (listener: (event?: MouseEvent) => any, context: any
         if (button) {
             button.disabled = true;
         }
-        await listener.call(context, event.nativeEvent);
+        await Promise.resolve()
+            .then(() => listener.call(context, event.nativeEvent))
+            .catch(err => {});
         if (button) {
             button.disabled = false;
         }

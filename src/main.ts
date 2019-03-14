@@ -1,8 +1,12 @@
+require('source-map-support').install();
+
 import {AccountsConnector} from 'core/accounts-connector';
-import {AdmobApiService} from 'core/admob-api/admob.api';
-import {AppodealApiService} from 'core/appodeal/api/appodeal.api';
+import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
+
 import {ErrorFactoryService} from 'core/error-factory/error-factory.service';
+import {LogsConnector} from 'core/logs-connector';
 import {Store} from 'core/store';
+import {SyncConnector} from 'core/sync-connector';
 import {app, Menu, Tray} from 'electron';
 import {showAboutDialog} from 'lib/about';
 import {getTrayIcon} from 'lib/icon';
@@ -10,6 +14,10 @@ import {openSettingsWindow} from 'lib/settings';
 import {initThemeSwitcher} from 'lib/theme';
 
 
+if (!environment.development) {
+    console.debug = () => {};
+}
+console.debug('electron versions', process.versions);
 let tray: Tray;
 
 initThemeSwitcher();
@@ -38,16 +46,52 @@ app.on('ready', () => {
 
 
     let errorFactory = new ErrorFactoryService(),
+        appodealApi = new AppodealApiService(errorFactory),
         store = new Store(
-            new AppodealApiService(errorFactory),
-            new AdmobApiService(errorFactory)
+            appodealApi
         ),
-        accountsConnector = new AccountsConnector(store);
+        accountsConnector = new AccountsConnector(store),
+        logsConnector = new LogsConnector(store, appodealApi),
+        syncConnector = new SyncConnector(store, appodealApi);
 
-    store.appodealFetchUser().then(account => {
-        if (account === AppodealApiService.emptyAccount) {
-            openSettingsWindow();
-        }
+
+    appodealApi.init()
+        .then(() => store.appodealFetchUser())
+        .then(account => {
+            if (account === AppodealApiService.emptyAccount) {
+                openSettingsWindow();
+            }
+        }).catch(e => {
+        console.error('FAILED TO FETCH CURRENT USER');
+        console.log(e);
     });
 
+
+    const cleanUpOnExit = async function () {
+        await accountsConnector.destroy();
+        await syncConnector.destroy();
+        await logsConnector.destroy();
+    };
+
+
+    process.on('SIGTERM', () => app.quit());
+    process.on('SIGINT', () => app.quit());
+    let cleanUpFinished = false;
+    app.on('before-quit', async (e) => {
+        console.log('before-quit', cleanUpFinished);
+        if (cleanUpFinished) {
+            return;
+        }
+        try {
+            e.preventDefault();
+            await cleanUpOnExit();
+        } finally {
+            cleanUpFinished = true;
+            app.quit();
+        }
+    });
+});
+
+process.on('uncaughtException', function (err) {
+    console.error('Caught exception: ', err);
 });

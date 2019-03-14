@@ -1,3 +1,4 @@
+import {AdMobSessions} from 'core/admob-api/admob-sessions.helper';
 import {Store} from 'core/store';
 import {Action, ActionTypes} from 'lib/actions';
 import {onActionFromRenderer} from 'lib/common';
@@ -20,6 +21,12 @@ export class AccountsConnector {
             return this.store.adMobSignIn();
         case ActionTypes.adMobRemoveAccount:
             return this.store.adMobRemoveAccount(payload.account);
+        case ActionTypes.selectAdmobAccount:
+            return this.store.loadSelectedAdMobAccountLogs(payload);
+        case ActionTypes.openAdmobPage:
+            return AdMobSessions.openAdmobWindow(payload);
         }
     }
+
+    destroy () {}
 }

@@ -1,9 +1,10 @@
+import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
+import {AppodealAccount} from 'core/appdeal-api/interfaces/appodeal.account.interface';
 import {remote} from 'electron';
-import {AdMobAccount, AppodealAccount} from 'interfaces/appodeal.interfaces';
-import {UserAccount} from 'interfaces/common.interfaces';
 import {action, ActionTypes} from 'lib/actions';
 import {sendToMain} from 'lib/common';
 import {buttonClick, classNames} from 'lib/dom';
+import {LogFileInfo} from 'lib/sync-logs/logger';
 import React from 'react';
 import {AdmobAccountComponent} from 'ui/components/admob-account/AdmobAccountComponent';
 import {AppodealAccountComponent} from 'ui/components/appodeal-account/AppodealAccountComponent';
@@ -16,7 +17,8 @@ export interface AccountsComponentProps {
 }
 
 interface AccountsComponentState {
-    selectedAccount: UserAccount;
+    selectedAccount: AppodealAccount | AdMobAccount;
+    accountLogs: LogFileInfo[];
 }
 
 export class AccountsComponent extends React.Component<AccountsComponentProps, AccountsComponentState> {
@@ -24,19 +26,22 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
     constructor (props) {
         super(props);
         this.state = {
-            selectedAccount: this.props.appodealAccount
+            selectedAccount: this.props.appodealAccount,
+            accountLogs: []
         };
     }
 
-    private selectAccount (account: UserAccount) {
+    private selectAccount (account: AppodealAccount | AdMobAccount) {
         this.setState({
             selectedAccount: account
         });
+        sendToMain('accounts', action(ActionTypes.selectAdmobAccount, account))
+            .then((logs: LogFileInfo[]) => this.setState({accountLogs: logs}));
     }
 
-    private updateSelectedAccount (account: UserAccount) {
+    private updateSelectedAccount (account: AppodealAccount | AdMobAccount) {
         if (account) {
-            let adMobAccount = this.props.adMobAccounts.find(acc => acc.email === account.email);
+            let adMobAccount = this.props.adMobAccounts.find(acc => acc.id === account.id);
             if (adMobAccount) {
                 this.selectAccount(adMobAccount);
             } else if (account.email === this.props.appodealAccount.email) {
@@ -47,7 +52,7 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
 
     onSignIn ({email, password}: { email: string, password: string }) {
         sendToMain('accounts', action(ActionTypes.appodealSignIn, {email, password}))
-            .then(account => this.updateSelectedAccount(account as UserAccount))
+            .then(account => this.updateSelectedAccount(account as AppodealAccount))
             .catch(err => {
                 alert(err.message);
             });
@@ -55,18 +60,18 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
 
     onSignOut () {
         sendToMain('accounts', action(ActionTypes.appodealSignOut))
-            .then(account => this.updateSelectedAccount(account as UserAccount));
+            .then(account => this.updateSelectedAccount(account as AppodealAccount));
     }
 
     onAddAccount () {
         return sendToMain('accounts', action(ActionTypes.adMobAddAccount))
-            .then(account => this.updateSelectedAccount(account as UserAccount))
+            .then(account => this.updateSelectedAccount(account as AdMobAccount))
             .then(() => {
                 remote.getCurrentWindow().focus();
             });
     }
 
-    onRemoveAccount (account: UserAccount) {
+    onRemoveAccount (account: AdMobAccount | AppodealAccount) {
         sendToMain('accounts', action(ActionTypes.adMobRemoveAccount, {account}));
     }
 
@@ -78,7 +83,7 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
                                              onSignOut={() => this.onSignOut()}
             />;
         } else {
-            return <AdmobAccountComponent account={this.state.selectedAccount as AdMobAccount}/>;
+            return <AdmobAccountComponent account={this.state.selectedAccount as AdMobAccount} logs={this.state.accountLogs}/>;
         }
     }
 

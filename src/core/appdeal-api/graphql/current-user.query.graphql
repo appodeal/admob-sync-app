@@ -2,5 +2,9 @@ query currentUser {
     currentUser {
         id
         email
+        accounts {
+            id
+            email
+        }
     }
 }

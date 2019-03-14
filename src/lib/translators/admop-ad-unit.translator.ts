@@ -1,7 +1,8 @@
-import {AdMobAdUnit, CpmFloorSettings, CpmValue, ManualFloorSettings, RewardsSettings} from 'interfaces/admob.interfaces';
-import {BooleanTranslator} from 'lib/translators/boolean.translator';
-import {MicrosToUSDTranslator} from 'lib/translators/micros-to-usd.translator';
-import {ObjectTranslator} from 'lib/translators/object.translator';
+import {BooleanTranslator} from './base-translators/boolean.translator';
+import {MicrosToUSDTranslator} from './base-translators/micros-to-usd.translator';
+
+import {ObjectTranslator} from './base-translators/object.translator';
+import {AdMobAdUnit, CpmFloorSettings, CpmValue, ManualFloorSettings, RewardsSettings} from './interfaces/admob-ad-unit.interface';
 
 
 export class RewardsSettingsTranslator extends ObjectTranslator<RewardsSettings> {
@@ -68,7 +69,8 @@ export class AdUnitTranslator extends ObjectTranslator<AdMobAdUnit> {
             16: 'adType',
             17: ['enableRewardsAds', BooleanTranslator],
             18: ['rewardsSettings', RewardsSettingsTranslator],
-            21: 'googleOptimizedRefreshRate',
+            19: 'frequencyCap',
+            21: ['googleOptimizedRefreshRate', BooleanTranslator],
             23: ['cpmFloorSettings', CpmFloorSettingsTranslator]
         });
     }

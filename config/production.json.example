@@ -1,13 +1,8 @@
 {
   "environment": {
     "services": {
-      "appodeal": "https://api.appodeal.com",
+      "appodeal": "https://api.appodeal.com/graphql",
       "ad_mob": "https://apps.admob.com"
     }
-  },
-  "manifest": {
-  	"background": {
-  	  "persistent": false
-  	}
   }
 }

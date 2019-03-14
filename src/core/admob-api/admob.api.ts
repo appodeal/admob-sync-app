@@ -1,14 +1,13 @@
-import {ErrorFactoryService} from 'core/error-factory/error-factory.service';
 import {InternalError} from 'core/error-factory/errors/internal-error';
-import {AdMobAdUnit, AdMobApp} from 'interfaces/admob.interfaces';
-import {AppTranslator} from 'lib/admob-app.translator';
-import {AdUnitTranslator} from 'lib/admop-ad-unit.translator';
+import {AppTranslator} from 'lib/translators/admob-app.translator';
+import {AdUnitTranslator} from 'lib/translators/admop-ad-unit.translator';
+import {AdMobAdUnit} from 'lib/translators/interfaces/admob-ad-unit.interface';
+import {AdMobApp} from 'lib/translators/interfaces/admob-app.interface';
 import {getTranslator} from 'lib/translators/translator.helpers';
 import trim from 'lodash.trim';
 
 
 export class AdmobApiService {
-    private sessions: Map<string, string>;
 
     private host = trim(environment.services.ad_mob, '/');
     private xsrfToken: string;
@@ -23,7 +22,7 @@ export class AdmobApiService {
         return [this.host, 'inventory/_/rpc', serviceName, method].join('/');
     }
 
-    constructor (private errorFactory: ErrorFactoryService) {
+    constructor (private fetcher = fetch, private logger: Partial<Console>) {
     }
 
 
@@ -32,7 +31,7 @@ export class AdmobApiService {
     }
 
     private async fetch<T> (url: string, contentType: string, body: string): Promise<T> {
-        return fetch(
+        return this.fetcher(
             url,
             {
                 'credentials': 'include',
@@ -48,6 +47,35 @@ export class AdmobApiService {
             }
         )
             .then(r => r.json());
+    }
+
+    async refreshXsrfToken () {
+        const response = await this.fetchHomePage();
+        const body = await response.text();
+        const mathResult = body.match(/xsrfToken: '([^\']*)'/);
+        if (!mathResult || !mathResult[1]) {
+            // may be user's action required
+            throw new Error('failed to refresh xsrfToken');
+        }
+        this.setXrfToken(mathResult[1]);
+    }
+
+    fetchHomePage (): Promise<Response> {
+        return this.fetcher(
+            'https://apps.admob.com/v2/home',
+            {
+                'credentials': 'include',
+                'headers': {
+                    'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+                    'accept-language': 'en-US,en;q=0.9',
+                    'upgrade-insecure-requests': '1'
+                },
+                'referrerPolicy': 'no-referrer-when-downgrade',
+                'body': null,
+                'method': 'GET',
+                'mode': 'cors'
+            }
+        );
     }
 
     private handleError (e: InternalError) {
@@ -72,6 +100,7 @@ export class AdmobApiService {
                     2: AdMobAdUnit[]
                 }
             }
+            error?: any
         }>
         (
             this.appsEndpointUrl,
@@ -79,16 +108,18 @@ export class AdmobApiService {
             `{method: "initialize", params: {}, xsrf: "${this.xsrfToken}"}`
         )
             .then(responseBody => {
-                const apps = responseBody.result[1][1];
-                const adUnits = responseBody.result[1][2];
+                if (responseBody.error) {
+                    throw  new Error(JSON.stringify(responseBody));
+                }
+                const apps = responseBody.result[1][1] || [];
+                const adUnits = responseBody.result[1][2] || [];
                 return {
-                    apps: apps.map(getTranslator(AppTranslator).decode),
-                    adUnits: adUnits.map(getTranslator(AdUnitTranslator).decode)
+                    apps: apps.map<AdMobApp>(getTranslator(AppTranslator).decode),
+                    adUnits: adUnits.map<AdMobAdUnit>(getTranslator(AdUnitTranslator).decode)
                 };
             })
             .catch(e => {
-                const error = this.errorFactory.create(e);
-                this.handleError(error);
+                this.handleError(e);
                 throw e;
             });
     }
@@ -116,14 +147,13 @@ export class AdmobApiService {
             'application/x-www-form-urlencoded',
             `__ar=${encodeURIComponent(JSON.stringify(payload))}`
         ).catch(e => {
-            console.error(`Failed to Post to AdMob '${serviceName}' '${method}'`);
-            console.log(payload);
-            console.error(e);
-
-            const error = this.errorFactory.create(e);
-            this.handleError(error);
+            this.logger.error(`Failed to Post to AdMob '${serviceName}' '${method}'`);
+            this.logger.info(payload);
+            this.logger.error(e);
+            this.handleError(e);
             throw e;
         });
     }
+
 
 }
