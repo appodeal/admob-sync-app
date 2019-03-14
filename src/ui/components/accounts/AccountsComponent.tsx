@@ -3,8 +3,10 @@ import {AdMobAccount, AppodealAccount} from 'interfaces/appodeal.interfaces';
 import {UserAccount} from 'interfaces/common.interfaces';
 import {action, ActionTypes} from 'lib/actions';
 import {sendToMain} from 'lib/common';
-import {classNames} from 'lib/dom';
-import React, {FormEvent} from 'react';
+import {buttonClick, classNames} from 'lib/dom';
+import React from 'react';
+import {AdmobAccountComponent} from 'ui/components/admob-account/AdmobAccountComponent';
+import {AppodealAccountComponent} from 'ui/components/appodeal-account/AppodealAccountComponent';
 import style from './Accounts.scss';
 
 
@@ -43,11 +45,7 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
         }
     }
 
-    onSignIn (event: FormEvent<HTMLFormElement>) {
-        event.preventDefault();
-        let formElements = (event.target as HTMLFormElement).elements,
-            email = (formElements.namedItem('login') as HTMLInputElement).value,
-            password = (formElements.namedItem('password') as HTMLInputElement).value;
+    onSignIn ({email, password}: { email: string, password: string }) {
         sendToMain('accounts', action(ActionTypes.appodealSignIn, {email, password}))
             .then(account => this.updateSelectedAccount(account as UserAccount))
             .catch(err => {
@@ -61,7 +59,7 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
     }
 
     onAddAccount () {
-        sendToMain('accounts', action(ActionTypes.adMobAddAccount))
+        return sendToMain('accounts', action(ActionTypes.adMobAddAccount))
             .then(account => this.updateSelectedAccount(account as UserAccount))
             .then(() => {
                 remote.getCurrentWindow().focus();
@@ -75,32 +73,12 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
     renderAccountForm () {
         let appodealAccount = this.props.appodealAccount;
         if (this.state.selectedAccount === appodealAccount) {
-            let hasAccount = !!appodealAccount.email;
-            return <form onSubmit={event => this.onSignIn(event)}>
-                <label htmlFor="status">Status:</label>
-                <output id="status"
-                        className={classNames(style.status, {[style.connected]: hasAccount, [style.disconnected]: !hasAccount})}
-                >{hasAccount ? 'Connected' : 'Disconnected'}</output>
-                <label htmlFor="login">Email:</label>
-                {
-                    hasAccount ?
-                        <output id="login">{appodealAccount.email}</output> :
-                        <input type="email" id="login" name="login"/>
-                }
-                {!hasAccount && <label htmlFor="password">Password:</label>}
-                {!hasAccount && <input type="password" id="password" name="password"/>}
-                <div className="actions">
-                    {
-                        hasAccount ?
-                            <button type="button" onClick={() => this.onSignOut()}>Sign Out</button> :
-                            <button type="submit">Sign In</button>
-                    }
-                </div>
-            </form>;
+            return <AppodealAccountComponent account={appodealAccount}
+                                             onSignIn={cred => this.onSignIn(cred)}
+                                             onSignOut={() => this.onSignOut()}
+            />;
         } else {
-            return <div>
-
-            </div>;
+            return <AdmobAccountComponent account={this.state.selectedAccount as AdMobAccount}/>;
         }
     }
 
@@ -130,7 +108,7 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
 
                 </ul>
                 <div className={style.accountControls}>
-                    <button type="button" className={style.add} onClick={() => this.onAddAccount()}></button>
+                    <button type="button" className={style.add} onClick={buttonClick(this.onAddAccount, this)}></button>
                     <button type="button"
                             disabled={this.state.selectedAccount === this.props.appodealAccount}
                             onClick={() => this.onRemoveAccount(this.state.selectedAccount)}

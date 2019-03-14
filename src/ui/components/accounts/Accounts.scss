@@ -144,13 +144,6 @@
     border-radius: 4px;
     padding: 20px;
 
-    .status {
-      &.connected {
-        color: #6af36a;
-      }
-      &.disconnected {
-        color: #ff5d5d;
-      }
-    }
+
   }
 }

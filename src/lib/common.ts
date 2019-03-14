@@ -93,10 +93,10 @@ export function sendToMain (channel: string, action: Action) {
         let id = uuid();
         ipcRenderer.send(channel, {id, action});
         ipcRenderer.once(`${channel}:response:${id}`, (event, {error, result}) => {
-            if (result) {
-                resolve(result);
-            } else {
+            if (error) {
                 reject(error);
+            } else {
+                resolve(result);
             }
         });
     });

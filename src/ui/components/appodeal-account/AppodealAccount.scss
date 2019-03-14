@@ -1,0 +1,8 @@
+.status {
+  &.connected {
+    color: #6af36a;
+  }
+  &.disconnected {
+    color: #ff5d5d;
+  }
+}
