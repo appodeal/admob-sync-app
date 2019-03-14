@@ -27,15 +27,3 @@ export function saveJsonFile (fileName: string, data: any): Promise<void> {
         });
     });
 }
-
-export function deleteSession (sessionId: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-        fs.rmdir(path.resolve(app.getPath('userData'), `./Partitions/${sessionId}`), (err) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve();
-            }
-        });
-    });
-}

@@ -114,8 +114,8 @@ export class AdmobApiService {
                 const apps = responseBody.result[1][1] || [];
                 const adUnits = responseBody.result[1][2] || [];
                 return {
-                    apps: apps.map(getTranslator(AppTranslator).decode),
-                    adUnits: adUnits.map(getTranslator(AdUnitTranslator).decode)
+                    apps: apps.map<AdMobApp>(getTranslator(AppTranslator).decode),
+                    adUnits: adUnits.map<AdMobAdUnit>(getTranslator(AdUnitTranslator).decode)
                 };
             })
             .catch(e => {

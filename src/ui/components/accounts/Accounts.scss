@@ -90,7 +90,8 @@
       border-right: 1px solid #727274;
       margin: 0;
       border-radius: 0;
-      background: transparent;
+      background-color: transparent;
+      background-image: none;
       color: #e2e2e2;
       width: 24px;
       display: flex;
@@ -103,6 +104,12 @@
 
       &:active {
         background-color: #626162;
+        background-image: none;
+      }
+
+      &:hover {
+        background-color: transparent;
+        background-image: none;
       }
 
       &:disabled {
@@ -137,16 +144,9 @@
     border-radius: 4px;
     padding: 20px;
 
-    .status {
-      &.connected {
-        color: #6af36a;
-      }
-      &.disconnected {
-        color: #ff5d5d;
-      }
-    }
     button + button {
       margin-left: 10px;
     }
+
   }
 }

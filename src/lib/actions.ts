@@ -1,4 +1,4 @@
-import {AdmobAccount} from 'interfaces/appodeal.interfaces';
+import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
 import {LogFileInfo} from 'lib/sync-logs/logger';
 
 
@@ -6,13 +6,11 @@ export enum ActionTypes {
     appodealSignIn = 'appodealSignIn',
     appodealSignOut = 'appodealSignOut',
     adMobAddAccount = 'adMobAddAccount',
+    adMobRemoveAccount = 'adMobRemoveAccount',
+    adMobSetupTutorial = 'adMobSetupTutorial',
     runSync = 'RunSync',
     openAdmobPage = 'openAdmobPage',
     selectAdmobAccount = 'selectAdmobAccount',
-    updateAdmobCredentials = 'updateAdmobCredentials',
-    fetchAppodealUser = 'fetchAppodealUser',
-    loginToAdmob = 'loginToAdmob',
-
     openLogFile = 'openLogFile',
     submitLogToAppodeal = 'submitLogToAppodeal'
 }
@@ -27,7 +25,7 @@ export interface Action {
 export interface LogAction extends Action {
     type: ActionTypes.openLogFile | ActionTypes.submitLogToAppodeal,
     payload: {
-        account: AdmobAccount,
+        account: AdMobAccount,
         log: LogFileInfo
     }
 }

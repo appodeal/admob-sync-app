@@ -20,7 +20,6 @@ if (!environment.development) {
 console.debug('electron versions', process.versions);
 let tray: Tray;
 
-
 initThemeSwitcher();
 
 if (app.dock) {

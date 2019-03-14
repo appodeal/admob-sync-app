@@ -1,0 +1,30 @@
+.setupRequired {
+  background-color: rgba(255, 165, 0, 0.2);
+  padding: 7px;
+  color: #fff;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 165, 0, 0.4);
+  border-radius: 5px;
+  margin-block-end: 10px;
+
+  h1 {
+    margin: 0 0 14px;
+    font-size: 1em;
+    font-weight: 500;
+    line-height: 1;
+  }
+
+  p {
+    margin: 0;
+  }
+
+  .actions {
+    margin: 14px 0 0;
+    display: flex;
+    justify-content: flex-end;
+
+    button + button {
+      margin-inline-start: 7px;
+    }
+  }
+}

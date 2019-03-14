@@ -1,4 +1,4 @@
-import {CSSProperties} from 'react';
+import React, {CSSProperties} from 'react';
 
 
 export function classNames (...args: Array<any>): string {
@@ -24,4 +24,19 @@ export function classNames (...args: Array<any>): string {
 
 export function css (style: {[key: string]: string}): CSSProperties {
     return style as CSSProperties;
+}
+
+export function buttonClick (listener: (event?: MouseEvent) => any, context: any = undefined): (event: React.MouseEvent) => Promise<void> {
+    return async (event: React.MouseEvent) => {
+        let button = (event.target as Element).closest('button') as HTMLButtonElement;
+        if (button) {
+            button.disabled = true;
+        }
+        await Promise.resolve()
+            .then(() => listener.call(context, event.nativeEvent))
+            .catch(err => {});
+        if (button) {
+            button.disabled = false;
+        }
+    };
 }

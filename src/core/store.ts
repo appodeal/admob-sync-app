@@ -1,8 +1,8 @@
-import {AdmobSignInService} from 'core/admob/sign-in/admob-sign-in';
+import {AdMobSessions} from 'core/admob-api/admob-sessions.helper';
 import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
+import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
 import {AppodealAccount} from 'core/appdeal-api/interfaces/appodeal.account.interface';
 import {BrowserWindow, ipcMain} from 'electron';
-import {AdmobAccount} from 'interfaces/appodeal.interfaces';
 import {getJsonFile, saveJsonFile} from 'lib/json-storage';
 import {getLogsList, LogFileInfo} from 'lib/sync-logs/logger';
 import {action, observable, observe, set} from 'mobx';
@@ -17,17 +17,17 @@ export interface SyncProgress {
 
 export interface AppState {
     appodealAccount: AppodealAccount;
-    adMobAccounts: Array<AdmobAccount>;
+    adMobAccounts: Array<AdMobAccount>;
     syncProgress: SyncProgress;
 }
 
 
 export class Store {
-    static getAdmobAccounts (): Promise<Array<AdmobAccount>> {
+    static getAdmobAccounts (): Promise<Array<AdMobAccount>> {
         return getJsonFile('admob-accounts');
     }
 
-    static saveAdmobAccounts (accounts: Array<AdmobAccount>): Promise<void> {
+    static saveAdmobAccounts (accounts: Array<AdMobAccount>): Promise<void> {
         return saveJsonFile('admob-accounts', accounts);
     }
 
@@ -86,7 +86,7 @@ export class Store {
     }
 
     @action
-    loadSelectedAdMobAccountLogs (account: AdmobAccount): Promise<LogFileInfo[]> {
+    loadSelectedAdMobAccountLogs (account: AdMobAccount): Promise<LogFileInfo[]> {
         return getLogsList(account).catch(e => {
             console.error(e);
             return [];
@@ -95,19 +95,31 @@ export class Store {
 
     @action
     adMobSignIn () {
-        return AdmobSignInService.signIn()
+        return AdMobSessions.signIn()
             .then(account => {
-                let existingAccount = this.state.adMobAccounts.find(acc => acc.id === account.id),
-                    accounts;
-                if (existingAccount) {
-                    Object.assign(existingAccount, account);
-                    accounts = [...this.state.adMobAccounts];
-                } else {
-                    accounts = [...this.state.adMobAccounts, account];
+                if (account) {
+                    let existingAccount = this.state.adMobAccounts.find(acc => acc.id === account.id),
+                        accounts;
+                    if (existingAccount) {
+                        Object.assign(existingAccount, account);
+                        accounts = [...this.state.adMobAccounts];
+                    } else {
+                        accounts = [...this.state.adMobAccounts, account];
+                    }
+                    set<AppState>(this.state, 'adMobAccounts', accounts);
+                    Store.saveAdmobAccounts(accounts);
                 }
-                set<AppState>(this.state, 'adMobAccounts', accounts);
-                Store.saveAdmobAccounts(accounts);
                 return account;
+            });
+    }
+
+    @action
+    adMobRemoveAccount (account: AdMobAccount) {
+        return AdMobSessions.removeSession(account)
+            .then(() => {
+                let accounts = this.state.adMobAccounts.filter(acc => acc.id !== account.id);
+                set<AppState>(this.state, 'adMobAccounts', accounts);
+                return Store.saveAdmobAccounts(accounts);
             });
     }
 }

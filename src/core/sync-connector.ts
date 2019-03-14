@@ -1,5 +1,5 @@
-import {AdmobApiService} from 'core/admob/api/admob.api';
-import {AdmobSignInService} from 'core/admob/sign-in/admob-sign-in';
+import {AdMobSessions} from 'core/admob-api/admob-sessions.helper';
+import {AdmobApiService} from 'core/admob-api/admob.api';
 import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
 import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
 import {Store} from 'core/store';
@@ -9,7 +9,6 @@ import {onActionFromRenderer} from 'lib/common';
 import {createFetcher} from 'lib/fetch';
 import {createSyncLogger, getLogContent, rotateSyncLogs} from 'lib/sync-logs/logger';
 import uuid from 'uuid';
-import getSession = AdmobSignInService.getSession;
 
 
 export class SyncConnector {
@@ -41,7 +40,7 @@ export class SyncConnector {
         const id = uuid.v4();
         const logger = await createSyncLogger(admobAccount, id);
 
-        const adMobApi = new AdmobApiService(await createFetcher(await getSession(admobAccount)), logger);
+        const adMobApi = new AdmobApiService(await createFetcher(await AdMobSessions.getSession(admobAccount)), logger);
 
         this.sync = new Sync(
             adMobApi,

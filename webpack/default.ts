@@ -19,7 +19,7 @@ export default (env: webpack.Configuration): webpack.Configuration => {
             main: path.join(SRC_PATH, './main.ts'),
             settings: path.join(SRC_PATH, './ui/settings/settings.tsx')
         },
-        target: 'electron-renderer',
+        target: 'electron-main',
         output: {
             path: BUILD_PATH,
             filename: '[name].js'
