@@ -23,13 +23,6 @@ export interface AppState {
 
 
 export class Store {
-    static getAdmobAccounts (): Promise<Array<AdMobAccount>> {
-        return getJsonFile('admob-accounts');
-    }
-
-    static saveAdmobAccounts (accounts: Array<AdMobAccount>): Promise<void> {
-        return saveJsonFile('admob-accounts', accounts);
-    }
 
     @observable readonly state: AppState = {
         appodealAccount: AppodealApiService.emptyAccount,
@@ -42,10 +35,6 @@ export class Store {
     ) {
         ipcMain.on('store', () => this.emitState());
         observe(this.state, () => this.emitState());
-
-        Store.getAdmobAccounts().then(accounts => {
-            set<AppState>(this.state, 'adMobAccounts', accounts || []);
-        });
     }
 
     private emitState () {
@@ -69,7 +58,6 @@ export class Store {
         return this.appodealApi.fetchCurrentUser()
             .then(account => {
                 set<AppState>(this.state, 'appodealAccount', account);
-                set<AppState>(this.state, 'adMobAccounts', account.accounts || []);
                 return account;
             });
 
@@ -80,7 +68,6 @@ export class Store {
         return this.appodealApi.signOut()
             .then(() => {
                 set<AppState>(this.state, 'appodealAccount', AppodealApiService.emptyAccount);
-                set<AppState>(this.state, 'adMobAccounts', []);
                 return AppodealApiService.emptyAccount;
             });
     }
@@ -94,33 +81,31 @@ export class Store {
     }
 
     @action
-    adMobSignIn () {
-        return AdMobSessions.signIn()
-            .then(account => {
-                if (account) {
-                    let existingAccount = this.state.adMobAccounts.find(acc => acc.id === account.id),
-                        accounts;
-                    if (existingAccount) {
-                        Object.assign(existingAccount, account);
-                        accounts = [...this.state.adMobAccounts];
-                    } else {
-                        accounts = [...this.state.adMobAccounts, account];
-                    }
-                    set<AppState>(this.state, 'adMobAccounts', accounts);
-                    Store.saveAdmobAccounts(accounts);
+    async addAdMobAccount () {
+        let account = await AdMobSessions.signIn();
+        if (account) {
+            let existingAccount = this.state.appodealAccount.accounts.find(acc => acc.id === account.id);
+            if (!existingAccount) {
+                let added = await this.appodealApi.addAdMobAccount(account);
+                if (added) {
+                    await this.appodealFetchUser();
+                    return {
+                        existingAccount: null,
+                        newAccount: account
+                    };
+                } else {
+                    throw new Error(`Can't create AdMob account`);
                 }
-                return account;
-            });
-    }
-
-    @action
-    adMobRemoveAccount (account: AdMobAccount) {
-        return AdMobSessions.removeSession(account)
-            .then(() => {
-                let accounts = this.state.adMobAccounts.filter(acc => acc.id !== account.id);
-                set<AppState>(this.state, 'adMobAccounts', accounts);
-                return Store.saveAdmobAccounts(accounts);
-            });
+            }
+            return {
+                existingAccount,
+                newAccount: null
+            };
+        }
+        return {
+            existingAccount: null,
+            newAccount: null
+        };
     }
 
     @action
@@ -128,7 +113,6 @@ export class Store {
         return this.appodealApi.setAdMobAccountCredentials(accountId, clientId, clientSecret)
             .then(account => {
                 set<AppState>(this.state, 'appodealAccount', account);
-                set<AppState>(this.state, 'adMobAccounts', account.accounts || []);
                 return account;
             });
     }

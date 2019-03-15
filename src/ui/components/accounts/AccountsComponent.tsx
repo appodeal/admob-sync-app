@@ -2,8 +2,8 @@ import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface'
 import {AppodealAccount} from 'core/appdeal-api/interfaces/appodeal.account.interface';
 import {remote} from 'electron';
 import {action, ActionTypes} from 'lib/actions';
-import {sendToMain} from 'lib/common';
-import {singleEvent, classNames} from 'lib/dom';
+import {messageDialog, sendToMain} from 'lib/common';
+import {classNames, singleEvent} from 'lib/dom';
 import {LogFileInfo} from 'lib/sync-logs/logger';
 import React from 'react';
 import {AdmobAccountComponent} from 'ui/components/admob-account/AdmobAccountComponent';
@@ -12,8 +12,7 @@ import style from './Accounts.scss';
 
 
 export interface AccountsComponentProps {
-    appodealAccount: AppodealAccount
-    adMobAccounts: Array<AdMobAccount>
+    appodealAccount: AppodealAccount;
 }
 
 interface AccountsComponentState {
@@ -31,48 +30,58 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
         };
     }
 
+    componentWillReceiveProps (nextProps: Readonly<AccountsComponentProps>) {
+        let accountToSelect = nextProps.appodealAccount.accounts.find(acc => acc.id === this.state.selectedAccount.id);
+        if (accountToSelect) {
+            this.selectAccount(accountToSelect);
+        }
+    }
+
     private selectAccount (account: AppodealAccount | AdMobAccount) {
         this.setState({
             selectedAccount: account
         });
-        sendToMain('accounts', action(ActionTypes.selectAdmobAccount, account))
-            .then((logs: LogFileInfo[]) => this.setState({accountLogs: logs}));
+        if (account !== this.props.appodealAccount) {
+            sendToMain('accounts', action(ActionTypes.selectAdmobAccount, account))
+                .then((logs: LogFileInfo[]) => this.setState({accountLogs: logs}));
+        }
     }
 
-    private updateSelectedAccount (account: AppodealAccount | AdMobAccount) {
+    private updateSelectedAccount (account: AdMobAccount) {
         if (account) {
-            let adMobAccount = this.props.adMobAccounts.find(acc => acc.id === account.id);
+            let adMobAccount = this.props.appodealAccount.accounts.find(acc => acc.id === account.id);
             if (adMobAccount) {
                 this.selectAccount(adMobAccount);
-            } else if (account.email === this.props.appodealAccount.email) {
-                this.selectAccount(this.props.appodealAccount);
             }
         }
     }
 
     onSignIn ({email, password}: { email: string, password: string }) {
-        sendToMain('accounts', action(ActionTypes.appodealSignIn, {email, password}))
-            .then(account => this.updateSelectedAccount(account as AppodealAccount))
-            .catch(err => {
-                alert(err.message);
-            });
+        return sendToMain('accounts', action(ActionTypes.appodealSignIn, {email, password}))
+            .then(() => this.selectAccount(this.props.appodealAccount))
+            .catch(err => messageDialog(err.message));
     }
 
     onSignOut () {
-        sendToMain('accounts', action(ActionTypes.appodealSignOut))
-            .then(account => this.updateSelectedAccount(account as AppodealAccount));
+        return sendToMain('accounts', action(ActionTypes.appodealSignOut))
+            .then(() => this.selectAccount(this.props.appodealAccount));
     }
 
     onAddAccount () {
-        return sendToMain('accounts', action(ActionTypes.adMobAddAccount))
-            .then(account => this.updateSelectedAccount(account as AdMobAccount))
+        return sendToMain<{ newAccount: AdMobAccount, existingAccount: AdMobAccount }>('accounts', action(ActionTypes.adMobAddAccount))
+            .then(({newAccount, existingAccount}) => {
+                this.updateSelectedAccount(newAccount || existingAccount);
+                if (existingAccount) {
+                    setTimeout(() => messageDialog(`Following account already exists`, [
+                        `Email: ${existingAccount.email}`,
+                        `ID: ${existingAccount.id}`
+                    ].join('\n')));
+                }
+            })
             .then(() => {
                 remote.getCurrentWindow().focus();
-            });
-    }
-
-    onRemoveAccount (account: AdMobAccount | AppodealAccount) {
-        sendToMain('accounts', action(ActionTypes.adMobRemoveAccount, {account}));
+            })
+            .catch(error => messageDialog(error.message));
     }
 
     renderAccountForm () {
@@ -88,6 +97,7 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
     }
 
     render () {
+        let {accounts} = this.props.appodealAccount;
         return (
             <div className={style.accounts}>
                 <div className={style.description}>Manage your accounts and bla bla bla...</div>
@@ -99,8 +109,8 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
                         <span className={style.accountName}>Appodeal</span>
                         <span className={style.accountEmail}>{this.props.appodealAccount.email}</span>
                     </li>
-                    {!!this.props.adMobAccounts.length && <li className={style.hr}></li>}
-                    {this.props.adMobAccounts.map(acc => {
+                    {!!accounts.length && <li className={style.hr}></li>}
+                    {accounts.map(acc => {
                         return <li key={acc.email}
                                    onClick={() => this.selectAccount(acc)}
                                    className={classNames({[style.selected]: this.state.selectedAccount === acc})}
@@ -114,10 +124,6 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
                 </ul>
                 <div className={style.accountControls}>
                     <button type="button" className={style.add} onClick={singleEvent(this.onAddAccount, this)}></button>
-                    <button type="button"
-                            disabled={this.state.selectedAccount === this.props.appodealAccount}
-                            onClick={() => this.onRemoveAccount(this.state.selectedAccount)}
-                    ></button>
                 </div>
                 <div className={style.accountDetails}>
                     {this.renderAccountForm()}

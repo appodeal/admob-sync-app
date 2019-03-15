@@ -35,7 +35,7 @@ export class RootComponent extends React.Component<RootComponentProps, RootCompo
     renderTabContent (tab: string) {
         switch (tab) {
         case 'accounts':
-            return <AccountsComponent appodealAccount={this.props.store.appodealAccount} adMobAccounts={this.props.store.adMobAccounts}/>;
+            return <AccountsComponent appodealAccount={this.props.store.appodealAccount}/>;
         case 'appearance':
             return <div>Appearance</div>;
         }

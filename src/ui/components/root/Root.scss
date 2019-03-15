@@ -11,7 +11,8 @@
     position: relative;
     box-shadow: 0 0.5px 1px #222;
     align-self: center;
-    border-radius: 5px;
+    border-radius: 4px;
+    overflow: hidden;
 
     button {
       flex: 0 0 auto;
@@ -29,14 +30,14 @@
       }
 
       + button:not(.active) {
-        border-left: 1px solid #525251;
+        outline: 1px solid #525251;
       }
 
       &.active {
         background-image: linear-gradient(to bottom, #1869e6, #155ecc);
 
         + button {
-          border-left: none;
+          outline: none;
         }
       }
     }

@@ -1,0 +1,3 @@
+mutation addAdMobAccount ($accountId: ID!, $email: String!) {
+    addAdmobAccount(accountId: $accountId, email: $email)
+}

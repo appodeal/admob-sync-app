@@ -1,8 +1,9 @@
-import {BrowserWindow, BrowserWindowConstructorOptions, ipcMain, ipcRenderer} from 'electron';
+import {BrowserWindow, BrowserWindowConstructorOptions, dialog, ipcMain, ipcRenderer, remote} from 'electron';
 import {Action} from 'lib/actions';
 import path from 'path';
 import uuid from 'uuid';
 import {getBgColor, getCurrentTheme, onThemeChanges} from './theme';
+
 
 function getConfig (config: BrowserWindowConstructorOptions, backgroundColor: string): BrowserWindowConstructorOptions {
     return {
@@ -82,15 +83,15 @@ export function onActionFromRenderer (channel: string, cb: (action: Action) => v
             .then(result => {
                 sender.send(`${channel}:response:${id}`, {error: null, result});
             })
-            .catch(error => {
-                sender.send(`${channel}:response:${id}`, {error, result: null});
+            .catch(({message}) => {
+                sender.send(`${channel}:response:${id}`, {error: {message}, result: null});
             });
     };
     ipcMain.on(channel, listener);
     return () => ipcMain.removeListener(channel, listener);
 }
 
-export function sendToMain (channel: string, action: Action) {
+export function sendToMain<T> (channel: string, action: Action): Promise<T> {
     return new Promise((resolve, reject) => {
         let id = uuid.v4();
         ipcRenderer.send(channel, {id, action});
@@ -123,7 +124,7 @@ export function createScript (fn: (...args: Array<any>) => void, ...args) {
             return safeJsonParse(arg);
         }
     }));
-    })(${args.map(arg => { 
+    })(${args.map(arg => {
         if (typeof arg === 'function') {
             return arg.toString();
         } else if (typeof arg === 'string') {
@@ -166,10 +167,17 @@ export function waitForNavigation (window: BrowserWindow, urlFragment: string = 
             });
         } else {
             window.webContents.once('did-navigate', () => {
-                resolver()
+                resolver();
             });
         }
 
+    });
+}
+
+export function messageDialog (message: string, detail: string = undefined) {
+    (dialog || remote.dialog).showMessageBox({
+        message,
+        detail
     });
 }
 
