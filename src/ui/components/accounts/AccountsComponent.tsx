@@ -97,23 +97,25 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
     }
 
     render () {
-        let {accounts} = this.props.appodealAccount;
+        let {selectedAccount} = this.state,
+            {appodealAccount} = this.props,
+            {accounts} = appodealAccount;
         return (
             <div className={style.accounts}>
                 <div className={style.description}>Manage your accounts and bla bla bla...</div>
                 <ul className={style.accountsList}>
-                    <li onClick={() => this.selectAccount(this.props.appodealAccount)}
-                        className={classNames({[style.selected]: this.state.selectedAccount === this.props.appodealAccount})}
+                    <li onClick={() => this.selectAccount(appodealAccount)}
+                        className={classNames({[style.selected]: selectedAccount === appodealAccount})}
                     >
                         <img src="" alt=""/>
                         <span className={style.accountName}>Appodeal</span>
-                        <span className={style.accountEmail}>{this.props.appodealAccount.email}</span>
+                        <span className={style.accountEmail}>{appodealAccount.email}</span>
                     </li>
-                    {!!accounts.length && <li className={style.hr}></li>}
+                    {!!accounts.length && <li className={style.hr}/>}
                     {accounts.map(acc => {
                         return <li key={acc.email}
                                    onClick={() => this.selectAccount(acc)}
-                                   className={classNames({[style.selected]: this.state.selectedAccount === acc})}
+                                   className={classNames({[style.selected]: selectedAccount === acc})}
                         >
                             <img src="" alt=""/>
                             <span className={style.accountName}>Admob</span>
@@ -123,7 +125,11 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
 
                 </ul>
                 <div className={style.accountControls}>
-                    <button type="button" className={style.add} onClick={singleEvent(this.onAddAccount, this)}></button>
+                    <button type="button"
+                            className={style.add}
+                            onClick={singleEvent(this.onAddAccount, this)}
+                            disabled={!appodealAccount.email}
+                    />
                 </div>
                 <div className={style.accountDetails}>
                     {this.renderAccountForm()}
