@@ -17,6 +17,7 @@ import criticalVersionQuery from './graphql/critical-version.query.graphql';
 import currentUserQuery from './graphql/current-user.query.graphql';
 import endSync from './graphql/end-sync.mutation.graphql';
 import refreshTokenMutation from './graphql/refresh-token-mutation.graphql';
+import setAdMobAccountCredentialsMutation from './graphql/set-admob-account-credentials.mutation.graphql';
 import signInMutation from './graphql/sign-in.mutation.graphql';
 import signOutMutation from './graphql/sign-out.mutation.graphql';
 import startSync from './graphql/start-sync.mutation.graphql';
@@ -243,6 +244,19 @@ export class AppodealApiService {
                 rawLog
             }
         });
+    }
+
+
+    setAdMobAccountCredentials (adMobAccountId: string, clientId: string, clientSecret: string): Promise<AppodealAccount> {
+        return this.mutate<boolean>({
+            mutation: setAdMobAccountCredentialsMutation,
+            variables: {
+                accountId: adMobAccountId,
+                clientId,
+                clientSecret
+            }
+        })
+            .then(() => this.fetchCurrentUser());
     }
 
 }

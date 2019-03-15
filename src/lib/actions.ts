@@ -8,6 +8,7 @@ export enum ActionTypes {
     adMobAddAccount = 'adMobAddAccount',
     adMobRemoveAccount = 'adMobRemoveAccount',
     adMobSetupTutorial = 'adMobSetupTutorial',
+    adMobSetCredentials = 'adMobSetCredentials',
     runSync = 'RunSync',
     openAdmobPage = 'openAdmobPage',
     selectAdmobAccount = 'selectAdmobAccount',

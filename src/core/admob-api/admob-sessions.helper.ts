@@ -1,5 +1,5 @@
 import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
-import {app, BrowserWindow, Session, session} from 'electron';
+import {app, BrowserWindow, Session, session, shell} from 'electron';
 import {createScript, openWindow, waitForNavigation} from 'lib/common';
 import {getJsonFile, saveJsonFile} from 'lib/json-storage';
 import path from "path";
@@ -145,6 +145,11 @@ export namespace AdMobSessions {
                 session: windowSession
             }
         });
+    }
+
+
+    export function openSetupTutorial () {
+        return shell.openExternal('https://wiki.appodeal.com');
     }
 
 }

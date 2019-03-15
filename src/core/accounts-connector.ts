@@ -1,14 +1,14 @@
 import {AdMobSessions} from 'core/admob-api/admob-sessions.helper';
+import {Connector} from 'core/connector';
 import {Store} from 'core/store';
 import {Action, ActionTypes} from 'lib/actions';
-import {onActionFromRenderer} from 'lib/common';
 
 
-export class AccountsConnector {
+export class AccountsConnector extends Connector {
 
     constructor (private store: Store) {
-        this.onAction = this.onAction.bind(this);
-        onActionFromRenderer('accounts', action => this.onAction(action));
+        super('accounts');
+        this.init();
     }
 
     async onAction ({type, payload}: Action) {
@@ -23,10 +23,12 @@ export class AccountsConnector {
             return this.store.adMobRemoveAccount(payload.account);
         case ActionTypes.selectAdmobAccount:
             return this.store.loadSelectedAdMobAccountLogs(payload);
+        case ActionTypes.adMobSetCredentials:
+            return  this.store.setAdMobCredentials(payload);
+        case ActionTypes.adMobSetupTutorial:
+            return AdMobSessions.openSetupTutorial();
         case ActionTypes.openAdmobPage:
             return AdMobSessions.openAdmobWindow(payload);
         }
     }
-
-    destroy () {}
 }
