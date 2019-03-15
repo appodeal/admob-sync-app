@@ -75,8 +75,8 @@ export function getPath (filePath: string = '') {
     return path.join(environment.development ? './' : process.resourcesPath, filePath);
 }
 
-export function onActionFromRenderer (channel: string, cb: (action: Action) => void) {
-    ipcMain.on(channel, ({sender}, {id, action}: { id: string, action: Action }) => {
+export function onActionFromRenderer (channel: string, cb: (action: Action) => void): Function {
+    let listener = ({sender}, {id, action}: { id: string, action: Action }) => {
         Promise.resolve()
             .then(() => cb(action))
             .then(result => {
@@ -85,7 +85,9 @@ export function onActionFromRenderer (channel: string, cb: (action: Action) => v
             .catch(error => {
                 sender.send(`${channel}:response:${id}`, {error, result: null});
             });
-    });
+    };
+    ipcMain.on(channel, listener);
+    return () => ipcMain.removeListener(channel, listener);
 }
 
 export function sendToMain (channel: string, action: Action) {

@@ -1,8 +1,8 @@
 import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
 import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
+import {Connector} from 'core/connector';
 import {Store} from 'core/store';
 import {ActionTypes, LogAction} from 'lib/actions';
-import {onActionFromRenderer} from 'lib/common';
 import {getLogContent, getLogsDirectory, LogFileInfo} from 'lib/sync-logs/logger';
 
 
@@ -10,17 +10,13 @@ const shell = require('electron').shell;
 const path = require('path');
 
 
-export class LogsConnector {
+export class LogsConnector extends Connector {
     constructor (private store: Store, private appodealApi: AppodealApiService) {
+        super('logs');
         this.init();
     }
 
-    init () {
-        this.onAction = this.onAction.bind(this);
-        onActionFromRenderer('logs', action => this.onAction(<LogAction>action));
-    }
-
-    onAction ({type, payload}: LogAction) {
+    async onAction ({type, payload}: LogAction) {
         switch (type) {
         case ActionTypes.openLogFile:
             this.openLog(payload.account, payload.log);
@@ -43,8 +39,5 @@ export class LogsConnector {
     async submitLog (account: AdMobAccount, log: LogFileInfo) {
         const rawLog = await getLogContent(account, log.uuid);
         return this.appodealApi.submitLog(account.id, log.uuid, rawLog);
-    }
-
-    async destroy () {
     }
 }

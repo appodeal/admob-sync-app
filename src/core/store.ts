@@ -122,4 +122,14 @@ export class Store {
                 return Store.saveAdmobAccounts(accounts);
             });
     }
+
+    @action
+    setAdMobCredentials ({accountId, clientId, clientSecret}: {accountId: string, clientId: string, clientSecret: string}) {
+        return this.appodealApi.setAdMobAccountCredentials(accountId, clientId, clientSecret)
+            .then(account => {
+                set<AppState>(this.state, 'appodealAccount', account);
+                set<AppState>(this.state, 'adMobAccounts', account.accounts || []);
+                return account;
+            });
+    }
 }

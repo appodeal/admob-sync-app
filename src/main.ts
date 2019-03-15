@@ -54,7 +54,6 @@ app.on('ready', () => {
         logsConnector = new LogsConnector(store, appodealApi),
         syncConnector = new SyncConnector(store, appodealApi);
 
-
     appodealApi.init()
         .then(() => store.appodealFetchUser())
         .then(account => {

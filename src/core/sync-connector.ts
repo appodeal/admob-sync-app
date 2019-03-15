@@ -2,31 +2,27 @@ import {AdMobSessions} from 'core/admob-api/admob-sessions.helper';
 import {AdmobApiService} from 'core/admob-api/admob.api';
 import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
 import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
+import {Connector} from 'core/connector';
 import {Store} from 'core/store';
 import {Sync} from 'core/sync-apps/sync';
 import {Action, ActionTypes} from 'lib/actions';
-import {onActionFromRenderer} from 'lib/common';
 import {createFetcher} from 'lib/fetch';
 import {createSyncLogger, getLogContent, rotateSyncLogs} from 'lib/sync-logs/logger';
 import uuid from 'uuid';
 
 
-export class SyncConnector {
+export class SyncConnector extends Connector {
 
     private sync: Sync;
     private syncRunner: Promise<any>;
 
 
     constructor (private store: Store, private appodealApi: AppodealApiService) {
+        super('sync');
         this.init();
     }
 
-    init () {
-        this.onAction = this.onAction.bind(this);
-        onActionFromRenderer('sync', action => this.onAction(action));
-    }
-
-    onAction ({type, payload}: Action) {
+    async onAction ({type, payload}: Action) {
         switch (type) {
         case ActionTypes.runSync:
             this.syncRunner = this.runSync(payload);
@@ -81,5 +77,6 @@ export class SyncConnector {
             // await sync then stop
 
         }
+        super.destroy();
     }
 }

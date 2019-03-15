@@ -61,8 +61,18 @@
       background-image: linear-gradient(to bottom, #1869e6, #155ecc);
     }
 
-    &:active {
+    &:active:not(:disabled) {
       background-image: linear-gradient(to bottom, #1973f9, #166ae8) !important;
+    }
+
+    &:disabled {
+      background-color: rgba(98, 97, 98, 0.5);
+      color: rgba(255, 255, 255, 0.5);
+
+      &.active, &.primary, &[type="submit"] {
+        background-color: transparent;
+        background-image: linear-gradient(to bottom, rgba(24, 105, 230, 0.5), rgba(21, 94, 204, 0.5));
+      }
     }
 
   }

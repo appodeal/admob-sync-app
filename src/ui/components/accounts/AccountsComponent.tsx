@@ -3,7 +3,7 @@ import {AppodealAccount} from 'core/appdeal-api/interfaces/appodeal.account.inte
 import {remote} from 'electron';
 import {action, ActionTypes} from 'lib/actions';
 import {sendToMain} from 'lib/common';
-import {buttonClick, classNames} from 'lib/dom';
+import {singleEvent, classNames} from 'lib/dom';
 import {LogFileInfo} from 'lib/sync-logs/logger';
 import React from 'react';
 import {AdmobAccountComponent} from 'ui/components/admob-account/AdmobAccountComponent';
@@ -113,7 +113,7 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
 
                 </ul>
                 <div className={style.accountControls}>
-                    <button type="button" className={style.add} onClick={buttonClick(this.onAddAccount, this)}></button>
+                    <button type="button" className={style.add} onClick={singleEvent(this.onAddAccount, this)}></button>
                     <button type="button"
                             disabled={this.state.selectedAccount === this.props.appodealAccount}
                             onClick={() => this.onRemoveAccount(this.state.selectedAccount)}

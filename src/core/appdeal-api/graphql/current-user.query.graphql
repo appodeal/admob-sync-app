@@ -5,6 +5,7 @@ query currentUser {
         accounts {
             id
             email
+            isAdsenseApiActive
         }
     }
 }

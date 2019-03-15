@@ -4,7 +4,7 @@ import {AppodealApp} from 'core/appdeal-api/interfaces/appodeal-app.interface';
 export interface AdMobAccount {
     id: string;
     email: string;
-    reportsAvailable: boolean;
+    isAdsenseApiActive: boolean;
 }
 
 export interface AdMobAccountDetails extends AdMobAccount {
