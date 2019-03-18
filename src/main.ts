@@ -1,11 +1,12 @@
 require('source-map-support').install();
-
 import {AccountsConnector} from 'core/accounts-connector';
 import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
 
 import {ErrorFactoryService} from 'core/error-factory/error-factory.service';
 import {LogsConnector} from 'core/logs-connector';
 import {Store} from 'core/store';
+import {SyncScheduler} from 'core/sync-apps/sync-scheduler';
+import {SyncService} from 'core/sync-apps/sync.service';
 import {SyncConnector} from 'core/sync-connector';
 import {app, Menu, Tray} from 'electron';
 import {showAboutDialog} from 'lib/about';
@@ -52,7 +53,9 @@ app.on('ready', () => {
         ),
         accountsConnector = new AccountsConnector(store),
         logsConnector = new LogsConnector(store, appodealApi),
-        syncConnector = new SyncConnector(store, appodealApi);
+        syncService = new SyncService(store, appodealApi),
+        syncScheduler = new SyncScheduler(syncService, store),
+        syncConnector = new SyncConnector(store, appodealApi, syncService);
 
 
     appodealApi.init()
@@ -71,6 +74,8 @@ app.on('ready', () => {
         await accountsConnector.destroy();
         await syncConnector.destroy();
         await logsConnector.destroy();
+        await syncService.destroy();
+        await syncScheduler.destroy();
     };
 
 

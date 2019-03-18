@@ -1,10 +1,10 @@
 import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
 import {app, BrowserWindow, Session, session} from 'electron';
+import * as fs from 'fs-extra';
 import {createScript, openWindow, waitForNavigation} from 'lib/common';
 import {getJsonFile, saveJsonFile} from 'lib/json-storage';
-import path from "path";
-import uuid from 'uuid/v1';
-import rimraf from 'rimraf';
+import path from 'path';
+import uuid from 'uuid';
 
 
 export namespace AdMobSessions {
@@ -62,15 +62,7 @@ export namespace AdMobSessions {
     }
 
     function deleteSession (sessionId: string): Promise<void> {
-        return new Promise((resolve, reject) => {
-            rimraf(path.resolve(app.getPath('userData'), `./Partitions/${sessionId}`), (err) => {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve();
-                }
-            });
-        });
+        return fs.remove(path.resolve(app.getPath('userData'), `./Partitions/${sessionId}`));
     }
 
     function saveSessions (): Promise<void> {
