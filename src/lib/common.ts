@@ -83,7 +83,7 @@ export function onActionFromRenderer (channel: string, cb: (action: Action) => v
                 sender.send(`${channel}:response:${id}`, {error: null, result});
             })
             .catch(error => {
-                sender.send(`${channel}:response:${id}`, {error, result: null});
+                sender.send(`${channel}:response:${id}`, {error: errorToJson(error), result: null});
             });
     };
     ipcMain.on(channel, listener);
@@ -96,13 +96,19 @@ export function sendToMain (channel: string, action: Action) {
         ipcRenderer.send(channel, {id, action});
         ipcRenderer.once(`${channel}:response:${id}`, (event, {error, result}) => {
             if (error) {
-                reject(error);
+                reject(JSON.parse(error));
             } else {
                 resolve(result);
             }
         });
     });
 
+}
+
+export function errorToJson (e: Error): string {
+    const clone = {...e};
+    ['name', 'message', 'stack', 'userMessage'].forEach(name => clone[name] = e[name]);
+    return JSON.stringify(clone);
 }
 
 export function createScript (fn: (...args: Array<any>) => void, ...args) {
@@ -123,7 +129,7 @@ export function createScript (fn: (...args: Array<any>) => void, ...args) {
             return safeJsonParse(arg);
         }
     }));
-    })(${args.map(arg => { 
+    })(${args.map(arg => {
         if (typeof arg === 'function') {
             return arg.toString();
         } else if (typeof arg === 'string') {
@@ -166,7 +172,7 @@ export function waitForNavigation (window: BrowserWindow, urlFragment: string = 
             });
         } else {
             window.webContents.once('did-navigate', () => {
-                resolver()
+                resolver();
             });
         }
 
