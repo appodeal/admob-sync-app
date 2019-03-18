@@ -8,7 +8,6 @@ export class AccountsConnector extends Connector {
 
     constructor (private store: Store) {
         super('accounts');
-        this.init();
     }
 
     async onAction ({type, payload}: Action) {

@@ -236,11 +236,11 @@ export class AppodealApiService {
         });
     }
 
-    submitLog (adMobAccountId: string, syncId: string, rawLog: string) {
+    submitLog (admobAccountId: string, syncId: string, rawLog: string) {
         return this.mutate({
             mutation: submitLogMutation,
             variables: {
-                adMobAccountId,
+                admobAccountId,
                 syncId,
                 rawLog
             }

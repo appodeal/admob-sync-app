@@ -42,12 +42,12 @@ export class Sync {
     public hasErrors = false;
     private terminated = true;
 
-    private context = new SyncContext();
+    public context = new SyncContext();
 
     constructor (
         private adMobApi: AdmobApiService,
         private appodealApi: AppodealApiService,
-        private adMobAccount: AdMobAccount,
+        public adMobAccount: AdMobAccount,
         private appodealAccount: AppodealAccount,
         private logger: Partial<Console>,
         // some uniq syncId
@@ -56,7 +56,7 @@ export class Sync {
         this.id = id || uuid.v4();
     }
 
-    stop (reason: string) {
+    async stop (reason: string) {
         if (this.terminated) {
             this.logger.info(`Sync already stopped. New Stop Reason: ${reason}`);
             return;
@@ -73,13 +73,17 @@ export class Sync {
             this.logger.info(value);
             if (this.terminated) {
                 this.logger.info(`Sync Terminated`);
-                this.emit(SyncEventsTypes.Stopped);
-                return this.appodealApi.reportSyncEnd(this.id);
+                await this.finish();
+                return;
             }
         }
-        this.logger.info(`Sync finished completely`);
+        this.logger.info(`Sync finished completely ${this.hasErrors ? 'with ERRORS!' : ''}`);
+        await this.finish();
+    }
+
+    async finish () {
         this.emit(SyncEventsTypes.Stopped);
-        return this.appodealApi.reportSyncEnd(this.id);
+        this.appodealApi.reportSyncEnd(this.id);
     }
 
     emit (event: SyncEvent | SyncEventsTypes) {
@@ -308,7 +312,7 @@ export class Sync {
         for (const adUnitTemplate of templatesToCreate.values()) {
             const newAdUnit = await this.createAdMobAdUnit({...adUnitTemplate, appId: adMobApp.appId});
             this.context.addAdMobAdUnit(newAdUnit);
-            this.logger.info('AdUnit Created', adUnitTemplate);
+            this.logger.info(`AdUnit Created ${this.adUnitCode(newAdUnit)} ${adUnitTemplate.name}`);
             appodealAdUnits.push(this.convertToAppodealAdUnit(newAdUnit, adUnitTemplate));
         }
 

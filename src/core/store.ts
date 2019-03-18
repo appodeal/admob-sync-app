@@ -74,6 +74,9 @@ export class Store {
 
     @action
     loadSelectedAdMobAccountLogs (account: AdMobAccount): Promise<LogFileInfo[]> {
+        if (!account) {
+            return Promise.resolve([]);
+        }
         return getLogsList(account).catch(e => {
             console.error(e);
             return [];
