@@ -1,6 +1,6 @@
 import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
 import {action, ActionTypes} from 'lib/actions';
-import {sendToMain} from 'lib/common';
+import {messageDialog, sendToMain} from 'lib/common';
 import {getFormElement, singleEvent} from 'lib/dom';
 import {LogFileInfo} from 'lib/sync-logs/logger';
 import React, {Component} from 'react';
@@ -13,16 +13,27 @@ interface AdmobAccountComponentProps {
     logs: Array<LogFileInfo>;
 }
 
+interface AdmobAccountComponentState {
+    saveAllowed: boolean;
+    displaySetupForm: boolean;
+}
 
-export class AdmobAccountComponent extends Component<AdmobAccountComponentProps, { saveAllowed: boolean }> {
+export class AdmobAccountComponent extends Component<AdmobAccountComponentProps, AdmobAccountComponentState> {
     formRef: React.RefObject<HTMLFormElement>;
 
     constructor (props) {
         super(props);
         this.state = {
-            saveAllowed: false
+            saveAllowed: false,
+            displaySetupForm: false
         };
         this.formRef = React.createRef<HTMLFormElement>();
+    }
+
+    componentWillReceiveProps (nextProps: Readonly<AdmobAccountComponentProps>) {
+        if (this.formRef.current) {
+            this.formRef.current.reset();
+        }
     }
 
     private onFormInput () {
@@ -62,13 +73,25 @@ export class AdmobAccountComponent extends Component<AdmobAccountComponentProps,
             clientId,
             clientSecret,
             accountId
-        }));
+        }))
+            .then(() => this.displaySetupForm(this.props.account.isAdsenseApiActive))
+            .catch(error => messageDialog(error.message));
+    }
+
+    private isSetupFormVisible (account: AdMobAccount): boolean {
+        return this.state.displaySetupForm || !account.isAdsenseApiActive;
+    }
+
+    private displaySetupForm (value: boolean) {
+        this.setState({
+            displaySetupForm: value
+        });
     }
 
     render () {
         let {account, logs} = this.props;
         return <>
-            {!account.isAdsenseApiActive && <div className={style.setupRequired} onInput={() => this.onFormInput()}>
+            {this.isSetupFormVisible(account) && <div className={style.setupRequired} onInput={() => this.onFormInput()}>
                 <h1>Setup required</h1>
                 <p>Setup your project on Google developer console.</p>
                 <form onSubmit={singleEvent(this.setupDone, this)} ref={this.formRef}>
@@ -85,6 +108,8 @@ export class AdmobAccountComponent extends Component<AdmobAccountComponentProps,
             <div>
                 <button type="button" onClick={singleEvent(this.runSync, this)}>Run Sync</button>
                 <button type="button" onClick={singleEvent(this.openAdMob, this)}>Open Admob</button>
+                {!this.isSetupFormVisible(account) &&
+                <button type="button" onClick={() => this.displaySetupForm(true)}>Set credentials</button>}
             </div>
             <LogListComponent logs={logs || []} admobAccount={account}/>
         </>;

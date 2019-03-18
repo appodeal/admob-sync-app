@@ -1,4 +1,4 @@
-import {BrowserWindow, ipcRenderer} from 'electron';
+import {BrowserWindow, ipcRenderer, remote} from 'electron';
 import {classNames} from 'lib/dom';
 import React from 'react';
 import style from './WindowsControls.scss';
@@ -30,7 +30,7 @@ export class WindowsControlsComponent extends React.Component<WindowsControlsPro
         this.onWindowUnMaximized = () => this.setMaximized(false);
         this.onWindowResize = () => {
             clearTimeout(this.resizeDelay);
-            this.resizeDelay = setTimeout(() => this.setMaximized(this.props.currentWindow.isMaximized()), 100);
+            this.resizeDelay = setTimeout(() => this.setMaximized(remote.getCurrentWindow().isMaximized()), 100);
         };
     }
 
