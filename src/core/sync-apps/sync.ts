@@ -89,22 +89,21 @@ export class Sync {
     emit (event: SyncEvent | SyncEventsTypes) {
         if (isObject(event)) {
             (<SyncEvent>event).id = this.id;
+            (<SyncEvent>event).accountId = this.adMobAccount.id;
             return this.events.emit(<SyncEvent>event);
         }
-        return this.events.emit({type: <SyncEventsTypes>event, id: this.id});
+        return this.events.emit({type: <SyncEventsTypes>event, id: this.id, accountId: this.adMobAccount.id});
     }
 
     emitProgress (progress: Partial<SyncReportProgressEvent>) {
         progress.type = SyncEventsTypes.ReportProgress;
-        progress.id = this.id;
-        return this.events.emit(<SyncReportProgressEvent>progress);
+        return this.emit(<SyncReportProgressEvent>progress);
     }
 
     emitError (error: Error) {
         this.hasErrors = true;
-        return this.events.emit(<SyncErrorEvent>{
+        return this.emit(<SyncErrorEvent>{
             type: SyncEventsTypes.Error,
-            id: this.id,
             error
         });
     }
@@ -171,6 +170,8 @@ export class Sync {
             }
         }
 
+        this.logger.info(`Total Appodeal apps to Sync ${this.context.getAppodealApps().length}`);
+
         yield `All Appodeal Apps fetched`;
 
     }
@@ -178,6 +179,12 @@ export class Sync {
     async* syncApps () {
         let synced = 0,
             failed = 0;
+
+        this.emitProgress({
+            synced,
+            failed,
+            total: this.context.getAppodealAppsCount()
+        });
 
         for (const app of this.context.getAppodealApps()) {
             try {
