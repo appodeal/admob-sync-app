@@ -1,8 +1,9 @@
-import {BrowserWindow, BrowserWindowConstructorOptions, ipcMain, ipcRenderer} from 'electron';
+import {BrowserWindow, BrowserWindowConstructorOptions, dialog, ipcMain, ipcRenderer, remote} from 'electron';
 import {Action} from 'lib/actions';
 import path from 'path';
 import uuid from 'uuid';
 import {getBgColor, getCurrentTheme, onThemeChanges} from './theme';
+
 
 function getConfig (config: BrowserWindowConstructorOptions, backgroundColor: string): BrowserWindowConstructorOptions {
     return {
@@ -90,7 +91,7 @@ export function onActionFromRenderer (channel: string, cb: (action: Action) => v
     return () => ipcMain.removeListener(channel, listener);
 }
 
-export function sendToMain (channel: string, action: Action) {
+export function sendToMain<T> (channel: string, action: Action): Promise<T> {
     return new Promise((resolve, reject) => {
         let id = uuid.v4();
         ipcRenderer.send(channel, {id, action});
@@ -176,6 +177,13 @@ export function waitForNavigation (window: BrowserWindow, urlFragment: string = 
             });
         }
 
+    });
+}
+
+export function messageDialog (message: string, detail: string = undefined) {
+    (dialog || remote.dialog).showMessageBox({
+        message,
+        detail
     });
 }
 

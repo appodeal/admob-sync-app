@@ -11,6 +11,7 @@ import {createFetcher} from 'lib/fetch';
 import {AdMobApp} from 'lib/translators/interfaces/admob-app.interface';
 import {ErrorFactoryService} from '../error-factory/error-factory.service';
 import {InternalError} from '../error-factory/errors/internal-error';
+import addAdMobAccountMutation from './graphql/add-admob-account.mutation.graphql';
 
 import adMobAccountQuery from './graphql/admob-account-details.graphql';
 import criticalVersionQuery from './graphql/critical-version.query.graphql';
@@ -24,7 +25,7 @@ import startSync from './graphql/start-sync.mutation.graphql';
 import submitLogMutation from './graphql/submit-log.mutation.graphql';
 import syncApp from './graphql/sync-app.mutation.graphql';
 
-import {AdMobAccountDetails} from './interfaces/admob-account.interface';
+import {AdMobAccount, AdMobAccountDetails} from './interfaces/admob-account.interface';
 import {AppodealAdUnit, AppodealApp} from './interfaces/appodeal-app.interface';
 
 
@@ -248,7 +249,7 @@ export class AppodealApiService {
 
 
     setAdMobAccountCredentials (adMobAccountId: string, clientId: string, clientSecret: string): Promise<AppodealAccount> {
-        return this.mutate<boolean>({
+        return this.mutate<{setAdmobAccountCredentials: boolean}>({
             mutation: setAdMobAccountCredentialsMutation,
             variables: {
                 accountId: adMobAccountId,
@@ -256,7 +257,24 @@ export class AppodealApiService {
                 clientSecret
             }
         })
-            .then(() => this.fetchCurrentUser());
+            .then(({setAdmobAccountCredentials}) => {
+                if (setAdmobAccountCredentials) {
+                    return this.fetchCurrentUser();
+                } else {
+                    throw new Error(`Can't set provided credentials to AdMob account`);
+                }
+            });
+    }
+
+    addAdMobAccount ({id: accountId, email}: AdMobAccount): Promise<boolean> {
+        return this.mutate<{addAdmobAccount: boolean}>({
+            mutation: addAdMobAccountMutation,
+            variables: {
+                accountId,
+                email
+            }
+        })
+            .then(({addAdmobAccount}) => addAdmobAccount);
     }
 
 }

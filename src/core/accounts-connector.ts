@@ -17,9 +17,7 @@ export class AccountsConnector extends Connector {
         case ActionTypes.appodealSignOut:
             return this.store.appodealSignOut();
         case ActionTypes.adMobAddAccount:
-            return this.store.adMobSignIn();
-        case ActionTypes.adMobRemoveAccount:
-            return this.store.adMobRemoveAccount(payload.account);
+            return this.store.addAdMobAccount();
         case ActionTypes.selectAdmobAccount:
             return this.store.loadSelectedAdMobAccountLogs(payload);
         case ActionTypes.adMobSetCredentials:
