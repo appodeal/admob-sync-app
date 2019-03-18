@@ -63,11 +63,16 @@ export class SyncService {
         );
 
         const waitToFinish = [];
-        const sub = sync.events.on(SyncEventsTypes.UserActionsRequired)
-            .subscribe(() => { waitToFinish.push(SyncHistory.setAuthorizationRequired(admobAccount));});
+        const subs = [];
+        subs.push(
+            sync.events.on(SyncEventsTypes.UserActionsRequired)
+                .subscribe(() => { waitToFinish.push(SyncHistory.setAuthorizationRequired(admobAccount));}),
+            sync.events.on()
+                .subscribe(event => this.store.updateSyncProgress(admobAccount, event))
+        );
 
         this.activeSyncs.set(sync, this.processSync(sync, logger).then(async () => {
-            sub.unsubscribe();
+            subs.forEach(sub => sub.unsubscribe());
             await Promise.all(waitToFinish);
             this.activeSyncs.delete(sync);
         }));

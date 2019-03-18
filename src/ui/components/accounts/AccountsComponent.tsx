@@ -1,19 +1,19 @@
 import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
 import {AppodealAccount} from 'core/appdeal-api/interfaces/appodeal.account.interface';
+import {AppState} from 'core/store';
 import {remote} from 'electron';
 import {action, ActionTypes} from 'lib/actions';
 import {messageDialog, sendToMain} from 'lib/common';
 import {classNames, singleEvent} from 'lib/dom';
 import {LogFileInfo} from 'lib/sync-logs/logger';
 import React from 'react';
+import {AccountStatusComponent} from 'ui/components/account-status/AccountStatusComponent';
 import {AdmobAccountComponent} from 'ui/components/admob-account/AdmobAccountComponent';
 import {AppodealAccountComponent} from 'ui/components/appodeal-account/AppodealAccountComponent';
 import style from './Accounts.scss';
 
 
-export interface AccountsComponentProps {
-    appodealAccount: AppodealAccount;
-}
+type AccountsComponentProps = AppState;
 
 interface AccountsComponentState {
     selectedAccount: AppodealAccount | AdMobAccount;
@@ -92,7 +92,11 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
                                              onSignOut={() => this.onSignOut()}
             />;
         } else {
-            return <AdmobAccountComponent account={this.state.selectedAccount as AdMobAccount} logs={this.state.accountLogs}/>;
+            return <AdmobAccountComponent account={this.state.selectedAccount as AdMobAccount}
+                                          historyInfo={this.props.syncHistory[this.state.selectedAccount.id]}
+                                          syncProgress={this.props.syncProgress[this.state.selectedAccount.id]}
+                                          logs={this.state.accountLogs}
+            />;
         }
     }
 
@@ -118,8 +122,12 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
                                    className={classNames({[style.selected]: selectedAccount === acc})}
                         >
                             <img src="" alt=""/>
-                            <span className={style.accountName}>Admob</span>
-                            <span className={style.accountEmail}>{acc.email}</span>
+                            <span className={style.accountName}>{acc.email}</span>
+                            <span className={style.accountEmail}>
+                                <AccountStatusComponent historyInfo={this.props.syncHistory[acc.id]}
+                                                        syncProgress={this.props.syncProgress[acc.id]}
+                                />
+                                </span>
                         </li>;
                     })}
 

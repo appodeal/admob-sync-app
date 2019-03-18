@@ -2,8 +2,9 @@ import {AdMobSessions} from 'core/admob-api/admob-sessions.helper';
 import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
 import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
 import {AppodealAccount} from 'core/appdeal-api/interfaces/appodeal.account.interface';
+import {SyncHistory, SyncHistoryInfo} from 'core/sync-apps/sync-history';
+import {SyncEvent, SyncEventsTypes, SyncReportProgressEvent} from 'core/sync-apps/sync.events';
 import {BrowserWindow, ipcMain} from 'electron';
-import {getJsonFile, saveJsonFile} from 'lib/json-storage';
 import {getLogsList, LogFileInfo} from 'lib/sync-logs/logger';
 import {action, observable, observe, set} from 'mobx';
 
@@ -13,34 +14,98 @@ export interface SyncProgress {
     totalApps: number;
     completedApps: number;
     failedApps: number;
+    lastEvent: SyncEventsTypes.ReportProgress | SyncEventsTypes.CalculatingProgress | SyncEventsTypes.Started | SyncEventsTypes.Stopped;
 }
 
 export interface AppState {
     appodealAccount: AppodealAccount;
-    adMobAccounts: Array<AdMobAccount>;
-    syncProgress: SyncProgress;
+    syncHistory: Record<AccountID, SyncHistoryInfo>;
+    syncProgress: Record<AccountID, SyncProgress | undefined>
 }
+
+type AccountID = string;
 
 
 export class Store {
 
     @observable readonly state: AppState = {
         appodealAccount: AppodealApiService.emptyAccount,
-        adMobAccounts: [],
-        syncProgress: null
+        syncHistory: {},
+        syncProgress: {}
     };
+
+    updatedID;
 
     constructor (
         private appodealApi: AppodealApiService
     ) {
         ipcMain.on('store', () => this.emitState());
         observe(this.state, () => this.emitState());
+        observe(this.state, 'appodealAccount', () => this.updateAdmobAccountsInfo());
     }
 
     private emitState () {
         BrowserWindow.getAllWindows().forEach(win => {
             win.webContents.send('store', JSON.stringify(this.state));
         });
+    }
+
+    async updateAdmobAccountsInfo () {
+        const accounts: AdMobAccount[] = this.state.appodealAccount ? this.state.appodealAccount.accounts : [];
+
+        const histories = await Promise.all(accounts.map(account => SyncHistory.getHistory(account)));
+
+        const syncHistory = accounts.reduce((acc, account, index) => {
+            acc[account.id] = histories[index];
+            return acc;
+        }, {});
+
+        set<AppState>(this.state, 'syncHistory', syncHistory);
+    }
+
+    async updateAdMobAccountInfo (account: AdMobAccount) {
+        const history = await SyncHistory.getHistory(account);
+        set<Record<AccountID, SyncHistoryInfo>>(this.state.syncHistory, account.id, history);
+    }
+
+    @action
+    fireSyncUpdated () {
+        if (this.updatedID) {
+            return;
+        }
+        this.updatedID = setTimeout(() => {
+            this.updatedID = null;
+            set<AppState>(this.state, 'syncProgress', {...this.state.syncProgress});
+        }, 500);
+    }
+
+    @action
+    updateSyncProgress (account: AdMobAccount, event: SyncEvent) {
+        switch (event.type) {
+        case SyncEventsTypes.Started:
+        case SyncEventsTypes.CalculatingProgress:
+            this.state.syncProgress[event.accountId] = {
+                id: event.id,
+                totalApps: 0,
+                completedApps: 0,
+                failedApps: 0,
+                lastEvent: event.type
+            };
+            return this.fireSyncUpdated();
+        case SyncEventsTypes.ReportProgress:
+            this.state.syncProgress[event.accountId] = {
+                id: event.id,
+                totalApps: (<SyncReportProgressEvent>event).total,
+                completedApps: (<SyncReportProgressEvent>event).synced,
+                failedApps: (<SyncReportProgressEvent>event).failed,
+                lastEvent: event.type
+            };
+            return this.fireSyncUpdated();
+        case SyncEventsTypes.Stopped:
+            this.state.syncProgress[event.accountId] = null;
+            this.fireSyncUpdated();
+            return this.updateAdMobAccountInfo(account);
+        }
     }
 
     @action
@@ -112,7 +177,7 @@ export class Store {
     }
 
     @action
-    setAdMobCredentials ({accountId, clientId, clientSecret}: {accountId: string, clientId: string, clientSecret: string}) {
+    setAdMobCredentials ({accountId, clientId, clientSecret}: { accountId: string, clientId: string, clientSecret: string }) {
         return this.appodealApi.setAdMobAccountCredentials(accountId, clientId, clientSecret)
             .then(account => {
                 set<AppState>(this.state, 'appodealAccount', account);

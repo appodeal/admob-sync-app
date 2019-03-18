@@ -21,6 +21,7 @@ export interface SyncReportProgressEvent extends SyncEvent {
 }
 
 export interface SyncEvent {
-    type: SyncEventsTypes
-    id: string
+    type: SyncEventsTypes;
+    id: string;
+    accountId: string;
 }

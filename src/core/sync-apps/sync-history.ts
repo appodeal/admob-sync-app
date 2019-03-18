@@ -4,15 +4,10 @@ import {getJsonFile, saveJsonFile} from 'lib/json-storage';
 import * as path from 'path';
 
 
-interface FileFormat {
+export interface SyncHistoryInfo {
     lastSync: number
     lastSuccessfulSync: number;
     admobAuthorizationRequired: boolean
-}
-
-interface History {
-    lastSync: Date
-    lastSuccessfulSync: Date;
 }
 
 
@@ -22,11 +17,11 @@ export class SyncHistory {
         return path.join(`sync-history`, admobAccount.id);
     }
 
-    private static cache = new Map<string, FileFormat>();
+    private static cache = new Map<string, SyncHistoryInfo>();
 
-    private static async loadHistory (adMobAccount: AdMobAccount): Promise<FileFormat> {
+    private static async loadHistory (adMobAccount: AdMobAccount): Promise<SyncHistoryInfo> {
         if (!SyncHistory.cache.has(adMobAccount.id)) {
-            const data = <FileFormat>await getJsonFile(SyncHistory.fileName(adMobAccount));
+            const data = <SyncHistoryInfo>await getJsonFile(SyncHistory.fileName(adMobAccount));
             SyncHistory.cache.set(adMobAccount.id, data || {
                 lastSync: null,
                 lastSuccessfulSync: null,
@@ -38,7 +33,7 @@ export class SyncHistory {
     }
 
     private static async saveHistory (adMobAccount: AdMobAccount): Promise<void> {
-        await saveJsonFile(SyncHistory.fileName(adMobAccount), SyncHistory.loadHistory(adMobAccount));
+        await saveJsonFile(SyncHistory.fileName(adMobAccount), await SyncHistory.loadHistory(adMobAccount));
     }
 
     public static async setAuthorizationRequired (adMobAccount: AdMobAccount) {
@@ -64,12 +59,9 @@ export class SyncHistory {
         return null;
     }
 
-    public static async getHistory (adMobAccount: AdMobAccount): Promise<History> {
+    public static async getHistory (adMobAccount: AdMobAccount): Promise<SyncHistoryInfo> {
         const history = await SyncHistory.loadHistory(adMobAccount);
-        return {
-            lastSync: SyncHistory.msTimeToDate(history.lastSync),
-            lastSuccessfulSync: SyncHistory.msTimeToDate(history.lastSuccessfulSync)
-        };
+        return {...history};
     }
 
     public static async getLastSync (adMobAccount: AdMobAccount): Promise<Date | null> {

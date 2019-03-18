@@ -1,4 +1,6 @@
 import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
+import {SyncProgress} from 'core/store';
+import {SyncHistoryInfo} from 'core/sync-apps/sync-history';
 import {action, ActionTypes} from 'lib/actions';
 import {messageDialog, sendToMain} from 'lib/common';
 import {getFormElement, singleEvent} from 'lib/dom';
@@ -10,6 +12,8 @@ import style from './AdmobAccount.scss';
 
 interface AdmobAccountComponentProps {
     account: AdMobAccount;
+    syncProgress: SyncProgress;
+    historyInfo: SyncHistoryInfo;
     logs: Array<LogFileInfo>;
 }
 
@@ -106,7 +110,13 @@ export class AdmobAccountComponent extends Component<AdmobAccountComponentProps,
                 </form>
             </div>}
             <div>
-                <button type="button" onClick={singleEvent(this.runSync, this)}>Run Sync</button>
+                <button type="button"
+                        onClick={singleEvent(this.runSync, this)}
+                        className={'primary'}
+                        disabled={!!this.props.syncProgress || this.props.historyInfo.admobAuthorizationRequired}
+                >
+                    Run Sync
+                </button>
                 <button type="button" onClick={singleEvent(this.openAdMob, this)}>Open Admob</button>
                 {!this.isSetupFormVisible(account) &&
                 <button type="button" onClick={() => this.displaySetupForm(true)}>Set credentials</button>}
