@@ -1,10 +1,20 @@
 import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
 import {app} from 'electron';
 import fs from 'fs-extra';
+import {patchLogger} from 'lib/sync-logs/patch-logger';
 
 import path from 'path';
 import * as winston from 'winston';
+import {Logger} from 'winston';
 
+
+export interface LoggerInstance extends Logger {
+    /**
+     * @deprecated use closeAsync instead
+     */
+    close (): Logger;
+    closeAsync: () => Promise<void>;
+}
 
 export interface LogFileInfo {
     uuid: string
@@ -52,7 +62,7 @@ export async function createSyncLogger (adMobAccount: AdMobAccount, syncId: stri
     const dirPath = getLogsDirectory(adMobAccount);
     await fs.ensureDir(dirPath);
 
-    return winston.createLogger({
+    return patchLogger(winston.createLogger({
         level: 'info',
         format: readableLogFormat,
         defaultMeta: {service: 'sync'},
@@ -60,7 +70,7 @@ export async function createSyncLogger (adMobAccount: AdMobAccount, syncId: stri
             new winston.transports.Console({level: 'info'}),
             new winston.transports.File({filename: logFilePathName(adMobAccount, syncId), level: 'info'})
         ]
-    });
+    }));
 }
 
 export async function getLogContent (adMobAccount: AdMobAccount, syncId) {
@@ -70,14 +80,14 @@ export async function getLogContent (adMobAccount: AdMobAccount, syncId) {
 
 export async function getLogsList (adMobAccount: AdMobAccount): Promise<LogFileInfo[]> {
 
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
         const dir = getLogsDirectory(adMobAccount);
         console.debug('getLogsDirectory', dir);
         if (!fs.existsSync(dir)) {
             console.debug('logs dir not found');
             return resolve([]);
         }
-        fs.readdir(dir, function (err, files) {
+        fs.readdir(dir, (err, files) => {
             if (err) {
                 console.error(err);
                 return reject(err);

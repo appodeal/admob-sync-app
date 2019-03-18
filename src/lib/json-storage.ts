@@ -1,5 +1,5 @@
 import {app} from 'electron';
-import fs from 'fs';
+import fs from 'fs-extra';
 import path from 'path';
 
 
@@ -18,7 +18,9 @@ export function getJsonFile (fileName: string): Promise<any> {
 
 export function saveJsonFile (fileName: string, data: any): Promise<void> {
     return new Promise((resolve, reject) => {
-        fs.writeFile(path.resolve(app.getPath('userData'), `./${fileName}.json`), JSON.stringify(data), (err) => {
+        const fullPath = path.resolve(app.getPath('userData'), `./${fileName}.json`);
+        fs.ensureDir(path.dirname(fullPath));
+        fs.writeFile(fullPath, JSON.stringify(data), (err) => {
             if (err) {
                 reject(err);
             } else {

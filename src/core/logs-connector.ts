@@ -13,7 +13,6 @@ const path = require('path');
 export class LogsConnector extends Connector {
     constructor (private store: Store, private appodealApi: AppodealApiService) {
         super('logs');
-        this.init();
     }
 
     async onAction ({type, payload}: LogAction) {

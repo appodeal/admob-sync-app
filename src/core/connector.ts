@@ -13,6 +13,7 @@ export abstract class Connector {
         } else {
             CHANNELS.set(channelName, this);
         }
+        this.init();
     }
 
     init () {
