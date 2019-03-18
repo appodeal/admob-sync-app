@@ -86,7 +86,7 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
 
     renderAccountForm () {
         let appodealAccount = this.props.appodealAccount;
-        if (this.state.selectedAccount === appodealAccount) {
+        if (this.state.selectedAccount.id === appodealAccount.id) {
             return <AppodealAccountComponent account={appodealAccount}
                                              onSignIn={cred => this.onSignIn(cred)}
                                              onSignOut={() => this.onSignOut()}
@@ -109,7 +109,7 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
                 <div className={style.description}>Manage your accounts and bla bla bla...</div>
                 <ul className={style.accountsList}>
                     <li onClick={() => this.selectAccount(appodealAccount)}
-                        className={classNames({[style.selected]: selectedAccount === appodealAccount})}
+                        className={classNames({[style.selected]: selectedAccount.id === appodealAccount.id})}
                     >
                         <img src="" alt=""/>
                         <span className={style.accountName}>Appodeal</span>
@@ -119,7 +119,7 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
                     {accounts.map(acc => {
                         return <li key={acc.email}
                                    onClick={() => this.selectAccount(acc)}
-                                   className={classNames({[style.selected]: selectedAccount === acc})}
+                                   className={classNames({[style.selected]: selectedAccount.id === acc.id})}
                         >
                             <img src="" alt=""/>
                             <span className={style.accountName}>{acc.email}</span>

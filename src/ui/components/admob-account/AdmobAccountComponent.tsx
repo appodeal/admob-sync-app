@@ -6,6 +6,7 @@ import {messageDialog, sendToMain} from 'lib/common';
 import {getFormElement, singleEvent} from 'lib/dom';
 import {LogFileInfo} from 'lib/sync-logs/logger';
 import React, {Component} from 'react';
+import {AccountStatusComponent} from 'ui/components/account-status/AccountStatusComponent';
 import {LogListComponent} from 'ui/components/log-list/LogListComponent';
 import style from './AdmobAccount.scss';
 
@@ -121,6 +122,11 @@ export class AdmobAccountComponent extends Component<AdmobAccountComponentProps,
                 {!this.isSetupFormVisible(account) &&
                 <button type="button" onClick={() => this.displaySetupForm(true)}>Set credentials</button>}
             </div>
+            {!!this.props.syncProgress &&
+            <div className={style.syncProgress}>
+                <AccountStatusComponent syncProgress={this.props.syncProgress} historyInfo={this.props.historyInfo}/>
+            </div>
+            }
             <LogListComponent logs={logs || []} admobAccount={account}/>
         </>;
     }

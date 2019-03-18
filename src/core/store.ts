@@ -14,6 +14,7 @@ export interface SyncProgress {
     totalApps: number;
     completedApps: number;
     failedApps: number;
+    percent: number;
     lastEvent: SyncEventsTypes.ReportProgress | SyncEventsTypes.CalculatingProgress | SyncEventsTypes.Started | SyncEventsTypes.Stopped;
 }
 
@@ -41,7 +42,6 @@ export class Store {
     ) {
         ipcMain.on('store', () => this.emitState());
         observe(this.state, () => this.emitState());
-        observe(this.state, 'appodealAccount', () => this.updateAdmobAccountsInfo());
     }
 
     private emitState () {
@@ -50,8 +50,8 @@ export class Store {
         });
     }
 
-    async updateAdmobAccountsInfo () {
-        const accounts: AdMobAccount[] = this.state.appodealAccount ? this.state.appodealAccount.accounts : [];
+    async updateAdmobAccountsInfo (appodealAccount: AppodealAccount | null) {
+        const accounts: AdMobAccount[] = appodealAccount ? appodealAccount.accounts : [];
 
         const histories = await Promise.all(accounts.map(account => SyncHistory.getHistory(account)));
 
@@ -60,7 +60,7 @@ export class Store {
             return acc;
         }, {});
 
-        set<AppState>(this.state, 'syncHistory', syncHistory);
+        set<AppState>(this.state, 'syncHistory', {...(this.state.syncHistory || {}), ...syncHistory});
     }
 
     async updateAdMobAccountInfo (account: AdMobAccount) {
@@ -89,15 +89,18 @@ export class Store {
                 totalApps: 0,
                 completedApps: 0,
                 failedApps: 0,
+                percent: 0,
                 lastEvent: event.type
             };
             return this.fireSyncUpdated();
         case SyncEventsTypes.ReportProgress:
+            const pEvent = <SyncReportProgressEvent>event;
             this.state.syncProgress[event.accountId] = {
                 id: event.id,
-                totalApps: (<SyncReportProgressEvent>event).total,
-                completedApps: (<SyncReportProgressEvent>event).synced,
-                failedApps: (<SyncReportProgressEvent>event).failed,
+                totalApps: pEvent.total,
+                completedApps: pEvent.synced,
+                failedApps: pEvent.failed,
+                percent: (pEvent.synced + pEvent.failed) / pEvent.total * 100,
                 lastEvent: event.type
             };
             return this.fireSyncUpdated();
@@ -112,29 +115,19 @@ export class Store {
     appodealSignIn (email: string, password: string): Promise<AppodealAccount> {
         return this.appodealApi.signIn(email, password)
             .then(() => this.appodealApi.fetchCurrentUser())
-            .then(account => {
-                set<AppState>(this.state, 'appodealAccount', account);
-                return account;
-            });
+            .then(account => this.setAppodealAccount(account));
     }
 
     @action
     appodealFetchUser (): Promise<AppodealAccount> {
-        return this.appodealApi.fetchCurrentUser()
-            .then(account => {
-                set<AppState>(this.state, 'appodealAccount', account);
-                return account;
-            });
+        return this.appodealApi.fetchCurrentUser().then(account => this.setAppodealAccount(account));
 
     }
 
     @action
     appodealSignOut (): Promise<AppodealAccount> {
         return this.appodealApi.signOut()
-            .then(() => {
-                set<AppState>(this.state, 'appodealAccount', AppodealApiService.emptyAccount);
-                return AppodealApiService.emptyAccount;
-            });
+            .then(() => this.setAppodealAccount(AppodealApiService.emptyAccount));
     }
 
     @action
@@ -179,9 +172,13 @@ export class Store {
     @action
     setAdMobCredentials ({accountId, clientId, clientSecret}: { accountId: string, clientId: string, clientSecret: string }) {
         return this.appodealApi.setAdMobAccountCredentials(accountId, clientId, clientSecret)
-            .then(account => {
-                set<AppState>(this.state, 'appodealAccount', account);
-                return account;
-            });
+            .then(account => this.setAppodealAccount(account));
+    }
+
+    @action
+    async setAppodealAccount (account) {
+        await this.updateAdmobAccountsInfo(account);
+        set<AppState>(this.state, 'appodealAccount', account);
+        return account;
     }
 }
