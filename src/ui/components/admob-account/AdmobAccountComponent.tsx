@@ -1,6 +1,7 @@
 import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
 import {SyncProgress} from 'core/store';
 import {SyncHistoryInfo} from 'core/sync-apps/sync-history';
+import {SyncEventsTypes} from 'core/sync-apps/sync.events';
 import {action, ActionTypes} from 'lib/actions';
 import {messageDialog, sendToMain} from 'lib/common';
 import {getFormElement, singleEvent} from 'lib/dom';
@@ -8,6 +9,7 @@ import {LogFileInfo} from 'lib/sync-logs/logger';
 import React, {Component} from 'react';
 import {AccountStatusComponent} from 'ui/components/account-status/AccountStatusComponent';
 import {LogListComponent} from 'ui/components/log-list/LogListComponent';
+import {ProgressBar} from 'ui/components/progress-bar/ProgressBarComponent';
 import style from './AdmobAccount.scss';
 
 
@@ -96,6 +98,13 @@ export class AdmobAccountComponent extends Component<AdmobAccountComponentProps,
         });
     }
 
+    private getProgressBarStatus ({lastEvent}: SyncProgress): 'progress' | 'pending' {
+        if (lastEvent === SyncEventsTypes.CalculatingProgress || lastEvent === SyncEventsTypes.Started) {
+            return 'pending';
+        }
+        return 'progress';
+    }
+
     render () {
         let {account, logs} = this.props;
         return <>
@@ -128,6 +137,7 @@ export class AdmobAccountComponent extends Component<AdmobAccountComponentProps,
             {!!this.props.syncProgress &&
             <div className={style.syncProgress}>
                 <AccountStatusComponent syncProgress={this.props.syncProgress} historyInfo={this.props.historyInfo}/>
+                <ProgressBar value={this.props.syncProgress.percent} status={this.getProgressBarStatus(this.props.syncProgress)}/>
             </div>
             }
             <LogListComponent logs={logs || []} admobAccount={account}/>

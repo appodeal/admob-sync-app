@@ -1,87 +1,49 @@
-:root {
-  --progress-size: 350px;
-  --progress-weight: 20px;
+
+@keyframes bg-animate {
+  from {
+    background-position-x: 0;
+  }
+  to {
+    background-position-x: -15px;
+  }
 }
 
-.progress-bar {
-  width: var(--progress-size, 300px);
-  height: var(--progress-size, 300px);
-  position: relative;
-}
-
-.progress-bg {
+.progressBar {
+  margin-top: 5px;
+  background-position-x: 0;
+  background-position-y: 0;
+  background-repeat: repeat-x;
+  background-size: 15px 28px;
+  border-radius: 5px;
+  height: 10px;
   width: 100%;
-  height: 100%;
-  box-sizing: border-box;
-  border-radius: 50%;
-  border: var(--progress-weight) solid #ccc;
-}
-
-.progress-info {
-  width: calc(100% - 2 * var(--progress-weight));
-  height: calc(100% - 2 * var(--progress-weight));
-  position: absolute;
-  top: var(--progress-weight);
-  left: var(--progress-weight);
-  display: flex;
-  flex-flow: column nowrap;
-  align-items: center;
-  justify-content: center;
-}
-
-.progress-fill {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  --first: inherit;
-  --second: inherit;
-}
-
-.first {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  right: 0;
-  bottom: 0;
   overflow: hidden;
-}
-.second {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 50%;
-  bottom: 0;
-  overflow: hidden;
-}
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), inset 0 1px 7px rgba(255,255,255,0.6), 0 1px 2px rgba(0,0,0,.3);
 
-.first::before {
-  content: "";
-  display: block;
-  width: 100%;
-  height: 100%;
-  border: var(--progress-weight) solid red;
-  box-sizing: border-box;
-  border-left: none;
-  border-top-right-radius: calc(var(--progress-size) / 2);
-  border-bottom-right-radius: calc(var(--progress-size) / 2);
-  transform-origin: 0 50%;
-  transform: rotate(calc(var(--first, 0deg) - 180deg));
-  transition: transform .3s linear;
-}
 
-.second::before {
-  content: "";
-  display: block;
-  width: 100%;
-  height: 100%;
-  border: var(--progress-weight) solid red;
-  box-sizing: border-box;
-  border-right: none;
-  border-top-left-radius: calc(var(--progress-size) / 2);
-  border-bottom-left-radius: calc(var(--progress-size) / 2);
-  transform-origin: 100% 50%;
-  transform: rotate(calc(var(--second, 0deg) - 180deg));
-  transition: transform .3s linear;
+  &.pending {
+    background-color: #3a97ff;
+    background-image: linear-gradient(to bottom right, transparent, transparent 5px, #3871ff 5px, #3871ff 10px, transparent 10px, transparent);
+    animation: bg-animate 0.5s infinite linear;
+  }
+
+  &.progress {
+    background-color: #848484;
+    background-image: linear-gradient(to bottom right, transparent, transparent 5px, #616161 5px, #616161 10px, transparent 10px, transparent);
+    animation: bg-animate 0.5s infinite linear;
+
+    .line {
+      border-radius: 5px;
+      height: 10px;background-position-x: 0;
+      background-position-y: 0;
+      background-repeat: repeat-x;
+      background-size: 15px 28px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), inset 0 1px 7px rgba(255,255,255,0.6), 0 1px 2px rgba(0,0,0,.3);
+      transition: width .1s ease;
+      background-color: #3a97ff;
+      background-image: linear-gradient(to bottom right, transparent, transparent 5px, #3871ff 5px, #3871ff 10px, transparent 10px, transparent);
+      animation: bg-animate 0.5s infinite linear;
+    }
+  }
+
 }

@@ -46,7 +46,6 @@ export class Store {
     }
 
     private emitState () {
-        console.error(JSON.stringify(this.state, 4, 4));
         BrowserWindow.getAllWindows().forEach(win => {
             win.webContents.send('store', JSON.stringify(this.state));
         });
