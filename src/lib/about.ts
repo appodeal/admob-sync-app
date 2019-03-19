@@ -1,12 +1,5 @@
 import {dialog} from 'electron';
-import {PackageJson} from 'package-json';
 import packageInfo from './../../package.json';
-import {getAppIcon} from './icon';
-
-
-export function getPackageInfo (): PackageJson {
-    return packageInfo as PackageJson;
-}
 
 function getAboutTitle () {
     return `${packageInfo.productName}`;
@@ -25,7 +18,6 @@ function getAboutDetails () {
 export function showAboutDialog () {
     dialog.showMessageBox({
         type: 'info',
-        icon: getAppIcon(),
         message: getAboutTitle(),
         detail: getAboutDetails()
     });

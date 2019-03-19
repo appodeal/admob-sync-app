@@ -1,7 +1,7 @@
 import {SyncProgress} from 'core/store';
 import {SyncHistoryInfo} from 'core/sync-apps/sync-history';
 import {SyncEventsTypes} from 'core/sync-apps/sync.events';
-import * as React from 'react';
+import React from 'react';
 import style from './AccountStatus.scss';
 
 

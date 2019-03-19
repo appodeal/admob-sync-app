@@ -38,7 +38,11 @@ function execThemeListeners (isDark) {
 }
 
 export function isDark () {
-    return systemPreferences.isDarkMode();
+    if (process.platform === 'darwin') {
+        return systemPreferences.isDarkMode();
+    } else {
+        return true;
+    }
 }
 
 export function getCurrentTheme (): AppAppearance {
@@ -50,11 +54,14 @@ export function getBgColor (): string {
 }
 
 export function initThemeSwitcher () {
-    systemPreferences.setAppLevelAppearance(getCurrentTheme());
-    onThemeChanges(appearance => {
-        systemPreferences.setAppLevelAppearance(appearance);
-    });
-    ipcMain.on('theme', (event, appearance) => {
-        execThemeListeners(appearance === 'dark');
-    });
+    if (process.platform === 'darwin') {
+        systemPreferences.setAppLevelAppearance(getCurrentTheme());
+        onThemeChanges(appearance => {
+            systemPreferences.setAppLevelAppearance(appearance);
+        });
+        ipcMain.on('theme', (event, appearance) => {
+            execThemeListeners(appearance === 'dark');
+        });
+    }
+
 }

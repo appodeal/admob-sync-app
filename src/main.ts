@@ -63,10 +63,11 @@ app.on('ready', () => {
             if (account === AppodealApiService.emptyAccount) {
                 openSettingsWindow();
             }
-        }).catch(e => {
-        console.error('FAILED TO FETCH CURRENT USER');
-        console.log(e);
-    });
+        })
+        .catch(e => {
+            console.error('FAILED TO FETCH CURRENT USER');
+            console.log(e);
+        });
 
 
     const cleanUpOnExit = async function () {
