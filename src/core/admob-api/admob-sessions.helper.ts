@@ -15,7 +15,8 @@ export namespace AdMobSessions {
         SESSIONS = sessions ? new Map(Object.entries(sessions)) : new Map();
     });
 
-    export function getSession ({id}: AdMobAccount): Session {
+    export function getSession (id: AdMobAccount | string): Session {
+        id = id instanceof Object ? id.id : id;
         if (SESSIONS.has(id)) {
             return session.fromPartition(`persist:${SESSIONS.get(id)}`);
         }

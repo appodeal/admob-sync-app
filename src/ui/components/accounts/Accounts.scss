@@ -1,7 +1,7 @@
 .accounts {
   flex: 1 0 auto;
   display: grid;
-  grid-template-columns: 200px 1fr;
+  grid-template-columns: 220px 1fr;
   grid-template-rows: auto 1fr 20px;
   grid-gap: 0 10px;
   grid-template-areas: 'description description' 'list details' 'list-controls details';
@@ -21,7 +21,7 @@
     overflow: auto;
 
     li {
-      padding: 0;
+      padding: 0 5px 0 0;
       display: grid;
       grid-template-columns: 46px 1fr;
       grid-template-rows: 23px 23px;
@@ -47,7 +47,6 @@
         height: 32px;
         align-self: center;
         justify-self: center;
-        background-color: var(--brand-color);
       }
 
       .accountName {
@@ -55,6 +54,9 @@
         font-weight: 600;
         justify-self: start;
         align-self: end;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
       }
 
       .accountEmail {
@@ -75,6 +77,12 @@
 
         .accountEmail {
           color: #bcd2f3;
+        }
+      }
+
+      &.adMobAccount {
+        .accountName {
+          font-size: 0.9em;
         }
       }
     }

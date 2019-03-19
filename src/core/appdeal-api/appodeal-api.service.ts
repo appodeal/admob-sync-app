@@ -3,10 +3,12 @@ import ApolloClient, {MutationOptions, OperationVariables, QueryOptions} from 'a
 import {ApolloLink, FetchResult, Observable} from 'apollo-link';
 import {BatchHttpLink} from 'apollo-link-batch-http';
 import {ErrorResponse, onError} from 'apollo-link-error';
+import {AdMobSessions} from 'core/admob-api/admob-sessions.helper';
 import {AuthContext} from 'core/appdeal-api/AuthContext';
 import {AppodealAccount} from 'core/appdeal-api/interfaces/appodeal.account.interface';
 import {AuthorizationError} from 'core/error-factory/errors/authorization.error';
 import {session} from 'electron';
+import {openWindow, waitForNavigation} from 'lib/common';
 import {createFetcher} from 'lib/fetch';
 import {AdMobApp} from 'lib/translators/interfaces/admob-app.interface';
 import {ErrorFactoryService} from '../error-factory/error-factory.service';
@@ -249,7 +251,7 @@ export class AppodealApiService {
 
 
     setAdMobAccountCredentials (adMobAccountId: string, clientId: string, clientSecret: string): Promise<AppodealAccount> {
-        return this.mutate<{setAdmobAccountCredentials: boolean}>({
+        return this.mutate<{ setAdmobAccountCredentials: { oAuthUrl: string } }>({
             mutation: setAdMobAccountCredentialsMutation,
             variables: {
                 accountId: adMobAccountId,
@@ -257,17 +259,30 @@ export class AppodealApiService {
                 clientSecret
             }
         })
-            .then(({setAdmobAccountCredentials}) => {
-                if (setAdmobAccountCredentials) {
-                    return this.fetchCurrentUser();
-                } else {
-                    throw new Error(`Can't set provided credentials to AdMob account`);
+            .then(async ({setAdmobAccountCredentials: {oAuthUrl}}) => {
+                let window = await openWindow(oAuthUrl, {
+                    frame: true,
+                    titleBarStyle: 'default',
+                    width: 400,
+                    minWidth: 400,
+                    webPreferences: {
+                        session: AdMobSessions.getSession(adMobAccountId)
+                    }
+                });
+                if (environment.development) {
+                    window.webContents.once('login', async (event, request, authInfo, callback) => {
+                        let {login, password} = environment.basicAuth;
+                        callback(login, password);
+                    });
                 }
+                await waitForNavigation(window, '/admob_plugin/api/v3/oauth/success');
+                window.close();
+                return this.fetchCurrentUser();
             });
     }
 
     addAdMobAccount ({id: accountId, email}: AdMobAccount): Promise<boolean> {
-        return this.mutate<{addAdmobAccount: boolean}>({
+        return this.mutate<{ addAdmobAccount: boolean }>({
             mutation: addAdMobAccountMutation,
             variables: {
                 accountId,

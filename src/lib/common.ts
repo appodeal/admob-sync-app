@@ -7,9 +7,9 @@ import {getBgColor, getCurrentTheme, onThemeChanges} from './theme';
 
 function getConfig (config: BrowserWindowConstructorOptions, backgroundColor: string): BrowserWindowConstructorOptions {
     return {
-        width: 700,
+        width: 750,
         height: 550,
-        minWidth: 700,
+        minWidth: 750,
         minHeight: 550,
         frame: false,
         titleBarStyle: 'hiddenInset',
@@ -158,7 +158,7 @@ export function waitForNavigation (window: BrowserWindow, urlFragment: string = 
             window.webContents.once('dom-ready', () => resolve());
         };
         if (urlFragment) {
-            let checker = new RegExp(`^${urlFragment.replace(/[\.\?]/g, match => `\\${match}`)}`, 'i');
+            let checker = new RegExp(`${urlFragment.replace(/[\.\?]/g, match => `\\${match}`)}`, 'i');
             window.webContents.on('did-navigate', (_, address) => {
                 if (checker.test(address)) {
                     window.webContents.removeAllListeners('did-navigate');
