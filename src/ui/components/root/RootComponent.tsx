@@ -1,6 +1,6 @@
 import {AppState} from 'core/store';
 import {classNames} from 'lib/dom';
-import React from 'React';
+import React from 'react';
 import {AccountsComponent} from '../accounts/AccountsComponent';
 import style from './Root.scss';
 
