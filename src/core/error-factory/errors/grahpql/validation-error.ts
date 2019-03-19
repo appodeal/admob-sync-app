@@ -42,6 +42,7 @@ export class GraphQLValidationError extends GraphQLError {
         this.messages = originalError.graphQLErrors
             .filter(isValidationGraphQLError)
             .map((error: ApolloGraphQLError) => error.message);
+        this.message = this.userMessage;
     }
 
     isCritical () {

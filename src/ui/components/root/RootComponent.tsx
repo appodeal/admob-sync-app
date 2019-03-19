@@ -1,3 +1,4 @@
+import {AppState} from 'core/store';
 import {classNames} from 'lib/dom';
 import React from 'React';
 import {AccountsComponent} from '../accounts/AccountsComponent';
@@ -5,7 +6,7 @@ import style from './Root.scss';
 
 
 export interface RootComponentProps {
-    store: any
+    store: AppState
 }
 
 interface RootComponentState {
@@ -35,7 +36,7 @@ export class RootComponent extends React.Component<RootComponentProps, RootCompo
     renderTabContent (tab: string) {
         switch (tab) {
         case 'accounts':
-            return <AccountsComponent appodealAccount={this.props.store.appodealAccount}/>;
+            return <AccountsComponent {...this.props.store}/>;
         case 'appearance':
             return <div>Appearance</div>;
         }
