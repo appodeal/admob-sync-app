@@ -5,6 +5,7 @@ import {AppodealAccount} from 'core/appdeal-api/interfaces/appodeal.account.inte
 import {SyncHistory, SyncHistoryInfo} from 'core/sync-apps/sync-history';
 import {SyncEvent, SyncEventsTypes, SyncReportProgressEvent} from 'core/sync-apps/sync.events';
 import {BrowserWindow, ipcMain} from 'electron';
+import {openWindow, waitForNavigation} from 'lib/common';
 import {getLogsList, LogFileInfo} from 'lib/sync-logs/logger';
 import {action, observable, observe, set} from 'mobx';
 
@@ -45,6 +46,7 @@ export class Store {
     }
 
     private emitState () {
+        console.error(JSON.stringify(this.state, 4, 4));
         BrowserWindow.getAllWindows().forEach(win => {
             win.webContents.send('store', JSON.stringify(this.state));
         });
@@ -172,6 +174,26 @@ export class Store {
     @action
     setAdMobCredentials ({accountId, clientId, clientSecret}: { accountId: string, clientId: string, clientSecret: string }) {
         return this.appodealApi.setAdMobAccountCredentials(accountId, clientId, clientSecret)
+            .then(async oAuthUrl => {
+                let window = await openWindow(oAuthUrl, {
+                    frame: true,
+                    titleBarStyle: 'default',
+                    width: 400,
+                    minWidth: 400,
+                    webPreferences: {
+                        session: AdMobSessions.getSession(accountId)
+                    }
+                });
+                if (environment.development) {
+                    window.webContents.once('login', async (event, request, authInfo, callback) => {
+                        let {login, password} = environment.basicAuth;
+                        callback(login, password);
+                    });
+                }
+                await waitForNavigation(window, /\/admob_plugin\/api\/v3\/oauth\/success/);
+                window.close();
+            })
+            .then(() => this.appodealApi.fetchCurrentUser())
             .then(account => this.setAppodealAccount(account));
     }
 

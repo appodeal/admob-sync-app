@@ -15,7 +15,8 @@ export namespace AdMobSessions {
         SESSIONS = sessions ? new Map(Object.entries(sessions)) : new Map();
     });
 
-    export function getSession ({id}: AdMobAccount): Session {
+    export function getSession (id: AdMobAccount | string): Session {
+        id = id instanceof Object ? id.id : id;
         if (SESSIONS.has(id)) {
             return session.fromPartition(`persist:${SESSIONS.get(id)}`);
         }
@@ -93,7 +94,7 @@ export namespace AdMobSessions {
     }
 
     async function waitForSignIn (window: BrowserWindow): Promise<BrowserWindow> {
-        await waitForNavigation(window, 'https://apps.admob.com/v2/home');
+        await waitForNavigation(window, /^https:\/\/apps\.admob\.com\/v2\/home/);
         return window;
     }
 

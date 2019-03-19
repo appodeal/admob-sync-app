@@ -36,9 +36,9 @@ export class SyncHistory {
         await saveJsonFile(SyncHistory.fileName(adMobAccount), await SyncHistory.loadHistory(adMobAccount));
     }
 
-    public static async setAuthorizationRequired (adMobAccount: AdMobAccount) {
+    public static async setAuthorizationRequired (adMobAccount: AdMobAccount, required = true) {
         const history = await SyncHistory.loadHistory(adMobAccount);
-        history.admobAuthorizationRequired = true;
+        history.admobAuthorizationRequired = required;
         await SyncHistory.saveHistory(adMobAccount);
     }
 

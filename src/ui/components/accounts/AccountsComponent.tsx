@@ -111,7 +111,11 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
                     <li onClick={() => this.selectAccount(appodealAccount)}
                         className={classNames({[style.selected]: selectedAccount.id === appodealAccount.id})}
                     >
-                        <img src="" alt=""/>
+                        <img srcSet={[
+                            `${require('ui/assets/images/appodeal-logo.png').x1.src} 1x`,
+                            `${require('ui/assets/images/appodeal-logo.png').x2.src} 2x`,
+                            `${require('ui/assets/images/appodeal-logo.png').x3.src} 3x`
+                        ].join(',')} alt=""/>
                         <span className={style.accountName}>Appodeal</span>
                         <span className={style.accountEmail}>{appodealAccount.email}</span>
                     </li>
@@ -119,9 +123,13 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
                     {accounts.map(acc => {
                         return <li key={acc.email}
                                    onClick={() => this.selectAccount(acc)}
-                                   className={classNames({[style.selected]: selectedAccount.id === acc.id})}
+                                   className={classNames(style.adMobAccount, {[style.selected]: selectedAccount.id === acc.id})}
                         >
-                            <img src="" alt=""/>
+                            <img srcSet={[
+                                `${require('ui/assets/images/admob-logo.png').x1.src} 1x`,
+                                `${require('ui/assets/images/admob-logo.png').x2.src} 2x`,
+                                `${require('ui/assets/images/admob-logo.png').x3.src} 3x`
+                            ].join(',')} alt=""/>
                             <span className={style.accountName}>{acc.email}</span>
                             <span className={style.accountEmail}>
                                 <AccountStatusComponent historyInfo={this.props.syncHistory[acc.id]}

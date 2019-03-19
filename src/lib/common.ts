@@ -7,9 +7,9 @@ import {getBgColor, getCurrentTheme, onThemeChanges} from './theme';
 
 function getConfig (config: BrowserWindowConstructorOptions, backgroundColor: string): BrowserWindowConstructorOptions {
     return {
-        width: 700,
+        width: 750,
         height: 550,
-        minWidth: 700,
+        minWidth: 750,
         minHeight: 550,
         frame: false,
         titleBarStyle: 'hiddenInset',
@@ -141,32 +141,14 @@ export function createScript (fn: (...args: Array<any>) => void, ...args) {
     }).join(', ')})`;
 }
 
-export function getRandomNumberString (length: number): string {
-    let digits = new Array(length);
-    for (let i = 0; i < length; i++) {
-        digits[i] = Math.round(Math.random() * 10);
-    }
-    return digits.join('');
-}
-
-export function goToPage (window: BrowserWindow, filePathOrUrl: string) {
-    if (/^https?:\/\/[^\/]+/i.test(filePathOrUrl)) {
-        window.loadURL(filePathOrUrl);
-    } else {
-        window.loadFile(filePathOrUrl);
-    }
-    return waitForNavigation(window, filePathOrUrl);
-}
-
-export function waitForNavigation (window: BrowserWindow, urlFragment: string = null): Promise<void> {
+export function waitForNavigation (window: BrowserWindow, urlFragment: RegExp = null): Promise<void> {
     return new Promise(resolve => {
         let resolver = () => {
             window.webContents.once('dom-ready', () => resolve());
         };
         if (urlFragment) {
-            let checker = new RegExp(`^${urlFragment.replace(/[\.\?]/g, match => `\\${match}`)}`, 'i');
             window.webContents.on('did-navigate', (_, address) => {
-                if (checker.test(address)) {
+                if (urlFragment.test(address)) {
                     window.webContents.removeAllListeners('did-navigate');
                     resolver();
                 }

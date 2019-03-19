@@ -39,6 +39,9 @@ export class AdmobAccountComponent extends Component<AdmobAccountComponentProps,
         if (this.formRef.current) {
             this.formRef.current.reset();
         }
+        this.setState({
+            displaySetupForm: !nextProps.account.isReadyForReports
+        });
     }
 
     private onFormInput () {
@@ -79,12 +82,12 @@ export class AdmobAccountComponent extends Component<AdmobAccountComponentProps,
             clientSecret,
             accountId
         }))
-            .then(() => this.displaySetupForm(this.props.account.isAdsenseApiActive))
+            .then(() => this.displaySetupForm(this.props.account.isReadyForReports))
             .catch(error => messageDialog(error.message));
     }
 
     private isSetupFormVisible (account: AdMobAccount): boolean {
-        return this.state.displaySetupForm || !account.isAdsenseApiActive;
+        return this.state.displaySetupForm || !account.isReadyForReports;
     }
 
     private displaySetupForm (value: boolean) {

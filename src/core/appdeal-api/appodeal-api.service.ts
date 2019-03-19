@@ -248,8 +248,8 @@ export class AppodealApiService {
     }
 
 
-    setAdMobAccountCredentials (adMobAccountId: string, clientId: string, clientSecret: string): Promise<AppodealAccount> {
-        return this.mutate<{setAdmobAccountCredentials: boolean}>({
+    setAdMobAccountCredentials (adMobAccountId: string, clientId: string, clientSecret: string): Promise<string> {
+        return this.mutate<{ setAdmobAccountCredentials: { oAuthUrl: string } }>({
             mutation: setAdMobAccountCredentialsMutation,
             variables: {
                 accountId: adMobAccountId,
@@ -257,17 +257,11 @@ export class AppodealApiService {
                 clientSecret
             }
         })
-            .then(({setAdmobAccountCredentials}) => {
-                if (setAdmobAccountCredentials) {
-                    return this.fetchCurrentUser();
-                } else {
-                    throw new Error(`Can't set provided credentials to AdMob account`);
-                }
-            });
+            .then(async ({setAdmobAccountCredentials: {oAuthUrl}}) => oAuthUrl);
     }
 
     addAdMobAccount ({id: accountId, email}: AdMobAccount): Promise<boolean> {
-        return this.mutate<{addAdmobAccount: boolean}>({
+        return this.mutate<{ addAdmobAccount: boolean }>({
             mutation: addAdMobAccountMutation,
             variables: {
                 accountId,
