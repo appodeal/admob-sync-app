@@ -1,7 +1,7 @@
 {
   "environment": {
     "services": {
-      "appodeal": "https://api.appodeal.com/graphql",
+      "appodeal": "https://api-services.appodeal.com/admob_plugin/api/v3/graphqll",
       "ad_mob": "https://apps.admob.com"
     }
   }
