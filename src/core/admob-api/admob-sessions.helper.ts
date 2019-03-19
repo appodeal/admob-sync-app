@@ -1,6 +1,8 @@
 import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
+import {SyncHistory} from 'core/sync-apps/sync-history';
 import {app, BrowserWindow, Session, session, shell} from 'electron';
 import * as fs from 'fs-extra';
+import {ExtractedAdmobAccount} from 'interfaces/common.interfaces';
 import {createScript, openWindow, waitForNavigation} from 'lib/common';
 import {getJsonFile, saveJsonFile} from 'lib/json-storage';
 import path from 'path';
@@ -11,6 +13,10 @@ export namespace AdMobSessions {
 
     let SESSIONS: Map<string, string>;
 
+    function sessionFromPartition (sessionID: string) {
+        return session.fromPartition(`persist:${sessionID}`);
+    }
+
     getJsonFile('admob-sessions').then(sessions => {
         SESSIONS = sessions ? new Map(Object.entries(sessions)) : new Map();
     });
@@ -18,15 +24,16 @@ export namespace AdMobSessions {
     export function getSession (id: AdMobAccount | string): Session {
         id = id instanceof Object ? id.id : id;
         if (SESSIONS.has(id)) {
-            return session.fromPartition(`persist:${SESSIONS.get(id)}`);
+            return sessionFromPartition(SESSIONS.get(id));
         }
         return null;
     }
 
-    export async function signIn (): Promise<AdMobAccount> {
+    export async function signIn (): Promise<ExtractedAdmobAccount> {
         let {id, session} = createAdmobSession();
         let window = await openAdMobSignInWindow(session),
-            addedAccount: AdMobAccount;
+            addedAccount: ExtractedAdmobAccount;
+        await new Promise(resolve => session.clearCache(resolve));
         waitForSignIn(window)
             .then(window => extractAccountInfo(window))
             .then(({account, window}) => {
@@ -62,7 +69,17 @@ export namespace AdMobSessions {
         }
     }
 
-    function deleteSession (sessionId: string): Promise<void> {
+    async function deleteSession (sessionId: string): Promise<void> {
+        try {
+            const session = sessionFromPartition(sessionId);
+            await session.flushStorageData();
+
+            await new Promise(resolve => session.clearCache(resolve));
+            await new Promise(resolve => session.clearStorageData({}, resolve));
+        } catch (e) {
+            console.error(e);
+        }
+
         return fs.remove(path.resolve(app.getPath('userData'), `./Partitions/${sessionId}`));
     }
 
@@ -77,13 +94,14 @@ export namespace AdMobSessions {
         let id = `admob_${uuid()}`;
         return {
             id,
-            session: session.fromPartition(`persist:${id}`)
+            session: sessionFromPartition(id)
         };
     }
 
     function openAdMobSignInWindow (session): Promise<BrowserWindow> {
         return openWindow('https://apps.admob.com/v2/home', {
             frame: true,
+            show: true,
             titleBarStyle: 'default',
             minHeight: 700,
             height: 700,
@@ -94,14 +112,13 @@ export namespace AdMobSessions {
     }
 
     async function waitForSignIn (window: BrowserWindow): Promise<BrowserWindow> {
-        await waitForNavigation(window, /^https:\/\/apps\.admob\.com\/v2\/home/);
+        await waitForNavigation(window, /^https:\/\/apps\.admob\.com\/v2/);
         return window;
     }
 
-    function extractAccountInfo (window: BrowserWindow): Promise<{ window: BrowserWindow, account: AdMobAccount }> {
+    function extractAccountInfo (window: BrowserWindow): Promise<{ window: BrowserWindow, account: ExtractedAdmobAccount }> {
         return window.webContents.executeJavaScript(createScript(() => {
-            let xsrfToken = window['$acx'].xsrfToken,
-                id = /pub-\d+/.exec(document.documentElement.innerHTML)[0],
+            let id = /pub-\d+/.exec(document.documentElement.innerHTML)[0],
                 email = (() => {
                     try {
                         let parsedAmrpd = JSON.parse(window['amrpd']),
@@ -111,11 +128,10 @@ export namespace AdMobSessions {
                         return '';
                     }
                 })();
-            if (xsrfToken && id && email) {
+            if (id && email) {
                 return {
                     id,
-                    email,
-                    xsrfToken
+                    email
                 };
             }
             return null;
@@ -126,18 +142,57 @@ export namespace AdMobSessions {
             }));
     }
 
-    export async function openAdmobWindow (account: AdMobAccount) {
-        const windowSession = await getSession(account);
-        let url = 'https://apps.admob.com/v2/home';
-        return openWindow(url, {
-            frame: true,
-            titleBarStyle: 'default',
-            minHeight: 700,
-            height: 700,
-            webPreferences: {
-                session: windowSession
-            }
+
+    export async function reSignIn (currentAccount: AdMobAccount): Promise<ExtractedAdmobAccount> {
+        let session = await getSession(currentAccount);
+        let tempSession: { id: string, session: Session };
+        if (!session) {
+            tempSession = createAdmobSession();
+            SESSIONS.set(currentAccount.id, tempSession.id);
+            session = tempSession.session;
+        }
+
+        let window = await openAdMobSignInWindow(session),
+            resultAccount: ExtractedAdmobAccount;
+
+
+        waitForSignIn(window)
+            .then(window => extractAccountInfo(window))
+            .then(({account, window}) => {
+                resultAccount = account;
+                window.close();
+            });
+
+        return new Promise(resolve => {
+            window.once('close', async () => {
+                resolve(await afterCloseAdmob(currentAccount, resultAccount));
+            });
         });
+    }
+
+    async function attachSession (accountID: string, oldAccountId) {
+        const sessionId = SESSIONS.get(oldAccountId);
+        SESSIONS.delete(oldAccountId);
+        SESSIONS.set(accountID, sessionId);
+        await saveSessions();
+        await SyncHistory.setAuthorizationRequired({id: accountID}, false);
+    }
+
+    async function afterCloseAdmob (currentAccount: AdMobAccount, resultAccount: ExtractedAdmobAccount) {
+        if (!resultAccount) {
+            await deleteSession(SESSIONS.get(currentAccount.id));
+            await SyncHistory.setAuthorizationRequired(currentAccount, true);
+            return null;
+        }
+
+        if (resultAccount.id === currentAccount.id) {
+            await attachSession(currentAccount.id, currentAccount.id);
+            return resultAccount;
+        }
+
+        await attachSession(resultAccount.id, currentAccount.id);
+
+        return resultAccount;
     }
 
 

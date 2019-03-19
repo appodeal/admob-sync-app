@@ -35,6 +35,10 @@ export class AdmobAccountComponent extends Component<AdmobAccountComponentProps,
         this.formRef = React.createRef<HTMLFormElement>();
     }
 
+    get signedIn () {
+        return !this.props.historyInfo.admobAuthorizationRequired;
+    }
+
     componentWillReceiveProps (nextProps: Readonly<AdmobAccountComponentProps>) {
         if (this.formRef.current) {
             this.formRef.current.reset();
@@ -69,6 +73,10 @@ export class AdmobAccountComponent extends Component<AdmobAccountComponentProps,
 
     private openAdMob () {
         return sendToMain('accounts', action(ActionTypes.openAdmobPage, this.props.account));
+    }
+
+    private signInAdMob () {
+        return sendToMain('accounts', action(ActionTypes.appodealReSignIn, this.props.account)).catch(e => alert(e.message));
     }
 
     private setupDone (event: Event) {
@@ -114,17 +122,29 @@ export class AdmobAccountComponent extends Component<AdmobAccountComponentProps,
                 </form>
             </div>}
             <div>
-                <button type="button"
-                        onClick={singleEvent(this.runSync, this)}
-                        className={'primary'}
-                        disabled={!!this.props.syncProgress || this.props.historyInfo.admobAuthorizationRequired}
-                >
-                    Run Sync
-                </button>
-                <button type="button" onClick={singleEvent(this.openAdMob, this)}>Open Admob</button>
-                {!this.isSetupFormVisible(account) &&
-                <button type="button" onClick={() => this.displaySetupForm(true)}>Set credentials</button>}
+                {this.signedIn && <>
+                    <button type="button"
+                            onClick={singleEvent(this.runSync, this)}
+                            className={'primary'}
+                            disabled={!!this.props.syncProgress || this.props.historyInfo.admobAuthorizationRequired}
+                    >
+                        Run Sync
+                    </button>
+                    {
+                        //  uncomment when open admob is implemented
+                        //   <button type="button" onClick={singleEvent(this.openAdMob, this)}>Open Admob</button>
+                    }
+                    {!this.isSetupFormVisible(account) &&
+                    <button type="button" onClick={() => this.displaySetupForm(true)}>Set credentials</button>}
+                </>}
+                {!this.signedIn && <>
+                    <button onClick={singleEvent(this.signInAdMob, this)}
+                            className={'primary'}
+                    >Sign In
+                    </button>
+                </>}
             </div>
+
             {!!this.props.syncProgress &&
             <div className={style.syncProgress}>
                 <AccountStatusComponent syncProgress={this.props.syncProgress} historyInfo={this.props.historyInfo}/>

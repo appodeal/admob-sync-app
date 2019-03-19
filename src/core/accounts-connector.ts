@@ -14,6 +14,8 @@ export class AccountsConnector extends Connector {
         switch (type) {
         case ActionTypes.appodealSignIn:
             return this.store.appodealSignIn(payload.email, payload.password);
+        case ActionTypes.appodealReSignIn:
+            return this.store.reSignInAdmob(payload);
         case ActionTypes.appodealSignOut:
             return this.store.appodealSignOut();
         case ActionTypes.adMobAddAccount:
@@ -21,11 +23,12 @@ export class AccountsConnector extends Connector {
         case ActionTypes.selectAdmobAccount:
             return this.store.loadSelectedAdMobAccountLogs(payload);
         case ActionTypes.adMobSetCredentials:
-            return  this.store.setAdMobCredentials(payload);
+            return this.store.setAdMobCredentials(payload);
         case ActionTypes.adMobSetupTutorial:
             return AdMobSessions.openSetupTutorial();
         case ActionTypes.openAdmobPage:
-            return AdMobSessions.openAdmobWindow(payload);
+            // TODO: implement me
+            return;
         }
     }
 }

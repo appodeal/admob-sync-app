@@ -5,9 +5,10 @@ import {AppodealAccount} from 'core/appdeal-api/interfaces/appodeal.account.inte
 import {SyncHistory, SyncHistoryInfo} from 'core/sync-apps/sync-history';
 import {SyncEvent, SyncEventsTypes, SyncReportProgressEvent} from 'core/sync-apps/sync.events';
 import {BrowserWindow, ipcMain} from 'electron';
-import {openWindow, waitForNavigation} from 'lib/common';
+import {confirmDialog, messageDialog, openWindow, waitForNavigation} from 'lib/common';
 import {getLogsList, LogFileInfo} from 'lib/sync-logs/logger';
 import {action, observable, observe, set} from 'mobx';
+import reSignIn = AdMobSessions.reSignIn;
 
 
 export interface SyncProgress {
@@ -46,7 +47,6 @@ export class Store {
     }
 
     private emitState () {
-        console.error(JSON.stringify(this.state, 4, 4));
         BrowserWindow.getAllWindows().forEach(win => {
             win.webContents.send('store', JSON.stringify(this.state));
         });
@@ -65,9 +65,9 @@ export class Store {
         set<AppState>(this.state, 'syncHistory', {...(this.state.syncHistory || {}), ...syncHistory});
     }
 
-    async updateAdMobAccountInfo (account: AdMobAccount) {
+    async updateAdMobAccountInfo (account: Pick<AdMobAccount, 'id'>) {
         const history = await SyncHistory.getHistory(account);
-        set<Record<AccountID, SyncHistoryInfo>>(this.state.syncHistory, account.id, history);
+        set<AppState>(this.state, 'syncHistory', {...(this.state.syncHistory || {}), [account.id]: history});
     }
 
     @action
@@ -203,4 +203,41 @@ export class Store {
         set<AppState>(this.state, 'appodealAccount', account);
         return account;
     }
+
+    @action
+    async reSignInAdmob (currentAccount: AdMobAccount) {
+        const resultAccount = await reSignIn(currentAccount);
+        if (!resultAccount) {
+            return;
+        }
+        if (resultAccount.id === currentAccount.id) {
+            return await this.updateAdMobAccountInfo(currentAccount);
+        }
+
+        const existedAccount = this.state.appodealAccount.accounts.find(account => account.id === resultAccount.id);
+        if (existedAccount) {
+            messageDialog(`You were supposed to sign in ${currentAccount.email}, but you have signed in another account ${resultAccount.email}. Try again to sign In.`);
+            return;
+        }
+
+        const addAccount = await confirmDialog(
+            `You were supposed to sign in ${currentAccount.email}, but you have signed in another account ${resultAccount.email}.
+Do you what to add new Account (${resultAccount.email})?`
+        );
+
+        if (addAccount) {
+            // user signed in with new account
+            // question
+            console.log(`adding new account ${resultAccount.email}`);
+
+            if (await this.appodealApi.addAdMobAccount(resultAccount)) {
+                return await this.appodealFetchUser();
+            }
+            return this.updateAdMobAccountInfo(currentAccount);
+        }
+
+        console.log(`cancel adding new account. delete session`);
+
+    }
+
 }
