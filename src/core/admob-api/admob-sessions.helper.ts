@@ -94,7 +94,7 @@ export namespace AdMobSessions {
     }
 
     async function waitForSignIn (window: BrowserWindow): Promise<BrowserWindow> {
-        await waitForNavigation(window, 'https://apps.admob.com/v2/home');
+        await waitForNavigation(window, /^https:\/\/apps\.admob\.com\/v2\/home/);
         return window;
     }
 

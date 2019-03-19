@@ -66,7 +66,9 @@ export class SyncService {
         const subs = [];
         subs.push(
             sync.events.on(SyncEventsTypes.UserActionsRequired)
-                .subscribe(() => { waitToFinish.push(SyncHistory.setAuthorizationRequired(admobAccount));}),
+                .subscribe(() => { waitToFinish.push(SyncHistory.setAuthorizationRequired(admobAccount, true));}),
+            sync.events.on(SyncEventsTypes.CalculatingProgress)
+                .subscribe(() => { waitToFinish.push(SyncHistory.setAuthorizationRequired(admobAccount, false));}),
             sync.events.on()
                 .subscribe(event => this.store.updateSyncProgress(admobAccount, event))
         );

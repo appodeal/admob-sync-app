@@ -275,7 +275,7 @@ export class AppodealApiService {
                         callback(login, password);
                     });
                 }
-                await waitForNavigation(window, '/admob_plugin/api/v3/oauth/success');
+                await waitForNavigation(window, /\/admob_plugin\/api\/v3\/oauth\/success/);
                 window.close();
                 return this.fetchCurrentUser();
             });
