@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/browser';
 import {ipcRenderer, remote} from 'electron';
 import React from 'react';
 import ReactDOM from 'react-dom';
@@ -19,3 +20,6 @@ ipcRenderer.send('store');
 
 ReactDOM.render(<WindowsControlsComponent currentWindow={currentWindow}/>, document.getElementById('controls'));
 
+if (environment.sentry && environment.sentry.dsn) {
+    Sentry.init(environment.sentry);
+}
