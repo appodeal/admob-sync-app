@@ -1,8 +1,11 @@
 {
   "environment": {
     "services": {
-      "appodeal": "https://staging7.appodeal.com/admob_plugin/api/v3/graphql",
+      "appodeal": "https://api.appodeal.com/graphql",
       "ad_mob": "https://apps.admob.com"
+    },
+    "sentry": {
+      "dsn": ""
     },
     "basicAuth": {
       "login": "",

@@ -1,4 +1,7 @@
 require('source-map-support').install();
+import * as Sentry from '@sentry/electron';
+import {SentryEvent} from '@sentry/electron';
+import {SentryEventHint} from '@sentry/types';
 import {AccountsConnector} from 'core/accounts-connector';
 import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
 
@@ -17,6 +20,26 @@ import {initThemeSwitcher} from 'lib/theme';
 if (!environment.development) {
     console.debug = () => {};
 }
+const useSentry = environment.sentry && environment.sentry.dsn;
+if (useSentry) {
+    Sentry.init({
+        ...environment.sentry,
+        beforeSend (event: SentryEvent, hint?: SentryEventHint): SentryEvent {
+            // to extend error context
+            if (hint && hint.originalException) {
+                if (hint.originalException['extraInfo']) {
+                    event.extra = {...(event.extra || {}), ...hint.originalException['extraInfo']};
+                }
+            }
+            return event;
+        }
+    });
+} else {
+    process.on('uncaughtException', function (err: any) {
+        console.error('Caught exception: ', err);
+    });
+}
+
 let tray: Tray;
 
 initThemeSwitcher();
@@ -97,7 +120,7 @@ app.on('ready', () => {
         })
         .catch(e => {
             console.error('FAILED TO FETCH CURRENT USER');
-            console.log(e);
+            Sentry.captureException(e);console.log(e);
         });
 
 
@@ -128,6 +151,3 @@ app.on('ready', () => {
     });
 });
 
-process.on('uncaughtException', function (err) {
-    console.error('Caught exception: ', err);
-});

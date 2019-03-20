@@ -130,6 +130,7 @@ export namespace AdMobSessions {
                             userInfo = parsedAmrpd[32][3];
                         return userInfo[1];
                     } catch (e) {
+                        console.error(e);
                         return '';
                     }
                 })();

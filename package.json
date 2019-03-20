@@ -104,6 +104,7 @@
     "webpack-merge": "^4.2.1"
   },
   "dependencies": {
+    "@sentry/electron": "^0.16.0",
     "apollo-cache-inmemory": "^1.5.1",
     "apollo-client": "^2.5.1",
     "apollo-link-batch-http": "^1.2.8",

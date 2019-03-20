@@ -1,11 +1,11 @@
+import CSSExtractPlugin from 'mini-css-extract-plugin';
 import * as path from 'path';
 import webpack from 'webpack';
 import merge from 'webpack-merge';
 
-import CSSExtractPlugin from 'mini-css-extract-plugin';
+import main from './entries/main';
+import settings from './entries/settings';
 
-import main from './entries/main'
-import settings from './entries/settings'
 
 export const SRC_PATH = path.resolve(__dirname, '../src');
 export const BUILD_PATH = path.resolve(__dirname, '../build');
@@ -86,6 +86,9 @@ export const entries = [main, settings].map(entry => (env: webpack.Configuration
                 '@typings',
                 path.resolve(__dirname, '../src')
             ]
-        }
-    })
+        },
+        externals: [
+            {'@sentry/electron': `require('@sentry/electron')`}
+        ]
+    });
 });

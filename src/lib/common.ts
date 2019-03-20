@@ -45,11 +45,10 @@ export function openWindow (
 
         if (/^https?:\/\/[^\/]+/i.test(filePathOrUrl)) {
             window.loadURL(filePathOrUrl);
-            window.once('ready-to-show', readyListener);
         } else {
             window.loadFile(filePathOrUrl);
-            window.webContents.once('dom-ready', readyListener);
         }
+        window.webContents.once('dom-ready', readyListener);
 
         ipcMain.on('windowControl', commandListener);
 

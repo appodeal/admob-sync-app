@@ -1,3 +1,4 @@
+import {configureScope} from '@sentry/electron';
 import {AdMobSessions} from 'core/admob-api/admob-sessions.helper';
 import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
 import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
@@ -200,6 +201,10 @@ export class Store {
     @action
     async setAppodealAccount (account) {
         await this.updateAdmobAccountsInfo(account);
+        configureScope(scope => {
+            scope.setUser(account);
+            scope.setExtra('syncHistory', this.state.syncHistory);
+        });
         set<AppState>(this.state, 'appodealAccount', account);
         return account;
     }
