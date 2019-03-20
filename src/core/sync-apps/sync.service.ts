@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/electron';
 import {AdMobSessions} from 'core/admob-api/admob-sessions.helper';
 import {AdmobApiService} from 'core/admob-api/admob.api';
 import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
@@ -5,10 +6,9 @@ import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface'
 import {Store} from 'core/store';
 import {Sync} from 'core/sync-apps/sync';
 import {SyncHistory} from 'core/sync-apps/sync-history';
-import {SyncEventsTypes} from 'core/sync-apps/sync.events';
+import {SyncErrorEvent, SyncEventsTypes} from 'core/sync-apps/sync.events';
 import {createFetcher} from 'lib/fetch';
 import {createSyncLogger, getLogContent, LoggerInstance, rotateSyncLogs} from 'lib/sync-logs/logger';
-
 import uuid from 'uuid';
 import getSession = AdMobSessions.getSession;
 
@@ -70,8 +70,13 @@ export class SyncService {
             sync.events.on(SyncEventsTypes.CalculatingProgress)
                 .subscribe(() => { waitToFinish.push(SyncHistory.setAuthorizationRequired(admobAccount, false));}),
             sync.events.on()
-                .subscribe(event => this.store.updateSyncProgress(admobAccount, event))
+                .subscribe(event => this.store.updateSyncProgress(admobAccount, event)),
+            sync.events.on(SyncEventsTypes.Error)
+                .subscribe((event: SyncErrorEvent) => {
+                    this.reportError(sync, event.error);
+                })
         );
+
 
         this.activeSyncs.set(sync, this.processSync(sync, logger).then(async () => {
             subs.forEach(sub => sub.unsubscribe());
@@ -88,6 +93,7 @@ export class SyncService {
             // uncaught error during sync.
             sync.hasErrors = true;
             logger.error(e);
+            this.reportError(sync, e);
         } finally {
             if (sync.hasErrors) {
                 logger.info('Admob AdUnits and Apps');
@@ -107,12 +113,14 @@ export class SyncService {
             await rotateSyncLogs(sync.adMobAccount);
         } catch (e) {
             console.error('Failed to Handle Logs after sync');
+            this.reportError(sync, e);
             console.error(e);
         }
         try {
             await SyncHistory.logSyncEnd(sync);
         } catch (e) {
             console.error('Failed to save sync history');
+            this.reportError(sync, e);
             console.error(e);
         }
     }
@@ -134,5 +142,14 @@ export class SyncService {
                             console.error(e);
                         })
             ));
+    }
+
+    reportError (sync: Sync, error) {
+        Sentry.withScope(scope => {
+            scope.setTag('sync', sync.id);
+            scope.setExtra('syncId', sync.id);
+            scope.setExtra('admobAccount', sync.adMobAccount);
+            Sentry.captureException(error);
+        });
     }
 }
