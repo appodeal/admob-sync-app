@@ -141,7 +141,7 @@ export class Sync {
 
         yield `refrech Admob xsrf Token`;
         try {
-            await retry(() => this.adMobApi.refreshXsrfToken());
+            await retry(() => this.adMobApi.refreshXsrfToken(), 3, 1000);
         } catch (e) {
             this.emitError(e);
             this.emit(SyncEventsTypes.UserActionsRequired);
