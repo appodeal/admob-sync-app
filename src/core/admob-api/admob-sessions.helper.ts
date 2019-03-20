@@ -57,6 +57,7 @@ export namespace AdMobSessions {
                 }
                 addedAccount = account;
                 window.close();
+                return SyncHistory.setAuthorizationRequired(account, false);
             });
         return new Promise(resolve => {
             window.once('close', () => {
