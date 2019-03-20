@@ -53,6 +53,7 @@ app.on('ready', () => {
                     {label: 'Quit', accelerator: 'Command+Q', role: 'quit'}
                 ]
             }, {
+                id: 'edit',
                 label: 'Edit',
                 submenu: [
                     {label: 'Undo', accelerator: 'CmdOrCtrl+Z', role: 'undo'},
@@ -61,10 +62,18 @@ app.on('ready', () => {
                     {label: 'Cut', accelerator: 'CmdOrCtrl+X', role: 'cut'},
                     {label: 'Copy', accelerator: 'CmdOrCtrl+C', role: 'copy'},
                     {label: 'Paste', accelerator: 'CmdOrCtrl+V', role: 'paste'},
-                    {label: 'Select All', accelerator: 'CmdOrCtrl+A', role: 'selectAll'}
+                    {label: 'Select All', accelerator: 'CmdOrCtrl+A', role: 'selectAll'},
+                    ...(environment.development ? [
+                        {
+                            label: 'DevTools',
+                            accelerator: 'Option+CmdOrCtrl+I',
+                            role: 'toggleDevTools'
+                        }
+                    ] : [])
                 ]
             }
         ]));
+
     }
 
 

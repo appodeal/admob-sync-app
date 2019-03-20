@@ -5,6 +5,7 @@ export interface AdMobAccount {
     id: string;
     email: string;
     isReadyForReports: boolean;
+    __typename: string;
 }
 
 export interface AdMobAccountDetails extends AdMobAccount {

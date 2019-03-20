@@ -58,7 +58,8 @@ export class AppodealApiService {
     static emptyAccount: AppodealAccount = {
         id: null,
         email: null,
-        accounts: []
+        accounts: [],
+        __typename: 'User'
     };
 
     private client: ApolloClient<NormalizedCacheObject>;

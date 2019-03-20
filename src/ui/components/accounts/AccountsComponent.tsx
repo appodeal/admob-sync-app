@@ -88,7 +88,7 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
 
     renderAccountForm () {
         let appodealAccount = this.props.appodealAccount;
-        if (this.state.selectedAccount.id === appodealAccount.id) {
+        if (this.isAppodealAccount(this.state.selectedAccount)) {
             return <AppodealAccountComponent account={appodealAccount}
                                              onSignIn={e => this.onSignIn(e)}
                                              onSignOut={e => this.onSignOut(e)}
@@ -100,6 +100,10 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
                                           logs={this.state.accountLogs}
             />;
         }
+    }
+
+    private isAppodealAccount (account: AppodealAccount | AdMobAccount) {
+        return account.__typename === 'User';
     }
 
     render () {
