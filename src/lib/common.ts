@@ -132,16 +132,19 @@ export function createScript (fn: (...args: Array<any>) => void, ...args) {
 
 export function waitForNavigation (window: BrowserWindow, urlFragment: RegExp = null): Promise<void> {
     return new Promise(resolve => {
+        let resolver = () => {
+            window.webContents.once('dom-ready', () => resolve());
+        };
         if (urlFragment) {
             window.webContents.on('did-navigate', (_, address) => {
                 if (urlFragment.test(address)) {
                     window.webContents.removeAllListeners('did-navigate');
-                    resolve();
+                    resolver();
                 }
             });
         } else {
             window.webContents.once('did-navigate', () => {
-                resolve();
+                resolver();
             });
         }
 
