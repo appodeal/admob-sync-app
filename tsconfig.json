@@ -8,7 +8,7 @@
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "resolveJsonModule": true,
-    "target": "es2017",
+    "target": "es2018",
     "jsx": "react",
     "typeRoots": [
       "node_modules/@types",

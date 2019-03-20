@@ -4,6 +4,7 @@ import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface'
 import {AdType, AppodealAdUnit, AppodealApp, AppodealPlatform, Format} from 'core/appdeal-api/interfaces/appodeal-app.interface';
 import {AppodealAccount} from 'core/appdeal-api/interfaces/appodeal.account.interface';
 import stringify from 'json-stable-stringify';
+import {retry} from 'lib/retry';
 import {AppTranslator} from 'lib/translators/admob-app.translator';
 import {AdMobPlatform} from 'lib/translators/admob.constants';
 import {AdUnitTranslator} from 'lib/translators/admop-ad-unit.translator';
@@ -140,7 +141,7 @@ export class Sync {
 
         yield `refrech Admob xsrf Token`;
         try {
-            await this.adMobApi.refreshXsrfToken();
+            await retry(() => this.adMobApi.refreshXsrfToken());
         } catch (e) {
             this.emitError(e);
             this.emit(SyncEventsTypes.UserActionsRequired);

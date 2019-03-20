@@ -86,9 +86,6 @@ export const entries = [main, settings].map(entry => (env: webpack.Configuration
                 '@typings',
                 path.resolve(__dirname, '../src')
             ]
-        },
-        externals: [
-            {'@sentry/electron': `require('@sentry/electron')`}
-        ]
+        }
     });
 });

@@ -28,7 +28,7 @@ describe('AdUnitTranslator', () => {
                 'archived': false,
                 'cpmFloorSettings': {'floorMode': 1},
                 'enableRewardsAds': false,
-                'googleOptimizedRefreshRate': 0,
+                'googleOptimizedRefreshRate': false,
                 'liveEcpmEnabled': true,
                 'mediationEnabled': false,
                 'name': 'tttttt inetr'
@@ -57,7 +57,7 @@ describe('AdUnitTranslator', () => {
                     'archived': false,
                     'cpmFloorSettings': {'floorMode': 3, 'manual': {'globalFloorValue': {'currencyCode': 'USD', 'ecpm': 7}}},
                     'enableRewardsAds': true,
-                    'googleOptimizedRefreshRate': 0,
+                    'googleOptimizedRefreshRate': false,
                     'liveEcpmEnabled': true,
                     'mediationEnabled': false,
                     'name': 'Appodeal/146649/rewarded_video/rewarded/7',

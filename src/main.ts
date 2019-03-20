@@ -1,6 +1,7 @@
 require('source-map-support').install();
 import * as Sentry from '@sentry/electron';
 import {SentryEvent} from '@sentry/electron';
+import {init} from '@sentry/electron/dist/main';
 import {SentryEventHint} from '@sentry/types';
 import {AccountsConnector} from 'core/accounts-connector';
 import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
@@ -22,7 +23,7 @@ if (!environment.development) {
 }
 const useSentry = environment.sentry && environment.sentry.dsn;
 if (useSentry) {
-    Sentry.init({
+    init({
         ...environment.sentry,
         beforeSend (event: SentryEvent, hint?: SentryEventHint): SentryEvent {
             // to extend error context
@@ -120,7 +121,8 @@ app.on('ready', () => {
         })
         .catch(e => {
             console.error('FAILED TO FETCH CURRENT USER');
-            Sentry.captureException(e);console.log(e);
+            Sentry.captureException(e);
+            console.log(e);
         });
 
 
