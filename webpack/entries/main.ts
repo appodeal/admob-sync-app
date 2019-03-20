@@ -12,13 +12,11 @@ export default (env: webpack.Configuration): webpack.Configuration => {
         plugins: [
             new GenerateJsonPlugin('package.json', {
                 name: PACKAGE.name,
-                author: "Appodeal Inc.",
+                author: PACKAGE.author,
                 main: "main.js",
                 productName: PACKAGE.productName,
                 version: PACKAGE.version,
-                description: PACKAGE.description,
-                dependencies: PACKAGE.dependencies || {},
-                devDependencies: PACKAGE.devDependencies || {}
+                description: PACKAGE.description
             })
         ]
     };

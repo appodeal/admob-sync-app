@@ -1,28 +1,34 @@
 import {AppodealAccount} from 'core/appdeal-api/interfaces/appodeal.account.interface';
-import {classNames} from 'lib/dom';
+import {classNames, singleEvent} from 'lib/dom';
 import React from 'react';
 import style from './AppodealAccount.scss';
 
 
 interface AppodealAccountProps {
     account: AppodealAccount;
-    onSignIn: (credentials: { email: string, password: string }) => void;
-    onSignOut: () => void;
+    onSignIn: (credentials: { email: string, password: string, callback: Function }) => void;
+    onSignOut: ({callback: Function}) => void;
 }
 
 export function AppodealAccountComponent ({account, onSignIn, onSignOut}: AppodealAccountProps) {
     let hasAccount = !!account.email,
-        onSubmit = event => {
+        onSubmit = event => new Promise(resolve => {
             event.preventDefault();
             let form = event.target as HTMLFormElement,
                 email = (form.elements.namedItem('login') as HTMLInputElement).value,
                 password = (form.elements.namedItem('password') as HTMLInputElement).value;
             onSignIn({
                 email,
-                password
+                password,
+                callback: () => resolve()
             });
-        };
-    return <form onSubmit={onSubmit}>
+        }),
+        onSignOutClick = () => new Promise(resolve => {
+            onSignOut({
+                callback: () => resolve()
+            });
+        });
+    return <form onSubmit={singleEvent(onSubmit)}>
         <label htmlFor="status">Status:</label>
         <output id="status"
                 className={classNames(style.status, {[style.connected]: hasAccount, [style.disconnected]: !hasAccount})}
@@ -38,7 +44,7 @@ export function AppodealAccountComponent ({account, onSignIn, onSignOut}: Appode
         <div className="actions">
             {
                 hasAccount ?
-                    <button type="button" onClick={onSignOut}>Sign Out</button> :
+                    <button type="button" onClick={singleEvent(onSignOutClick)}>Sign Out</button> :
                     <button type="submit">Sign In</button>
             }
         </div>

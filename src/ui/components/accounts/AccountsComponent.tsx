@@ -56,15 +56,17 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
         }
     }
 
-    onSignIn ({email, password}: { email: string, password: string }) {
+    onSignIn ({email, password, callback}: { email: string, password: string , callback: Function}) {
         return sendToMain('accounts', action(ActionTypes.appodealSignIn, {email, password}))
             .then(() => this.selectAccount(this.props.appodealAccount))
-            .catch(err => messageDialog(err.message));
+            .catch(err => messageDialog(err.message))
+            .finally(() => callback());
     }
 
-    onSignOut () {
+    onSignOut ({callback}: {callback: Function}) {
         return sendToMain('accounts', action(ActionTypes.appodealSignOut))
-            .then(() => this.selectAccount(this.props.appodealAccount));
+            .then(() => this.selectAccount(this.props.appodealAccount))
+            .finally(() => callback());
     }
 
     onAddAccount () {
@@ -88,8 +90,8 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
         let appodealAccount = this.props.appodealAccount;
         if (this.state.selectedAccount.id === appodealAccount.id) {
             return <AppodealAccountComponent account={appodealAccount}
-                                             onSignIn={cred => this.onSignIn(cred)}
-                                             onSignOut={() => this.onSignOut()}
+                                             onSignIn={e => this.onSignIn(e)}
+                                             onSignOut={e => this.onSignOut(e)}
             />;
         } else {
             return <AdmobAccountComponent account={this.state.selectedAccount as AdMobAccount}

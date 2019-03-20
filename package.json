@@ -1,8 +1,11 @@
 {
   "name": "admob-sync-app",
-  "author": "Appodeal Inc.",
+  "author": {
+    "name": "Appodeal Inc.",
+    "email": "info@appodeal.com"
+  },
   "productName": "AdMob Sync",
-  "description": "Appodela AdmobSync application",
+  "description": "Appodeal AdmobSync application",
   "private": true,
   "version": "0.1.0",
   "scripts": {
@@ -32,6 +35,10 @@
     },
     "win": {
       "target": "portable"
+    },
+    "linux": {
+      "target": "deb",
+      "category": "Utility"
     }
   },
   "jest": {
