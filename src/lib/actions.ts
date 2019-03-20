@@ -4,6 +4,7 @@ import {LogFileInfo} from 'lib/sync-logs/logger';
 
 export enum ActionTypes {
     appodealSignIn = 'appodealSignIn',
+    appodealReSignIn = 'appodealReSignIn',
     appodealSignOut = 'appodealSignOut',
     adMobAddAccount = 'adMobAddAccount',
     adMobSetupTutorial = 'adMobSetupTutorial',

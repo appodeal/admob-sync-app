@@ -43,7 +43,7 @@ export class SyncService {
         const admobSession = await getSession(admobAccount);
 
         if (!admobSession) {
-            SyncHistory.setAuthorizationRequired(admobAccount);
+            await SyncHistory.setAuthorizationRequired(admobAccount);
             console.warn(`[Sync Service] [${admobAccount.id} ${admobAccount.email}] can not run sync. User has to Sign In in account first.`);
             return;
         }
@@ -77,6 +77,7 @@ export class SyncService {
             subs.forEach(sub => sub.unsubscribe());
             await Promise.all(waitToFinish);
             this.activeSyncs.delete(sync);
+            await this.store.updateAdMobAccountInfo(admobAccount);
         }));
     }
 

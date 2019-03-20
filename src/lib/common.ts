@@ -2,7 +2,7 @@ import {BrowserWindow, BrowserWindowConstructorOptions, dialog, ipcMain, ipcRend
 import {Action} from 'lib/actions';
 import path from 'path';
 import uuid from 'uuid';
-import {getBgColor, getCurrentTheme, onThemeChanges} from './theme';
+import {getBgColor} from './theme';
 
 
 function getConfig (config: BrowserWindowConstructorOptions, backgroundColor: string): BrowserWindowConstructorOptions {
@@ -31,40 +31,29 @@ export function openWindow (
 ): Promise<BrowserWindow> {
     return new Promise(resolve => {
         let window = new BrowserWindow(getConfig(config, getBgColor())),
-            changeTheme = async theme => {
-                window.setBackgroundColor(getBgColor());
-                return window.webContents.executeJavaScript(createScript(theme => {
-                    document.documentElement.classList.toggle('dark', theme === 'dark');
-                    document.documentElement.classList.toggle('light', theme === 'light');
-                }, theme));
-            },
-            stopListenThemeChange = onThemeChanges(mode => {
-                changeTheme(mode);
-            }),
             commandListener = (event, command) => {
                 if (event.sender === window.webContents) {
                     setTimeout(() => window[command]());
                 }
+            },
+            readyListener = async () => {
+                if (!(typeof config.show === 'boolean' && !config.show)) {
+                    window.show();
+                }
+                resolve(window);
             };
 
         if (/^https?:\/\/[^\/]+/i.test(filePathOrUrl)) {
             window.loadURL(filePathOrUrl);
+            window.once('ready-to-show', readyListener);
         } else {
             window.loadFile(filePathOrUrl);
+            window.webContents.once('dom-ready', readyListener);
         }
 
         ipcMain.on('windowControl', commandListener);
 
-        window.webContents.once('dom-ready', async () => {
-            await changeTheme(getCurrentTheme());
-            if (!(typeof config.show === 'boolean' && !config.show)) {
-                window.show();
-            }
-            resolve(window);
-        });
-
         window.once('close', () => {
-            stopListenThemeChange();
             ipcMain.removeListener('windowControl', commandListener);
             onclose(window);
         });
@@ -143,22 +132,35 @@ export function createScript (fn: (...args: Array<any>) => void, ...args) {
 
 export function waitForNavigation (window: BrowserWindow, urlFragment: RegExp = null): Promise<void> {
     return new Promise(resolve => {
-        let resolver = () => {
-            window.webContents.once('dom-ready', () => resolve());
-        };
         if (urlFragment) {
             window.webContents.on('did-navigate', (_, address) => {
                 if (urlFragment.test(address)) {
                     window.webContents.removeAllListeners('did-navigate');
-                    resolver();
+                    resolve();
                 }
             });
         } else {
             window.webContents.once('did-navigate', () => {
-                resolver();
+                resolve();
             });
         }
 
+    });
+}
+
+export function confirmDialog (message) {
+    return new Promise<boolean>(resolve => {
+        const OKButton = 0;
+
+        const dialogOptions = {type: 'question', buttons: ['OK', 'Cancel'], message};
+
+        (dialog || remote.dialog).showMessageBox(dialogOptions, i => {
+            if (i === OKButton) {
+
+                return resolve(true);
+            }
+            return resolve(false);
+        });
     });
 }
 

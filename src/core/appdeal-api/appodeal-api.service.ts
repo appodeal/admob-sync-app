@@ -7,6 +7,7 @@ import {AuthContext} from 'core/appdeal-api/AuthContext';
 import {AppodealAccount} from 'core/appdeal-api/interfaces/appodeal.account.interface';
 import {AuthorizationError} from 'core/error-factory/errors/authorization.error';
 import {session} from 'electron';
+import {ExtractedAdmobAccount} from 'interfaces/common.interfaces';
 import {createFetcher} from 'lib/fetch';
 import {AdMobApp} from 'lib/translators/interfaces/admob-app.interface';
 import {ErrorFactoryService} from '../error-factory/error-factory.service';
@@ -25,7 +26,7 @@ import startSync from './graphql/start-sync.mutation.graphql';
 import submitLogMutation from './graphql/submit-log.mutation.graphql';
 import syncApp from './graphql/sync-app.mutation.graphql';
 
-import {AdMobAccount, AdMobAccountDetails} from './interfaces/admob-account.interface';
+import {AdMobAccountDetails} from './interfaces/admob-account.interface';
 import {AppodealAdUnit, AppodealApp} from './interfaces/appodeal-app.interface';
 
 
@@ -260,7 +261,7 @@ export class AppodealApiService {
             .then(async ({setAdmobAccountCredentials: {oAuthUrl}}) => oAuthUrl);
     }
 
-    addAdMobAccount ({id: accountId, email}: AdMobAccount): Promise<boolean> {
+    addAdMobAccount ({id: accountId, email}: ExtractedAdmobAccount): Promise<boolean> {
         return this.mutate<{ addAdmobAccount: boolean }>({
             mutation: addAdMobAccountMutation,
             variables: {
