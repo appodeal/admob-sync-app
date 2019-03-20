@@ -58,29 +58,34 @@ export namespace AdMobSessions {
         });
     }
 
-    export async function removeSession ({id}: AdMobAccount): Promise<void> {
-        let sessionId = SESSIONS.get(id);
-        if (sessionId) {
-            SESSIONS.delete(id);
-            await Promise.all([
-                deleteSession(sessionId),
-                saveSessions()
-            ]);
-        }
-    }
-
     async function deleteSession (sessionId: string): Promise<void> {
         try {
+
+            let accountId: string;
+            SESSIONS.forEach((v, k) => {
+                if (sessionId === k) {
+                    accountId = v;
+                }
+            });
+            if (accountId) {
+                SESSIONS.delete(accountId);
+                await saveSessions();
+            }
+
             const session = sessionFromPartition(sessionId);
             await session.flushStorageData();
 
             await new Promise(resolve => session.clearCache(resolve));
             await new Promise(resolve => session.clearStorageData({}, resolve));
+            await new Promise(resolve => session.clearAuthCache({type: 'password'}, resolve));
+            await new Promise(resolve => session.clearAuthCache({type: 'clientCertificate'}, resolve));
+            await new Promise(resolve => session.clearHostResolverCache(resolve));
+            await (<any>session).destroy();
+
+            return fs.remove(path.resolve(app.getPath('userData'), `./Partitions/${sessionId}`));
         } catch (e) {
             console.error(e);
         }
-
-        return fs.remove(path.resolve(app.getPath('userData'), `./Partitions/${sessionId}`));
     }
 
     function saveSessions (): Promise<void> {
