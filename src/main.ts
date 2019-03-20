@@ -1,9 +1,13 @@
+import clearAllSessions = AdMobSessions.clearAllSessions;
+
+
 require('source-map-support').install();
 import * as Sentry from '@sentry/electron';
 import {SentryEvent} from '@sentry/electron';
 import {init} from '@sentry/electron/dist/main';
 import {SentryEventHint} from '@sentry/types';
 import {AccountsConnector} from 'core/accounts-connector';
+import {AdMobSessions} from 'core/admob-api/admob-sessions.helper';
 import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
 
 import {ErrorFactoryService} from 'core/error-factory/error-factory.service';
@@ -53,7 +57,6 @@ app.on('window-all-closed', () => {
 
 
 });
-
 app.on('ready', () => {
 
     tray = new Tray(getTrayIcon());

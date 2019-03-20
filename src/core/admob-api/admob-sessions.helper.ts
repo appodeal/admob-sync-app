@@ -1,10 +1,14 @@
+import * as Sentry from '@sentry/electron';
+import {Severity} from '@sentry/electron';
 import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
 import {SyncHistory} from 'core/sync-apps/sync-history';
 import {app, BrowserWindow, Session, session, shell} from 'electron';
 import * as fs from 'fs-extra';
 import {ExtractedAdmobAccount} from 'interfaces/common.interfaces';
-import {createScript, openWindow, waitForNavigation} from 'lib/common';
+import {openWindow, waitForNavigation} from 'lib/common';
+import {nodeFetch} from 'lib/fetch';
 import {getJsonFile, saveJsonFile} from 'lib/json-storage';
+import {retry} from 'lib/retry';
 import path from 'path';
 import uuid from 'uuid';
 
@@ -21,6 +25,13 @@ export namespace AdMobSessions {
         SESSIONS = sessions ? new Map(Object.entries(sessions)) : new Map();
     });
 
+    /**
+     * for dev purposes
+     */
+    export function clearAllSessions () {
+        return Promise.all([...SESSIONS.values()].map((sessionID) => deleteSession(sessionID)));
+    }
+
     export function getSession (id: AdMobAccount | string): Session {
         id = id instanceof Object ? id.id : id;
         if (SESSIONS.has(id)) {
@@ -35,8 +46,8 @@ export namespace AdMobSessions {
             addedAccount: ExtractedAdmobAccount;
         await new Promise(resolve => session.clearCache(resolve));
         waitForSignIn(window)
-            .then(window => extractAccountInfo(window))
-            .then(({account, window}) => {
+            .then(() => getAdmobAccountBySession(session))
+            .then((account) => {
                 if (account) {
                     if (SESSIONS.has(account.id)) {
                         deleteSession(SESSIONS.get(account.id));
@@ -121,31 +132,42 @@ export namespace AdMobSessions {
         return window;
     }
 
-    function extractAccountInfo (window: BrowserWindow): Promise<{ window: BrowserWindow, account: ExtractedAdmobAccount }> {
-        return window.webContents.executeJavaScript(createScript(() => {
-            let id = /pub-\d+/.exec(document.documentElement.innerHTML)[0],
-                email = (() => {
-                    try {
-                        let parsedAmrpd = JSON.parse(window['amrpd']),
-                            userInfo = parsedAmrpd[32][3];
-                        return userInfo[1];
-                    } catch (e) {
-                        console.error(e);
-                        return '';
-                    }
-                })();
-            if (id && email) {
-                return {
-                    id,
-                    email
-                };
+    function extractAccountInfo (responseBody: string): ExtractedAdmobAccount {
+        try {
+            let result = /(?<id>pub-\d+)/.exec(responseBody);
+            if (!result) {
+                return null;
             }
-            return null;
-        }))
-            .then(account => ({
-                account,
-                window
-            }));
+
+            const {id} = result.groups;
+            let email;
+            result = /var amrpd = '(?<emailSource>.*?)';/.exec(responseBody);
+            const amrpdSource = (new Function('', `return '${result.groups.emailSource}'`))();
+            const amrpd = JSON.parse(amrpdSource);
+            email = amrpd[32][3][1];
+
+            return {
+                id,
+                email
+            };
+        } catch (e) {
+            console.warn(e);
+        }
+
+        return null;
+    }
+
+
+    function getAdmobAccountBySession (session): Promise<ExtractedAdmobAccount> {
+        return retry(
+            () => nodeFetch('https://apps.admob.com/v2/home', {}, session)
+                .then(r => r.text())
+                .then(responseText => extractAccountInfo(responseText))
+            , 2)
+            .catch(e => {
+                console.error(e);
+                return null;
+            });
     }
 
 
@@ -157,21 +179,31 @@ export namespace AdMobSessions {
             SESSIONS.set(currentAccount.id, tempSession.id);
             session = tempSession.session;
         }
+        let resultAccount: ExtractedAdmobAccount = await getAdmobAccountBySession(session);
 
-        let window = await openAdMobSignInWindow(session),
-            resultAccount: ExtractedAdmobAccount;
+        if (resultAccount) {
+            await afterSuccessfulSignInAdmob(currentAccount, resultAccount);
+            return resultAccount;
+        }
 
+        let window = await openAdMobSignInWindow(session);
 
         waitForSignIn(window)
-            .then(window => extractAccountInfo(window))
-            .then(({account, window}) => {
+            .then(() => getAdmobAccountBySession(session))
+            .then((account) => {
+                if (!account) {
+                    Sentry.withScope(scope => {
+                        scope.setExtra('admobAccount', currentAccount);
+                        Sentry.captureMessage('Account not found after re-sign in admob', Severity.Error);
+                    });
+                }
                 resultAccount = account;
                 window.close();
             });
 
         return new Promise(resolve => {
             window.once('close', async () => {
-                resolve(await afterCloseAdmob(currentAccount, resultAccount));
+                resolve(await afterSuccessfulSignInAdmob(currentAccount, resultAccount));
             });
         });
     }
@@ -184,7 +216,7 @@ export namespace AdMobSessions {
         await SyncHistory.setAuthorizationRequired({id: accountID}, false);
     }
 
-    async function afterCloseAdmob (currentAccount: AdMobAccount, resultAccount: ExtractedAdmobAccount) {
+    async function afterSuccessfulSignInAdmob (currentAccount: AdMobAccount, resultAccount: ExtractedAdmobAccount) {
         if (!resultAccount) {
             await deleteSession(SESSIONS.get(currentAccount.id));
             await SyncHistory.setAuthorizationRequired(currentAccount, true);
