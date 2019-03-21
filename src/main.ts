@@ -1,13 +1,9 @@
-import clearAllSessions = AdMobSessions.clearAllSessions;
-
-
 require('source-map-support').install();
 import * as Sentry from '@sentry/electron';
 import {SentryEvent} from '@sentry/electron';
 import {init} from '@sentry/electron/dist/main';
 import {SentryEventHint} from '@sentry/types';
 import {AccountsConnector} from 'core/accounts-connector';
-import {AdMobSessions} from 'core/admob-api/admob-sessions.helper';
 import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
 
 import {ErrorFactoryService} from 'core/error-factory/error-factory.service';
@@ -89,20 +85,11 @@ app.on('ready', () => {
                     {label: 'Cut', accelerator: 'CmdOrCtrl+X', role: 'cut'},
                     {label: 'Copy', accelerator: 'CmdOrCtrl+C', role: 'copy'},
                     {label: 'Paste', accelerator: 'CmdOrCtrl+V', role: 'paste'},
-                    {label: 'Select All', accelerator: 'CmdOrCtrl+A', role: 'selectAll'},
-                    ...(environment.development ? [
-                        {
-                            label: 'DevTools',
-                            accelerator: 'Option+CmdOrCtrl+I',
-                            role: 'toggleDevTools'
-                        }
-                    ] : [])
+                    {label: 'Select All', accelerator: 'CmdOrCtrl+A', role: 'selectAll'}
                 ]
             }
         ]));
-
     }
-
 
     let errorFactory = new ErrorFactoryService(),
         appodealApi = new AppodealApiService(errorFactory),
