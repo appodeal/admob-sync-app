@@ -7,6 +7,6 @@ export function getTrayIcon (): NativeImage {
     if (platform.isDarwin) {
         return nativeImage.createFromPath(getPath(require('../ui/assets/images/tray-macos-Template.png').x1.src));
     } else {
-        return nativeImage.createFromPath(getPath(require('../ui/assets/images/tray-win.png').x1.src));
+        return nativeImage.createFromPath(getPath(require('../ui/assets/images/tray-win.png').x2.src));
     }
 }

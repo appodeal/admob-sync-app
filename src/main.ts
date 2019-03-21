@@ -64,6 +64,10 @@ app.on('ready', () => {
         {type: 'normal', label: 'Quit', click: () => app.quit()}
     ]);
 
+    tray.on('click', () => {
+        tray.popUpContextMenu();
+    });
+
     tray.setContextMenu(menu);
 
     if (process.platform === 'darwin') {
