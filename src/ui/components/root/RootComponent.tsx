@@ -1,4 +1,5 @@
 import {AppState} from 'core/store';
+import {remote} from 'electron';
 import {classNames} from 'lib/dom';
 import React from 'react';
 import {AccountsComponent} from '../accounts/AccountsComponent';
@@ -16,8 +17,7 @@ interface RootComponentState {
 export class RootComponent extends React.Component<RootComponentProps, RootComponentState> {
     private tabs = [
         {id: 'accounts', label: 'Accounts'},
-        {id: 'appearance', label: 'Appearance'},
-        {id: 'notifications', label: 'Notifications'}
+        {id: 'development', label: 'Development'}
     ];
 
     constructor (props) {
@@ -37,8 +37,10 @@ export class RootComponent extends React.Component<RootComponentProps, RootCompo
         switch (tab) {
         case 'accounts':
             return <AccountsComponent {...this.props.store}/>;
-        case 'appearance':
-            return <div>Appearance</div>;
+        case 'development':
+            return <div>
+                <button type="button" onClick={() => remote.getCurrentWindow().webContents.toggleDevTools()}>Toggle DevTools</button>
+            </div>;
         }
     }
 
