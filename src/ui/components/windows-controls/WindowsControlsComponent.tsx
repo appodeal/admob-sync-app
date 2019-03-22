@@ -1,5 +1,6 @@
 import {BrowserWindow, ipcRenderer, remote} from 'electron';
 import {classNames} from 'lib/dom';
+import {isMacOS} from 'lib/platform';
 import React from 'react';
 import style from './WindowsControls.scss';
 import Timeout = NodeJS.Timeout;
@@ -56,7 +57,7 @@ export class WindowsControlsComponent extends React.Component<WindowsControlsPro
 
     render () {
         return (
-            <div className={classNames(style.windowsControls)} style={{'display': process.platform !== 'darwin' ? 'flex' : 'none'}}>
+            <div className={classNames(style.windowsControls)} style={{'display': !isMacOS() ? 'flex' : 'none'}}>
                 {
                     this.props.currentWindow.isMinimizable() &&
                     <button type="button" className={classNames(style.minimize)} onClick={this.onMinimize}>

@@ -5,9 +5,11 @@ import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface'
 import {AppodealAccount} from 'core/appdeal-api/interfaces/appodeal.account.interface';
 import {SyncHistory, SyncHistoryInfo} from 'core/sync-apps/sync-history';
 import {SyncEvent, SyncEventsTypes, SyncReportProgressEvent} from 'core/sync-apps/sync.events';
-import {BrowserWindow, ipcMain} from 'electron';
-import {confirmDialog, messageDialog, openWindow, waitForNavigation} from 'lib/common';
+import {BrowserWindow} from 'electron';
+import {ActionTypes} from 'lib/actions';
+import {onActionFromRenderer} from 'lib/messages';
 import {getLogsList, LogFileInfo} from 'lib/sync-logs/logger';
+import {confirmDialog, messageDialog, openWindow, waitForNavigation} from 'lib/window';
 import {action, observable, observe, set} from 'mobx';
 import reSignIn = AdMobSessions.reSignIn;
 
@@ -43,7 +45,12 @@ export class Store {
     constructor (
         private appodealApi: AppodealApiService
     ) {
-        ipcMain.on('store', () => this.emitState());
+        onActionFromRenderer('store', action => {
+            switch (action.type) {
+            case ActionTypes.getStore:
+                return this.emitState();
+            }
+        });
         observe(this.state, () => this.emitState());
     }
 

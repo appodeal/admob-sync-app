@@ -1,5 +1,5 @@
 import {classNames} from 'lib/dom';
-import * as React from 'react';
+import React from 'react';
 import style from './ProgressBar.scss';
 
 

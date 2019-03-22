@@ -1,6 +1,6 @@
 import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
 import {action, ActionTypes, LogAction} from 'lib/actions';
-import {sendToMain} from 'lib/common';
+import {sendToMain} from 'lib/messages';
 import {LogFileInfo} from 'lib/sync-logs/logger';
 import React from 'react';
 

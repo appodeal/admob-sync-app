@@ -5,15 +5,14 @@ import {init} from '@sentry/electron/dist/main';
 import {SentryEventHint} from '@sentry/types';
 import {AccountsConnector} from 'core/accounts-connector';
 import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
-
 import {ErrorFactoryService} from 'core/error-factory/error-factory.service';
 import {LogsConnector} from 'core/logs-connector';
 import {Store} from 'core/store';
 import {SyncService} from 'core/sync-apps/sync.service';
 import {SyncConnector} from 'core/sync-connector';
-import {app, Menu, Tray} from 'electron';
-import {showAboutDialog} from 'lib/about';
-import {getTrayIcon} from 'lib/icon';
+import {app} from 'electron';
+import {createAppMenu} from 'lib/app-menu';
+import {createAppTray} from 'lib/app-tray';
 import {openSettingsWindow} from 'lib/settings';
 import {initThemeSwitcher} from 'lib/theme';
 
@@ -45,59 +44,15 @@ if (useSentry) {
     });
 }
 
-let tray: Tray;
-
 initThemeSwitcher();
 
 if (app.dock) {
     app.dock.hide();
 }
-
-app.on('window-all-closed', () => {
-
-
-});
+app.on('window-all-closed', () => {});
 app.on('ready', () => {
-
-    tray = new Tray(getTrayIcon());
-
-    let menu = Menu.buildFromTemplate([
-        {type: 'normal', label: 'Settings', click: () => openSettingsWindow()},
-        {type: 'normal', label: 'About', click: () => showAboutDialog()},
-        {type: 'separator'},
-        {type: 'normal', label: 'Quit', click: () => app.quit()}
-    ]);
-
-    tray.on('click', () => {
-        tray.popUpContextMenu();
-    });
-
-    tray.setContextMenu(menu);
-
-    if (process.platform === 'darwin') {
-        Menu.setApplicationMenu(Menu.buildFromTemplate([
-            {
-                label: 'Application',
-                submenu: [
-                    {label: 'About Application', role: 'about:'},
-                    {type: 'separator'},
-                    {label: 'Quit', accelerator: 'Command+Q', role: 'quit'}
-                ]
-            }, {
-                id: 'edit',
-                label: 'Edit',
-                submenu: [
-                    {label: 'Undo', accelerator: 'CmdOrCtrl+Z', role: 'undo'},
-                    {label: 'Redo', accelerator: 'Shift+CmdOrCtrl+Z', role: 'redo'},
-                    {type: 'separator'},
-                    {label: 'Cut', accelerator: 'CmdOrCtrl+X', role: 'cut'},
-                    {label: 'Copy', accelerator: 'CmdOrCtrl+C', role: 'copy'},
-                    {label: 'Paste', accelerator: 'CmdOrCtrl+V', role: 'paste'},
-                    {label: 'Select All', accelerator: 'CmdOrCtrl+A', role: 'selectAll'}
-                ]
-            }
-        ]));
-    }
+    createAppTray();
+    createAppMenu();
 
     let errorFactory = new ErrorFactoryService(),
         appodealApi = new AppodealApiService(errorFactory),

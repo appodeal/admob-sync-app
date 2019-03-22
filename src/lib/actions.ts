@@ -13,7 +13,8 @@ export enum ActionTypes {
     openAdmobPage = 'openAdmobPage',
     selectAdmobAccount = 'selectAdmobAccount',
     openLogFile = 'openLogFile',
-    submitLogToAppodeal = 'submitLogToAppodeal'
+    submitLogToAppodeal = 'submitLogToAppodeal',
+    getStore = 'getStore'
 }
 
 

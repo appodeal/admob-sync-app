@@ -1,5 +1,7 @@
 import * as Sentry from '@sentry/browser';
-import {ipcRenderer, remote} from 'electron';
+import {remote} from 'electron';
+import {action, ActionTypes} from 'lib/actions';
+import {onMessageFromMain, sendToMain} from 'lib/messages';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import {RootComponent} from '../components/root/RootComponent';
@@ -8,17 +10,13 @@ import '../style.scss';
 import './settings.scss';
 
 
-let currentWindow = remote.getCurrentWindow();
-ipcRenderer.on('store', (event, storeJson) => {
-    if (event.sender !== currentWindow.webContents) {
-        let store = JSON.parse(storeJson);
-        ReactDOM.render(<RootComponent store={store}/>, document.getElementById('content'));
-    }
+onMessageFromMain<string>('store', storeJSON => {
+    let store = JSON.parse(storeJSON);
+    ReactDOM.render(<RootComponent store={store}/>, document.getElementById('content'));
 });
-ipcRenderer.send('store');
+sendToMain('store', action(ActionTypes.getStore));
 
-
-ReactDOM.render(<WindowsControlsComponent currentWindow={currentWindow}/>, document.getElementById('controls'));
+ReactDOM.render(<WindowsControlsComponent currentWindow={remote.getCurrentWindow()}/>, document.getElementById('controls'));
 
 if (environment.sentry && environment.sentry.dsn) {
     Sentry.init(environment.sentry);

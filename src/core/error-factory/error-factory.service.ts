@@ -135,8 +135,8 @@ export class ErrorFactoryService {
 
 
     /**
-     *
-     * @param {HttpErrorResponse} httpError
+     * @param {ServerError} httpError
+     * @param {string} [operationName]
      * @return {NoConnectionError|InternalServerError|UnavailableEndpointError|AuthorizationError}
      */
     createNetworkError (httpError: ServerError, operationName?: string) {
@@ -161,7 +161,6 @@ export class ErrorFactoryService {
     }
 
     /**
-     *
      * @param originalError
      * @return {InternalError}
      */

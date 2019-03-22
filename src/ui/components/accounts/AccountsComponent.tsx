@@ -3,9 +3,10 @@ import {AppodealAccount} from 'core/appdeal-api/interfaces/appodeal.account.inte
 import {AppState} from 'core/store';
 import {remote} from 'electron';
 import {action, ActionTypes} from 'lib/actions';
-import {messageDialog, sendToMain} from 'lib/common';
 import {classNames, singleEvent} from 'lib/dom';
+import {sendToMain} from 'lib/messages';
 import {LogFileInfo} from 'lib/sync-logs/logger';
+import {messageDialog} from 'lib/window';
 import React from 'react';
 import {AccountStatusComponent} from 'ui/components/account-status/AccountStatusComponent';
 import {AdmobAccountComponent} from 'ui/components/admob-account/AdmobAccountComponent';

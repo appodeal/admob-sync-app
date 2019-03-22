@@ -1,5 +1,5 @@
-import {openWindow} from 'lib/common';
 import {BrowserWindow} from 'electron';
+import {openWindow} from 'lib/window';
 
 
 let settingsWindow: BrowserWindow;

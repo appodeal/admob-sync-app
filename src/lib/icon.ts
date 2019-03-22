@@ -1,9 +1,9 @@
 import platform from 'electron-platform';
 import {NativeImage, nativeImage} from 'electron';
-import {getPath} from './common';
+import {getPath} from 'lib/urls';
 
 
-export function getTrayIcon (): NativeImage {
+export function getDefaultTrayIcon (): NativeImage {
     if (platform.isDarwin) {
         return nativeImage.createFromPath(getPath(require('../ui/assets/images/tray-macos-Template.png').x1.src));
     } else {

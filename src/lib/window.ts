@@ -1,7 +1,5 @@
-import {BrowserWindow, BrowserWindowConstructorOptions, dialog, ipcMain, ipcRenderer, remote} from 'electron';
-import {Action} from 'lib/actions';
+import {BrowserWindow, BrowserWindowConstructorOptions, dialog, ipcMain, remote} from 'electron';
 import path from 'path';
-import uuid from 'uuid';
 import {getBgColor} from './theme';
 
 
@@ -58,46 +56,6 @@ export function openWindow (
         });
 
     });
-}
-
-export function getPath (filePath: string = '') {
-    return path.join(environment.development ? './' : process.resourcesPath, filePath);
-}
-
-export function onActionFromRenderer (channel: string, cb: (action: Action) => void): Function {
-    let listener = ({sender}, {id, action}: { id: string, action: Action }) => {
-        Promise.resolve()
-            .then(() => cb(action))
-            .then(result => {
-                sender.send(`${channel}:response:${id}`, {error: null, result});
-            })
-            .catch(error => {
-                sender.send(`${channel}:response:${id}`, {error: errorToJson(error), result: null});
-            });
-    };
-    ipcMain.on(channel, listener);
-    return () => ipcMain.removeListener(channel, listener);
-}
-
-export function sendToMain<T> (channel: string, action: Action): Promise<T> {
-    return new Promise((resolve, reject) => {
-        let id = uuid.v4();
-        ipcRenderer.send(channel, {id, action});
-        ipcRenderer.once(`${channel}:response:${id}`, (event, {error, result}) => {
-            if (error) {
-                reject(JSON.parse(error));
-            } else {
-                resolve(result);
-            }
-        });
-    });
-
-}
-
-export function errorToJson (e: Error): string {
-    const clone = {...e};
-    ['name', 'message', 'stack', 'userMessage'].forEach(name => clone[name] = e[name]);
-    return JSON.stringify(clone);
 }
 
 export function createScript (fn: (...args: Array<any>) => void, ...args) {

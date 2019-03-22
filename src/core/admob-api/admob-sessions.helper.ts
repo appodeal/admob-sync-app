@@ -5,10 +5,10 @@ import {SyncHistory} from 'core/sync-apps/sync-history';
 import {app, BrowserWindow, Session, session, shell} from 'electron';
 import * as fs from 'fs-extra';
 import {ExtractedAdmobAccount} from 'interfaces/common.interfaces';
-import {openWindow, waitForNavigation} from 'lib/common';
 import {nodeFetch} from 'lib/fetch';
 import {getJsonFile, saveJsonFile} from 'lib/json-storage';
 import {retry} from 'lib/retry';
+import {openWindow, waitForNavigation} from 'lib/window';
 import path from 'path';
 import uuid from 'uuid';
 
