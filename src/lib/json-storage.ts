@@ -17,9 +17,9 @@ export function getJsonFile (fileName: string): Promise<any> {
 }
 
 export function saveJsonFile (fileName: string, data: any): Promise<void> {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
         const fullPath = path.resolve(app.getPath('userData'), `./${fileName}.json`);
-        fs.ensureDir(path.dirname(fullPath));
+        await fs.ensureDir(path.dirname(fullPath));
         fs.writeFile(fullPath, JSON.stringify(data), (err) => {
             if (err) {
                 reject(err);
