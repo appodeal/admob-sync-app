@@ -20,11 +20,14 @@ export interface AdMobAdUnit {
 
 export enum AdMobAdFormat {
     NotFullScreen = 0,
-    FullScreen = 1
+    FullScreen = 1,
+    Native = 3
 }
 
 export enum CpmFloorMode {
     Disabled = 1,
+    /** not any customer has such an option */
+    OptimizedByGoogle = 2,
     Manual = 3
 }
 
