@@ -14,7 +14,7 @@
     "electron": "electron ./build",
     "build": "webpack --progress --config=webpack/production.ts",
     "dist": "electron-builder",
-    "dist:all": "npm run dist -- -mwl"
+    "dist:all": "node dist.js"
   },
   "build": {
     "appId": "com.electron.admob.desktop",
@@ -31,14 +31,48 @@
       }
     ],
     "mac": {
-      "target": "dmg"
+      "target": "dmg",
+      "darkModeSupport": true
+    },
+    "dmg": {
+      "artifactName": "${name}-${version}.${ext}",
+      "icon": "dmgIcon.icns",
+      "background": "resources/dmgBg.png",
+      "iconSize": 120,
+      "iconTextSize": 18,
+      "window": {
+        "width": 540,
+        "height": 380
+      },
+      "contents": [
+        {
+          "x": 115,
+          "y": 230,
+          "type": "file",
+          "name": "AdMob Sync.app"
+        },
+        {
+          "x": 422,
+          "y": 230,
+          "type": "link",
+          "name": "Applications",
+          "path": "/Applications"
+        }
+      ]
     },
     "win": {
-      "target": "portable"
+      "target": "nsis"
+    },
+    "nsis": {
+      "artifactName": "${name}-setup-${version}.${ext}",
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
     },
     "linux": {
       "target": "deb",
-      "category": "Utility"
+      "category": "Utility",
+      "artifactName": "${name}-setup-${version}.${ext}"
     }
   },
   "jest": {
