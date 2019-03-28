@@ -1,14 +1,16 @@
+import {captureMessage} from '@sentry/core';
 import {AdmobApiService} from 'core/admob-api/admob.api';
 import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
 import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
 import {AdType, AppodealAdUnit, AppodealApp, AppodealPlatform, Format} from 'core/appdeal-api/interfaces/appodeal-app.interface';
 import {AppodealAccount} from 'core/appdeal-api/interfaces/appodeal.account.interface';
+import {getAdUnitTemplate} from 'core/sync-apps/ad-unit-templates';
 import stringify from 'json-stable-stringify';
 import {retry} from 'lib/retry';
 import {AppTranslator} from 'lib/translators/admob-app.translator';
 import {AdMobPlatform} from 'lib/translators/admob.constants';
 import {AdUnitTranslator} from 'lib/translators/admop-ad-unit.translator';
-import {AdMobAdFormat, AdMobAdUnit, CpmFloorMode, CpmFloorSettings} from 'lib/translators/interfaces/admob-ad-unit.interface';
+import {AdMobAdUnit, CpmFloorMode, CpmFloorSettings} from 'lib/translators/interfaces/admob-ad-unit.interface';
 import {AdMobApp} from 'lib/translators/interfaces/admob-app.interface';
 import {getTranslator} from 'lib/translators/translator.helpers';
 import uuid from 'uuid';
@@ -44,6 +46,11 @@ export class Sync {
     private terminated = true;
 
     public context = new SyncContext();
+
+    /**
+     * if user have no permissions to create native adunits we should not try do it many times.
+     */
+    private skipNativeAdUnits = false;
 
     constructor (
         private adMobApi: AdmobApiService,
@@ -317,11 +324,32 @@ export class Sync {
 
         this.logger.info(`AdUnits to create ${templatesToCreate.size}. AdUnit to Delete ${adUnitsToDelete.length}. Unchanged AdUnits ${appodealAdUnits.length}`);
 
+
         for (const adUnitTemplate of templatesToCreate.values()) {
-            const newAdUnit = await this.createAdMobAdUnit({...adUnitTemplate, appId: adMobApp.appId});
-            this.context.addAdMobAdUnit(newAdUnit);
-            this.logger.info(`AdUnit Created ${this.adUnitCode(newAdUnit)} ${adUnitTemplate.name}`);
-            appodealAdUnits.push(this.convertToAppodealAdUnit(newAdUnit, adUnitTemplate));
+            if (this.skipNativeAdUnits) {
+                this.logger.info(`Creating Native AdUnit is skipped. ${adUnitTemplate.name}`);
+                continue;
+            }
+
+            const newAdUnit = await this.createAdMobAdUnit({...adUnitTemplate, appId: adMobApp.appId}).catch(e => {
+                this.logger.info(`Failed to create AdUnit`);
+                this.logger.info(e);
+                if (adUnitTemplate.__metadata.adType === AdType.NATIVE) {
+                    this.skipNativeAdUnits = true;
+                    this.logger.info(`Error while creating Native AdUnit. Skip creating Native AdUnits.`);
+                    this.logger.info(`Creating Native AdUnit is skipped. ${adUnitTemplate.name}`);
+                    // user may be forbidden to create native adunits but have native adunit at appodeal.
+                    // we should emit error & continue sync other adunits
+                    this.emitError(e);
+                    return null;
+                }
+                throw e;
+            });
+            if (newAdUnit) {
+                this.context.addAdMobAdUnit(newAdUnit);
+                this.logger.info(`AdUnit Created ${this.adUnitCode(newAdUnit)} ${adUnitTemplate.name}`);
+                appodealAdUnits.push(this.convertToAppodealAdUnit(newAdUnit, adUnitTemplate));
+            }
         }
 
         // delete bad AdUnits
@@ -377,46 +405,16 @@ export class Sync {
      */
     buildAdUnitsSchema (app: AppodealApp): Map<AdUnitTemplateId, AdUnitTemplate> {
 
-        const defaultAUnitTemplate: Partial<AdMobAdUnit> = {
-            adFormat: AdMobAdFormat.FullScreen,
-            // Image + text + video gif like with no sound
-            adType: [0, 1, 2],
-            googleOptimizedRefreshRate: false,
-            cpmFloorSettings: {
-                floorMode: CpmFloorMode.Disabled
-            }
-        };
-
-        const bannerAUnitTemplate: Partial<AdMobAdUnit> = {
-            ...defaultAUnitTemplate,
-            adFormat: AdMobAdFormat.NotFullScreen
-        };
-
-        const rewardedVideoAUnitTemplate: Partial<AdMobAdUnit> = {
-            ...defaultAUnitTemplate,
-            enableRewardsAds: true,
-            // rewarded videos + interactive
-            adType: [1, 2],
-            rewardsSettings: {unitAmount: '1', unitType: 'reward', overrideMediationAdSourceRewardSettings: true}
-        };
-
-        const templates = app.ecpmFloors
-            .map(floor => {
-                switch (floor.adType) {
-                    // Mrec & banner have same template
-                case AdType.BANNER:
-                case AdType.MREC:
-                    return bannerAUnitTemplate;
-                case AdType.REWARDED_VIDEO:
-                    return rewardedVideoAUnitTemplate;
-                default:
-                    return defaultAUnitTemplate;
-                }
-            });
-
         return app.ecpmFloors
-            .map((floor, index) => {
-                    const template = templates[index];
+            .map(floor => ({floor, template: getAdUnitTemplate(floor.adType)}))
+            .filter(({floor, template}) => {
+                if (!template) {
+                    captureMessage(`Unsupported Ad Type ${floor.adType}`);
+                    return false;
+                }
+                return true;
+            })
+            .map(({floor, template}, i, ar) => {
                     return [
                         // default adUnit with no ecpm
                         {
