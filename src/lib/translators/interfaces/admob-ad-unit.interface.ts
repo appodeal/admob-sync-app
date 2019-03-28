@@ -55,3 +55,9 @@ export interface RewardsSettings {
     unitType: string;
     overrideMediationAdSourceRewardSettings: boolean;
 }
+
+
+export interface AdmobError {
+    message: string;
+    code: number;
+}
