@@ -79,17 +79,18 @@ app.on('ready', () => {
         });
 
 
-    const cleanUpOnExit = async function () {
-        await accountsConnector.destroy();
-        await syncConnector.destroy();
-        await logsConnector.destroy();
-        await syncService.destroy();
-        // await syncScheduler.destroy();
-    };
+    const cleanUpOnExit = () => Promise.all([
+        accountsConnector.destroy(),
+        syncConnector.destroy(),
+        logsConnector.destroy(),
+        syncService.destroy()
+        // syncScheduler.destroy();
+    ]);
 
 
     process.on('SIGTERM', () => app.quit());
     process.on('SIGINT', () => app.quit());
+
     let cleanUpFinished = false;
     app.on('before-quit', async (e) => {
         console.log('before-quit', cleanUpFinished);

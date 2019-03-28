@@ -1,0 +1,9 @@
+version: '3.3'
+services:
+  nginx:
+    container_name: update-server
+    volumes:
+      - ./dist:/usr/share/nginx/html
+    ports:
+      - "8083:80"
+    image: nginx
