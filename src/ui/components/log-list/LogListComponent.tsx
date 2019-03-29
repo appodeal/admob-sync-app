@@ -45,7 +45,7 @@ export class LogListComponent extends React.Component<LogListComponentProps> {
     render (): React.ReactNode {
         return <div className={style.list}>
             {this.props.logs.map(
-                log => <div className={style.line} key={log.fileName}>
+                log => <div className={style.line} key={log.uuid}>
                     <div className={style.time}>{LogListComponent.formatDate(log.ctime)}</div>
                     <div className={style.name}>{log.fileName}</div>
                     <div className={style.actions}>

@@ -152,7 +152,7 @@ export class Store {
     async selectAccount (account: AppodealAccount | AdMobAccount) {
         set<AppState>(this.state, 'selectedAccount', {
             account: account,
-            logs: []
+            logs: this.state.selectedAccount.account.id === account.id ? this.state.selectedAccount.logs : []
         });
         // we dont need to wait while logs are loading
         // we want provide quick response to UI
