@@ -10,7 +10,6 @@ import {SyncErrorEvent, SyncEventsTypes} from 'core/sync-apps/sync.events';
 import {createFetcher} from 'lib/fetch';
 import {createSyncLogger, getLogContent, LoggerInstance, rotateSyncLogs} from 'lib/sync-logs/logger';
 import uuid from 'uuid';
-import getSession = AdMobSessions.getSession;
 
 
 type FinishPromise = Promise<any>;
@@ -40,7 +39,7 @@ export class SyncService {
             return;
         }
 
-        const admobSession = await getSession(admobAccount);
+        const admobSession = await AdMobSessions.getSession(admobAccount);
 
         if (!admobSession) {
             await SyncHistory.setAuthorizationRequired(admobAccount);

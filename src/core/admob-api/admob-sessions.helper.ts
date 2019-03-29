@@ -115,6 +115,20 @@ export namespace AdMobSessions {
         };
     }
 
+    /**
+     * TODO: use for developers mode only!
+     * it lack of integrity check!
+     */
+    export function openAdmob (account: Pick<AdMobAccount, 'id'>) {
+        let session = getSession(account.id);
+        if (!session) {
+            let {id, session} = createAdmobSession();
+            SESSIONS.set(account.id, id);
+            return openAdMobSignInWindow(session);
+        }
+        return openAdMobSignInWindow(session);
+    }
+
     function openAdMobSignInWindow (session): Promise<BrowserWindow> {
         return openWindow('https://apps.admob.com/v2/home', {
             frame: true,

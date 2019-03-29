@@ -27,7 +27,8 @@ export class AccountsConnector extends Connector {
         case ActionTypes.adMobSetupTutorial:
             return AdMobSessions.openSetupTutorial();
         case ActionTypes.openAdmobPage:
-            // TODO: implement me
+            return AdMobSessions.openAdmob(payload);
+        default:
             return;
         }
     }
