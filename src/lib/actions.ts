@@ -11,7 +11,7 @@ export enum ActionTypes {
     adMobSetCredentials = 'adMobSetCredentials',
     runSync = 'RunSync',
     openAdmobPage = 'openAdmobPage',
-    selectAdmobAccount = 'selectAdmobAccount',
+    selectAccount = 'selectAdmobAccount',
     openLogFile = 'openLogFile',
     submitLogToAppodeal = 'submitLogToAppodeal',
     getStore = 'getStore'

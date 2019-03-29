@@ -24,6 +24,10 @@ export interface SyncProgress {
 }
 
 export interface AppState {
+    selectedAccount: {
+        account: AppodealAccount | AdMobAccount;
+        logs: LogFileInfo[];
+    }
     appodealAccount: AppodealAccount;
     syncHistory: Record<AccountID, SyncHistoryInfo>;
     syncProgress: Record<AccountID, SyncProgress | undefined>
@@ -35,6 +39,10 @@ type AccountID = string;
 export class Store {
 
     @observable readonly state: AppState = {
+        selectedAccount: {
+            account: AppodealApiService.emptyAccount,
+            logs: []
+        },
         appodealAccount: AppodealApiService.emptyAccount,
         syncHistory: {},
         syncProgress: {}
@@ -141,6 +149,25 @@ export class Store {
     }
 
     @action
+    async selectAccount (account: AppodealAccount | AdMobAccount) {
+        set<AppState>(this.state, 'selectedAccount', {
+            account: account,
+            logs: []
+        });
+        // we dont need to wait while logs are loading
+        // we want provide quick response to UI
+        // once log-list is loaded - we will show it
+        if (this.state.appodealAccount.id !== account.id) {
+            const logs = await this.loadSelectedAdMobAccountLogs(<AdMobAccount>account);
+            if (this.state.selectedAccount.account.id === account.id) {
+                set<AppState>(this.state, 'selectedAccount', {
+                    account: account,
+                    logs
+                });
+            }
+        }
+    }
+
     loadSelectedAdMobAccountLogs (account: AdMobAccount): Promise<LogFileInfo[]> {
         if (!account) {
             return Promise.resolve([]);
