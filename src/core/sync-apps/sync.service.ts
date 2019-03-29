@@ -6,6 +6,7 @@ import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface'
 import {Store} from 'core/store';
 import {Sync} from 'core/sync-apps/sync';
 import {SyncHistory} from 'core/sync-apps/sync-history';
+import {SyncNotifications} from 'core/sync-apps/sync-notifications';
 import {SyncErrorEvent, SyncEventsTypes} from 'core/sync-apps/sync.events';
 import {createFetcher} from 'lib/fetch';
 import {createSyncLogger, getLogContent, LoggerInstance, rotateSyncLogs} from 'lib/sync-logs/logger';
@@ -76,8 +77,11 @@ export class SyncService {
                 })
         );
 
+        const syncNotifications = new SyncNotifications(sync, this.store);
+
 
         this.activeSyncs.set(sync, this.processSync(sync, logger).then(async () => {
+            syncNotifications.destroy();
             subs.forEach(sub => sub.unsubscribe());
             await Promise.all(waitToFinish);
             this.activeSyncs.delete(sync);
