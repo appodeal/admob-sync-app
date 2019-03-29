@@ -20,14 +20,15 @@ export class AccountsConnector extends Connector {
             return this.store.appodealSignOut();
         case ActionTypes.adMobAddAccount:
             return this.store.addAdMobAccount();
-        case ActionTypes.selectAdmobAccount:
-            return this.store.loadSelectedAdMobAccountLogs(payload);
+        case ActionTypes.selectAccount:
+            return this.store.selectAccount(payload);
         case ActionTypes.adMobSetCredentials:
             return this.store.setAdMobCredentials(payload);
         case ActionTypes.adMobSetupTutorial:
             return AdMobSessions.openSetupTutorial();
         case ActionTypes.openAdmobPage:
-            // TODO: implement me
+            return AdMobSessions.openAdmob(payload);
+        default:
             return;
         }
     }

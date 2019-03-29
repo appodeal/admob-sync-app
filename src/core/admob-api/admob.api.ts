@@ -1,6 +1,7 @@
 import {InternalError} from 'core/error-factory/errors/internal-error';
 import {AppTranslator} from 'lib/translators/admob-app.translator';
 import {AdUnitTranslator} from 'lib/translators/admop-ad-unit.translator';
+import {AdmobErrorTranslator} from 'lib/translators/admop-error.translator';
 import {AdMobAdUnit} from 'lib/translators/interfaces/admob-ad-unit.interface';
 import {AdMobApp} from 'lib/translators/interfaces/admob-app.interface';
 import {getTranslator} from 'lib/translators/translator.helpers';
@@ -146,13 +147,24 @@ export class AdmobApiService {
             this.getPostApiEndpoint(serviceName, method),
             'application/x-www-form-urlencoded',
             `__ar=${encodeURIComponent(JSON.stringify(payload))}`
-        ).catch(e => {
-            this.logger.error(`Failed to Post to AdMob '${serviceName}' '${method}'`);
-            this.logger.info(payload);
-            this.logger.error(e);
-            this.handleError(e);
-            throw e;
-        });
+        )
+            .then((data) => {
+                if (data[1] !== undefined) {
+                    return data;
+                }
+                if (data[2]) {
+                    throw getTranslator(AdmobErrorTranslator).decode(data);
+                }
+                throw new InternalError('Unknow Admob Response', data);
+
+            })
+            .catch(e => {
+                this.logger.error(`Failed to Post to AdMob '${serviceName}' '${method}'`);
+                this.logger.info(`payload`, payload);
+                this.logger.error(e);
+                this.handleError(e);
+                throw e;
+            });
     }
 
 

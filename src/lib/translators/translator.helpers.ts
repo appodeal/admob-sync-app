@@ -1,3 +1,4 @@
+import {ITranslator} from 'lib/translators/base-translators/translator.interface';
 import {RawTranslator} from './base-translators/raw.translator';
 import {Translator} from './base-translators/translator.type';
 
@@ -29,7 +30,7 @@ export const invertMap = (map: PropertyMap): ReversePropertyMap => Object.entrie
 
 const translators = new Map<any, any>();
 
-export function getTranslator<T extends RawTranslator> (translatorClass: Translator): T {
+export function getTranslator<T extends ITranslator> (translatorClass: Translator): T {
     if (!translators.has(translatorClass)) {
         translators.set(translatorClass, new translatorClass());
     }

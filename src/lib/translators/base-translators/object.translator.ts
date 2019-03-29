@@ -28,7 +28,7 @@ export abstract class ObjectTranslator<T> implements ITranslator {
         }, <T>{});
     };
 
-    public encode = (source: T): Object => {
+    public encode = (source: Partial<T>): Object => {
         return Object.entries(source).reduce((acc, [strKey, value]) => {
             if (!this.reverseMap[strKey]) {
                 console.warn(`Cant find key '${strKey}' for ${this.constructor.name}`);

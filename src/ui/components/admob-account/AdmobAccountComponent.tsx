@@ -141,8 +141,9 @@ export class AdmobAccountComponent extends Component<AdmobAccountComponentProps,
                         Run Sync
                     </button>
                     {
-                        //  uncomment when open admob is implemented
-                        //   <button type="button" onClick={singleEvent(this.openAdMob, this)}>Open Admob</button>
+                        //  make public when open admob safe browsing admob is implemented
+                        environment.development &&
+                        <button type="button" onClick={singleEvent(this.openAdMob, this)}>Open Admob (For developers only)</button>
                     }
                     {!this.isSetupFormVisible(account) &&
                     <button type="button" onClick={() => this.displaySetupForm(true)}>Set credentials</button>}
