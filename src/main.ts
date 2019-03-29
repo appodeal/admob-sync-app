@@ -101,7 +101,7 @@ app.on('ready', () => {
             await cleanUpOnExit();
         } finally {
             cleanUpFinished = true;
-            app.quit();
+            setTimeout(() => app.quit());
         }
     });
 });
