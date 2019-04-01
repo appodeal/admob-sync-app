@@ -1,18 +1,17 @@
 require('source-map-support').install();
-import * as Sentry from '@sentry/electron';
-import {SentryEvent} from '@sentry/electron';
-import {init} from '@sentry/electron/dist/main';
-import {SentryEventHint} from '@sentry/types';
 import {AccountsConnector} from 'core/accounts-connector';
 import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
+import {OnlineService} from 'core/appdeal-api/online.service';
 import {ErrorFactoryService} from 'core/error-factory/error-factory.service';
 import {LogsConnector} from 'core/logs-connector';
+import {OnlineConnector} from 'core/online-connector';
 import {Store} from 'core/store';
 import {SyncService} from 'core/sync-apps/sync.service';
 import {SyncConnector} from 'core/sync-connector';
 import {app} from 'electron';
 import {createAppMenu} from 'lib/app-menu';
 import {createAppTray} from 'lib/app-tray';
+import {initBugTracker, Sentry} from 'lib/sentry';
 import {openSettingsWindow} from 'lib/settings';
 import {initThemeSwitcher} from 'lib/theme';
 
@@ -20,29 +19,7 @@ import {initThemeSwitcher} from 'lib/theme';
 if (!environment.development) {
     console.debug = () => {};
 }
-const useSentry = environment.sentry && environment.sentry.dsn;
-if (useSentry) {
-    init({
-        ...environment.sentry,
-        beforeSend (event: SentryEvent, hint?: SentryEventHint): SentryEvent {
-            // to extend error context
-            if (hint && hint.originalException) {
-                if (hint.originalException['extraInfo']) {
-                    event.extra = {...(event.extra || {}), ...hint.originalException['extraInfo']};
-                }
-            }
-            return event;
-        }
-    });
-} else {
-    process.on('uncaughtException', function (err: any) {
-        console.error('Caught exception: ', err);
-    });
-    process.on('unhandledRejection', (reason, p) => {
-        console.log('Unhandled Rejection at: Promise', p, 'reason:', reason);
-        // application specific logging, throwing an error, or other logic here
-    });
-}
+initBugTracker(environment.sentry);
 
 initThemeSwitcher();
 
@@ -56,16 +33,21 @@ app.on('ready', () => {
 
     let errorFactory = new ErrorFactoryService(),
         appodealApi = new AppodealApiService(errorFactory),
+        onlineService = new OnlineService(appodealApi),
         store = new Store(
-            appodealApi
+            appodealApi,
+            onlineService
         ),
         accountsConnector = new AccountsConnector(store),
         logsConnector = new LogsConnector(store, appodealApi),
-        syncService = new SyncService(store, appodealApi),
+        onlineConnector = new OnlineConnector(store),
+        syncService = new SyncService(store, appodealApi, onlineService),
         // syncScheduler = new SyncScheduler(syncService, store),
         syncConnector = new SyncConnector(store, appodealApi, syncService);
 
+
     appodealApi.init()
+        .then(() => onlineService.onceOnline())
         .then(() => store.appodealFetchUser())
         .then(account => {
             if (account === AppodealApiService.emptyAccount) {
@@ -80,12 +62,18 @@ app.on('ready', () => {
 
 
     const cleanUpOnExit = async function () {
+        await onlineConnector.destroy();
         await accountsConnector.destroy();
         await syncConnector.destroy();
         await logsConnector.destroy();
         await syncService.destroy();
+        await onlineService.destroy();
         // await syncScheduler.destroy();
     };
+
+    onlineService.online().subscribe(v => {
+        console.warn('online', v);
+    });
 
 
     process.on('SIGTERM', () => app.quit());

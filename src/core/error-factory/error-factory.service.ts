@@ -23,7 +23,7 @@ export declare type ServerError = Error & {
     statusCode: number;
 };
 
-const isNetworkError = (err) => err && err.statusCode !== undefined;
+const isNetworkError = (err) => err && err.statusCode !== undefined || err.message === 'net::ERR_INTERNET_DISCONNECTED';
 const isApolloResponseError = (err) => err
     && err.hasOwnProperty('operation')
     && (err.hasOwnProperty('graphQLErrors') || err.hasOwnProperty('networkError'));
@@ -140,7 +140,7 @@ export class ErrorFactoryService {
      * @return {NoConnectionError|InternalServerError|UnavailableEndpointError|AuthorizationError}
      */
     createNetworkError (httpError: ServerError, operationName?: string) {
-        if (httpError.statusCode === 0) {
+        if (httpError.statusCode === 0 || httpError.message === 'net::ERR_INTERNET_DISCONNECTED') {
             return new NoConnectionError(httpError);
         }
 

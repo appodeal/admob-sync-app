@@ -3,6 +3,7 @@ import {AdMobSessions} from 'core/admob-api/admob-sessions.helper';
 import {AdmobApiService} from 'core/admob-api/admob.api';
 import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
 import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
+import {OnlineService} from 'core/appdeal-api/online.service';
 import {Store} from 'core/store';
 import {Sync} from 'core/sync-apps/sync';
 import {SyncHistory} from 'core/sync-apps/sync-history';
@@ -19,7 +20,7 @@ export class SyncService {
     private activeSyncs = new Map<Sync, FinishPromise>();
 
 
-    constructor (private store: Store, private appodealApi: AppodealApiService) {
+    constructor (private store: Store, private appodealApi: AppodealApiService, private onlineService: OnlineService) {
 
     }
 
@@ -34,9 +35,14 @@ export class SyncService {
 
     public async runSync (admobAccount: AdMobAccount) {
 
+        if (this.onlineService.isOffline()) {
+            console.log('[Sync Service] Can not run sync. No Internet Connection');
+            return;
+        }
+
         if (!this.canRun(admobAccount)) {
             // only one sync per account can be run
-            console.warn(`only one sync per account can be run. Admob Account ${admobAccount.id} has running sync in progress.`);
+            console.warn(`[Sync Service] only one sync per account can be run. Admob Account ${admobAccount.id} has running sync in progress.`);
             return;
         }
 
