@@ -112,7 +112,6 @@ export class UpdatesService extends EventEmitter {
     schedule (period: UpdatePeriod, {value, interval}: AppPreferences['updates']['customOptions']) {
         if (this.scheduleInterval) {
             clearInterval(this.scheduleInterval);
-            this.scheduleInterval.unref();
         }
         if (period !== UpdatePeriod.manual) {
             let time = UpdatePeriod.custom ? Math.round(value * interval) : period;
@@ -120,7 +119,7 @@ export class UpdatesService extends EventEmitter {
                 time = TimePeriod.hour;
             }
             this.scheduleInterval = setInterval(() => {
-                if (Date.now() - time <= time) {
+                if (Date.now() - this.lastCheck.getTime() <= time) {
                     this.emit('check');
                 }
             }, TimePeriod.hour);
