@@ -68,6 +68,7 @@ const targets = (targets => {
         }
 
         for (let [, info] of infoEntries) {
+            info.version = [version, ...(channel ? [channel] : [])].join('-');
             info.fileName = info.fileName ? /\/(?<fileName>[^/]+)$/.exec(info.fileName).groups.fileName : null;
         }
 

@@ -2,6 +2,7 @@ import {AppState} from 'core/store';
 import {remote} from 'electron';
 import {classNames} from 'lib/dom';
 import React from 'react';
+import {UpdatesSettings} from 'ui/components/updates-settings/UpdatesSettingsComponent';
 import {AccountsComponent} from '../accounts/AccountsComponent';
 import style from './Root.scss';
 
@@ -17,6 +18,7 @@ interface RootComponentState {
 export class RootComponent extends React.Component<RootComponentProps, RootComponentState> {
     private tabs = [
         {id: 'accounts', label: 'Accounts'},
+        {id: 'updates', label: 'Updates'},
         {id: 'development', label: 'Development'}
     ];
 
@@ -37,6 +39,8 @@ export class RootComponent extends React.Component<RootComponentProps, RootCompo
         switch (tab) {
         case 'accounts':
             return <AccountsComponent {...this.props.store}/>;
+        case 'updates':
+            return <UpdatesSettings {...this.props.store.preferences.updates}/>;
         case 'development':
             return <div>
                 <button type="button" onClick={() => remote.getCurrentWindow().webContents.toggleDevTools()}>Toggle DevTools</button>

@@ -7,6 +7,8 @@ import {SyncHistory, SyncHistoryInfo} from 'core/sync-apps/sync-history';
 import {SyncEvent, SyncEventsTypes, SyncReportProgressEvent} from 'core/sync-apps/sync.events';
 import {BrowserWindow} from 'electron';
 import {ActionTypes} from 'lib/actions';
+import {AppPreferences, Preferences} from 'lib/app-preferences';
+import {deepAssign} from 'lib/core';
 import {onActionFromRenderer} from 'lib/messages';
 import {getLogsList, LogFileInfo} from 'lib/sync-logs/logger';
 import {confirmDialog, messageDialog, openWindow, waitForNavigation} from 'lib/window';
@@ -26,7 +28,8 @@ export interface SyncProgress {
 export interface AppState {
     appodealAccount: AppodealAccount;
     syncHistory: Record<AccountID, SyncHistoryInfo>;
-    syncProgress: Record<AccountID, SyncProgress | undefined>
+    syncProgress: Record<AccountID, SyncProgress | undefined>;
+    preferences: AppPreferences
 }
 
 type AccountID = string;
@@ -37,14 +40,17 @@ export class Store {
     @observable readonly state: AppState = {
         appodealAccount: AppodealApiService.emptyAccount,
         syncHistory: {},
-        syncProgress: {}
+        syncProgress: {},
+        preferences: null
     };
 
     updatedID;
 
     constructor (
-        private appodealApi: AppodealApiService
+        private appodealApi: AppodealApiService,
+        preferences: AppPreferences
     ) {
+        set(this.state, 'preferences', preferences);
         onActionFromRenderer('store', action => {
             switch (action.type) {
             case ActionTypes.getStore:
@@ -250,6 +256,12 @@ Do you what to add new Account (${resultAccount.email})?`
 
         console.log(`cancel adding new account. delete session`);
 
+    }
+
+    @action
+    async patchPreferences (patch: { [P in keyof AppPreferences]: Partial<AppPreferences[P]> }) {
+        set<AppState>(this.state, 'preferences', deepAssign({...this.state.preferences}, patch));
+        await Preferences.save(this.state.preferences);
     }
 
 }

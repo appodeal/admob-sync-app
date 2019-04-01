@@ -1,5 +1,4 @@
 import {BrowserWindow, BrowserWindowConstructorOptions, dialog, ipcMain, remote} from 'electron';
-import path from 'path';
 import {getBgColor} from './theme';
 
 
@@ -124,11 +123,30 @@ export function confirmDialog (message) {
     });
 }
 
-export function messageDialog (message: string, detail: string = undefined) {
-    (dialog || remote.dialog).showMessageBox({
-        message,
-        detail
+interface DialogButton {
+    label: string;
+    action?: () => void;
+    primary?: boolean;
+    cancel?: boolean;
+}
+
+export function messageDialog (
+    message: string,
+    detail: string = undefined,
+    buttons: Array<DialogButton> = [{label: 'OK', action: () => {}, primary: true, cancel: true}]
+): Promise<DialogButton> {
+    return new Promise(resolve => {
+        (dialog || remote.dialog).showMessageBox({
+            message,
+            detail,
+            buttons: buttons.map(btn => btn.label),
+            cancelId: buttons.findIndex(btn => btn.cancel),
+            defaultId: buttons.findIndex(btn => btn.primary)
+        }, number => {
+            resolve(buttons[number]);
+        });
     });
+
 }
 
 

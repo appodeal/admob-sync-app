@@ -5,9 +5,9 @@
     "email": "info@appodeal.com"
   },
   "productName": "AdMob Sync",
-  "description": "Appodeal AdmobSync application",
+  "description": "Appodeal AdMob Sync application",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "scripts": {
     "start": "webpack --watch --progress --config=webpack/development.ts",
     "test": "jest",

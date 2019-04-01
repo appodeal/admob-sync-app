@@ -14,7 +14,12 @@ export enum ActionTypes {
     selectAdmobAccount = 'selectAdmobAccount',
     openLogFile = 'openLogFile',
     submitLogToAppodeal = 'submitLogToAppodeal',
-    getStore = 'getStore'
+    getStore = 'getStore',
+    checkUpdates = 'checkUpdates',
+    downloadDist = 'downloadDist',
+    getDist = 'getDist',
+    viewReleaseNotes = 'viewReleaseNotes',
+    updatesCheckPeriod = 'updatesCheckPeriod'
 }
 
 

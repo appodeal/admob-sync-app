@@ -3,7 +3,7 @@ import fs from 'fs-extra';
 import path from 'path';
 
 
-export function getJsonFile (fileName: string): Promise<any> {
+export function getJsonFile<T = any> (fileName: string): Promise<T> {
     return new Promise(resolve => {
         fs.readFile(path.resolve(app.getPath('userData'), `./${fileName}.json`), (err, file) => {
             if (err) {

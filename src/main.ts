@@ -10,11 +10,14 @@ import {LogsConnector} from 'core/logs-connector';
 import {Store} from 'core/store';
 import {SyncService} from 'core/sync-apps/sync.service';
 import {SyncConnector} from 'core/sync-connector';
+import {UpdatesConnector} from 'core/updates-connector';
 import {app} from 'electron';
 import {createAppMenu} from 'lib/app-menu';
+import {Preferences} from 'lib/app-preferences';
 import {createAppTray} from 'lib/app-tray';
 import {openSettingsWindow} from 'lib/settings';
 import {initThemeSwitcher} from 'lib/theme';
+import {UpdatesService} from 'lib/updates';
 
 
 if (!environment.development) {
@@ -50,20 +53,19 @@ if (app.dock) {
     app.dock.hide();
 }
 app.on('window-all-closed', () => {});
-app.on('ready', () => {
-    createAppTray();
-    createAppMenu();
+app.on('ready', async () => {
 
-    let errorFactory = new ErrorFactoryService(),
+    let preferences = await Preferences.load(),
+        errorFactory = new ErrorFactoryService(),
         appodealApi = new AppodealApiService(errorFactory),
-        store = new Store(
-            appodealApi
-        ),
+        store = new Store(appodealApi, preferences),
         accountsConnector = new AccountsConnector(store),
         logsConnector = new LogsConnector(store, appodealApi),
         syncService = new SyncService(store, appodealApi),
         // syncScheduler = new SyncScheduler(syncService, store),
-        syncConnector = new SyncConnector(store, appodealApi, syncService);
+        syncConnector = new SyncConnector(store, appodealApi, syncService),
+        updates = new UpdatesService(preferences.updates.lastCheck),
+        updatesConnector = new UpdatesConnector(store, updates);
 
     appodealApi.init()
         .then(() => store.appodealFetchUser())
@@ -83,7 +85,8 @@ app.on('ready', () => {
         accountsConnector.destroy(),
         syncConnector.destroy(),
         logsConnector.destroy(),
-        syncService.destroy()
+        syncService.destroy(),
+        updatesConnector.destroy()
         // syncScheduler.destroy();
     ]);
 
@@ -105,5 +108,13 @@ app.on('ready', () => {
             app.quit();
         }
     });
+
+
+    createAppTray(updatesConnector);
+    createAppMenu();
+
+    let {checkPeriod, customOptions} = store.state.preferences.updates;
+    updatesConnector.checkForUpdates(true, 'notification');
+    updatesConnector.runScheduler(checkPeriod, customOptions);
 });
 

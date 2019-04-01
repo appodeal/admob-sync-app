@@ -1,0 +1,22 @@
+.settingsForm {
+  align-self: flex-start;
+  width: 100%;
+
+  .inlineActions {
+    margin-inline-start: 20px;
+    button + button {
+      margin-inline-start: 10px;
+    }
+  }
+
+  label[for="count"] {
+    font-weight: normal;
+  }
+
+  .periodCount {
+    width: 60px;
+    min-width: 60px;
+    height: 19px;
+    padding: 0 3px;
+  }
+}
