@@ -56,7 +56,6 @@ export class Store {
     };
 
     updatedID;
-    reconnectInterval;
     pingTimer;
 
     constructor (
@@ -75,7 +74,7 @@ export class Store {
 
     private watchOnlineStatus () {
         this.onlineService.whenOnline().subscribe(() => {
-            clearInterval(this.reconnectInterval);
+            clearTimeout(this.pingTimer);
             set<AppState>(this.state, 'online', true);
         });
         this.onlineService.whenOffline().subscribe(() => {
