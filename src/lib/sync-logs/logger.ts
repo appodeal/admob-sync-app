@@ -1,5 +1,6 @@
 import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
 import {app} from 'electron';
+import safeStringify from 'fast-safe-stringify';
 import fs from 'fs-extra';
 import {patchLogger} from 'lib/sync-logs/patch-logger';
 
@@ -52,9 +53,31 @@ function logFilePathName (adMobAccount: AdMobAccount, syncId: string) {
     return path.join(getLogsDirectory(adMobAccount), `${syncId}.log`);
 }
 
+
+function isPrimitive (v): boolean {
+    switch (typeof v) {
+    case 'string':
+    case 'number':
+    case 'boolean':
+        return true;
+    default:
+        return false;
+    }
+
+}
+
 const readableLogFormat = winston.format.combine(
     winston.format.timestamp(),
-    winston.format.printf(({level, message, timestamp}) => `${timestamp} [${level.toUpperCase()}] ${message}`)
+    winston.format.splat(),
+    //    winston.format.simple()
+
+    winston.format.printf(function (info) {
+        const {level, message, timestamp, ...rest} = info;
+
+        const messageStr = isPrimitive(message) ? message : safeStringify(message);
+        const splatStr = rest && Object.keys(rest).length ? safeStringify(rest) : '';
+        return `${timestamp} [${level.toUpperCase()}] ${messageStr} ${splatStr}`;
+    })
 );
 
 export async function createSyncLogger (adMobAccount: AdMobAccount, syncId: string) {
@@ -65,10 +88,11 @@ export async function createSyncLogger (adMobAccount: AdMobAccount, syncId: stri
     return patchLogger(winston.createLogger({
         level: 'info',
         format: readableLogFormat,
-        defaultMeta: {service: 'sync'},
         transports: [
             new winston.transports.Console({level: 'info'}),
-            new winston.transports.File({filename: logFilePathName(adMobAccount, syncId), level: 'info'})
+            new winston.transports.File({
+                filename: logFilePathName(adMobAccount, syncId), level: 'info'
+            })
         ]
     }));
 }

@@ -3,6 +3,7 @@ import {AdMobSessions} from 'core/admob-api/admob-sessions.helper';
 import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
 import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
 import {AppodealAccount} from 'core/appdeal-api/interfaces/appodeal.account.interface';
+import {OnlineService} from 'core/appdeal-api/online.service';
 import {SyncHistory, SyncHistoryInfo} from 'core/sync-apps/sync-history';
 import {SyncEvent, SyncEventsTypes, SyncReportProgressEvent} from 'core/sync-apps/sync.events';
 import {BrowserWindow} from 'electron';
@@ -26,28 +27,44 @@ export interface SyncProgress {
 }
 
 export interface AppState {
+    selectedAccount: {
+        account: AppodealAccount | AdMobAccount;
+        logs: LogFileInfo[];
+    }
     appodealAccount: AppodealAccount;
     syncHistory: Record<AccountID, SyncHistoryInfo>;
     syncProgress: Record<AccountID, SyncProgress | undefined>;
-    preferences: AppPreferences
+    preferences: AppPreferences;
+    online: boolean;
+    nextReconnect: number;
 }
 
 type AccountID = string;
+
+const ONE_MINUTE = 60 * 1000;
 
 
 export class Store {
 
     @observable readonly state: AppState = {
+        selectedAccount: {
+            account: AppodealApiService.emptyAccount,
+            logs: []
+        },
         appodealAccount: AppodealApiService.emptyAccount,
         syncHistory: {},
         syncProgress: {},
-        preferences: null
+        preferences: null,
+        online: false,
+        nextReconnect: 0
     };
 
     updatedID;
+    pingTimer;
 
     constructor (
         private appodealApi: AppodealApiService,
+        private onlineService: OnlineService,
         preferences: AppPreferences
     ) {
         set(this.state, 'preferences', preferences);
@@ -58,7 +75,36 @@ export class Store {
             }
         });
         observe(this.state, () => this.emitState());
+        this.watchOnlineStatus();
     }
+
+    private watchOnlineStatus () {
+        this.onlineService.whenOnline().subscribe(() => {
+            clearTimeout(this.pingTimer);
+            set<AppState>(this.state, 'online', true);
+        });
+        this.onlineService.whenOffline().subscribe(() => {
+            set<AppState>(this.state, 'online', false);
+            // right now we are trying to reconnect
+            set<AppState>(this.state, 'nextReconnect', Date.now());
+            return this.pingAppodeal();
+        });
+    }
+
+    @action
+    pingAppodeal () {
+        clearTimeout(this.pingTimer);
+
+        return this.onlineService.sendPing(false)
+            .then(
+                () => this.appodealFetchUser(),
+                () => {
+                    set<AppState>(this.state, 'nextReconnect', Date.now() + ONE_MINUTE);
+                    this.pingTimer = setTimeout(() => this.pingAppodeal(), ONE_MINUTE);
+                }
+            );
+    }
+
 
     private emitState () {
         BrowserWindow.getAllWindows().forEach(win => {
@@ -147,6 +193,25 @@ export class Store {
     }
 
     @action
+    async selectAccount (account: AppodealAccount | AdMobAccount) {
+        set<AppState>(this.state, 'selectedAccount', {
+            account: account,
+            logs: this.state.selectedAccount.account.id === account.id ? this.state.selectedAccount.logs : []
+        });
+        // we dont need to wait while logs are loading
+        // we want provide quick response to UI
+        // once log-list is loaded - we will show it
+        if (this.state.appodealAccount.id !== account.id) {
+            const logs = await this.loadSelectedAdMobAccountLogs(<AdMobAccount>account);
+            if (this.state.selectedAccount.account.id === account.id) {
+                set<AppState>(this.state, 'selectedAccount', {
+                    account: account,
+                    logs
+                });
+            }
+        }
+    }
+
     loadSelectedAdMobAccountLogs (account: AdMobAccount): Promise<LogFileInfo[]> {
         if (!account) {
             return Promise.resolve([]);

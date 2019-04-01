@@ -3,14 +3,15 @@ import {AdMobSessions} from 'core/admob-api/admob-sessions.helper';
 import {AdmobApiService} from 'core/admob-api/admob.api';
 import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
 import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
+import {OnlineService} from 'core/appdeal-api/online.service';
 import {Store} from 'core/store';
 import {Sync} from 'core/sync-apps/sync';
 import {SyncHistory} from 'core/sync-apps/sync-history';
+import {SyncNotifications} from 'core/sync-apps/sync-notifications';
 import {SyncErrorEvent, SyncEventsTypes} from 'core/sync-apps/sync.events';
 import {createFetcher} from 'lib/fetch';
 import {createSyncLogger, getLogContent, LoggerInstance, rotateSyncLogs} from 'lib/sync-logs/logger';
 import uuid from 'uuid';
-import getSession = AdMobSessions.getSession;
 
 
 type FinishPromise = Promise<any>;
@@ -19,7 +20,7 @@ export class SyncService {
     private activeSyncs = new Map<Sync, FinishPromise>();
 
 
-    constructor (private store: Store, private appodealApi: AppodealApiService) {
+    constructor (private store: Store, private appodealApi: AppodealApiService, private onlineService: OnlineService) {
 
     }
 
@@ -34,13 +35,18 @@ export class SyncService {
 
     public async runSync (admobAccount: AdMobAccount) {
 
-        if (!this.canRun(admobAccount)) {
-            // only one sync per account can be run
-            console.warn(`only one sync per account can be run. Admob Account ${admobAccount.id} has running sync in progress.`);
+        if (this.onlineService.isOffline()) {
+            console.log('[Sync Service] Can not run sync. No Internet Connection');
             return;
         }
 
-        const admobSession = await getSession(admobAccount);
+        if (!this.canRun(admobAccount)) {
+            // only one sync per account can be run
+            console.warn(`[Sync Service] only one sync per account can be run. Admob Account ${admobAccount.id} has running sync in progress.`);
+            return;
+        }
+
+        const admobSession = await AdMobSessions.getSession(admobAccount);
 
         if (!admobSession) {
             await SyncHistory.setAuthorizationRequired(admobAccount);
@@ -77,8 +83,11 @@ export class SyncService {
                 })
         );
 
+        const syncNotifications = new SyncNotifications(sync, this.store);
+
 
         this.activeSyncs.set(sync, this.processSync(sync, logger).then(async () => {
+            syncNotifications.destroy();
             subs.forEach(sub => sub.unsubscribe());
             await Promise.all(waitToFinish);
             this.activeSyncs.delete(sync);

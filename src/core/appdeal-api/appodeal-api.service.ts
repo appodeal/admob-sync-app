@@ -3,21 +3,23 @@ import ApolloClient, {MutationOptions, OperationVariables, QueryOptions} from 'a
 import {ApolloLink, FetchResult, Observable} from 'apollo-link';
 import {BatchHttpLink} from 'apollo-link-batch-http';
 import {ErrorResponse, onError} from 'apollo-link-error';
-import {AuthContext} from 'core/appdeal-api/AuthContext';
+import {AuthContext} from 'core/appdeal-api/auth-context';
 import {AppodealAccount} from 'core/appdeal-api/interfaces/appodeal.account.interface';
 import {AuthorizationError} from 'core/error-factory/errors/authorization.error';
 import {session} from 'electron';
 import {ExtractedAdmobAccount} from 'interfaces/common.interfaces';
 import {createFetcher} from 'lib/fetch';
 import {AdMobApp} from 'lib/translators/interfaces/admob-app.interface';
+import PushStream from 'zen-push';
 import {ErrorFactoryService} from '../error-factory/error-factory.service';
 import {InternalError} from '../error-factory/errors/internal-error';
 import addAdMobAccountMutation from './graphql/add-admob-account.mutation.graphql';
-
 import adMobAccountQuery from './graphql/admob-account-details.graphql';
 import criticalVersionQuery from './graphql/critical-version.query.graphql';
 import currentUserQuery from './graphql/current-user.query.graphql';
 import endSync from './graphql/end-sync.mutation.graphql';
+
+import pingQuery from './graphql/ping.query.graphql';
 import refreshTokenMutation from './graphql/refresh-token-mutation.graphql';
 import setAdMobAccountCredentialsMutation from './graphql/set-admob-account-credentials.mutation.graphql';
 import signInMutation from './graphql/sign-in.mutation.graphql';
@@ -66,7 +68,9 @@ export class AppodealApiService {
     private session = session.fromPartition('persist:appodeal');
     private fetcher = createFetcher(this.session);
 
-    public onError: (e: InternalError) => void;
+
+    private _onError = new PushStream<InternalError>();
+    public onError = this._onError.observable;
     authContext: AuthContext;
 
     private logRequest (operations, opType, variables) {
@@ -134,9 +138,7 @@ export class AppodealApiService {
     }
 
     handleError (e: InternalError) {
-        if (this.onError && e) {
-            this.onError(e);
-        }
+        this._onError.next(e);
     }
 
     getCriticalPluginVersion (): Promise<string> {
@@ -271,6 +273,13 @@ export class AppodealApiService {
             }
         })
             .then(({addAdmobAccount}) => addAdmobAccount);
+    }
+
+    ping () {
+        return this.query<'pong'>({
+            query: pingQuery,
+            dataAttribute: 'ping'
+        });
     }
 
 }

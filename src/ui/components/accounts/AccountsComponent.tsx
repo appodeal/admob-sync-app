@@ -5,7 +5,6 @@ import {remote} from 'electron';
 import {action, ActionTypes} from 'lib/actions';
 import {classNames, singleEvent} from 'lib/dom';
 import {sendToMain} from 'lib/messages';
-import {LogFileInfo} from 'lib/sync-logs/logger';
 import {messageDialog} from 'lib/window';
 import React from 'react';
 import {AccountStatusComponent} from 'ui/components/account-status/AccountStatusComponent';
@@ -16,36 +15,22 @@ import style from './Accounts.scss';
 
 type AccountsComponentProps = AppState;
 
-interface AccountsComponentState {
-    selectedAccount: AppodealAccount | AdMobAccount;
-    accountLogs: LogFileInfo[];
-}
-
-export class AccountsComponent extends React.Component<AccountsComponentProps, AccountsComponentState> {
+export class AccountsComponent extends React.Component<AccountsComponentProps> {
 
     constructor (props) {
         super(props);
-        this.state = {
-            selectedAccount: this.props.appodealAccount,
-            accountLogs: []
-        };
     }
 
-    componentWillReceiveProps (nextProps: Readonly<AccountsComponentProps>) {
-        let accountToSelect = nextProps.appodealAccount.accounts.find(acc => acc.id === this.state.selectedAccount.id);
-        if (accountToSelect) {
-            this.selectAccount(accountToSelect);
-        }
+    get selectedAccount () {
+        return this.props.selectedAccount.account;
+    }
+
+    get logs () {
+        return this.props.selectedAccount.logs;
     }
 
     private selectAccount (account: AppodealAccount | AdMobAccount) {
-        this.setState({
-            selectedAccount: account
-        });
-        if (account !== this.props.appodealAccount) {
-            sendToMain('accounts', action(ActionTypes.selectAdmobAccount, account))
-                .then((logs: LogFileInfo[]) => this.setState({accountLogs: logs}));
-        }
+        sendToMain('accounts', action(ActionTypes.selectAccount, account));
     }
 
     private updateSelectedAccount (account: AdMobAccount) {
@@ -57,14 +42,14 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
         }
     }
 
-    onSignIn ({email, password, callback}: { email: string, password: string , callback: Function}) {
+    onSignIn ({email, password, callback}: { email: string, password: string, callback: Function }) {
         return sendToMain('accounts', action(ActionTypes.appodealSignIn, {email, password}))
             .then(() => this.selectAccount(this.props.appodealAccount))
             .catch(err => messageDialog(err.message))
             .finally(() => callback());
     }
 
-    onSignOut ({callback}: {callback: Function}) {
+    onSignOut ({callback}: { callback: Function }) {
         return sendToMain('accounts', action(ActionTypes.appodealSignOut))
             .then(() => this.selectAccount(this.props.appodealAccount))
             .finally(() => callback());
@@ -89,16 +74,16 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
 
     renderAccountForm () {
         let appodealAccount = this.props.appodealAccount;
-        if (this.isAppodealAccount(this.state.selectedAccount)) {
+        if (this.isAppodealAccount(this.selectedAccount)) {
             return <AppodealAccountComponent account={appodealAccount}
                                              onSignIn={e => this.onSignIn(e)}
                                              onSignOut={e => this.onSignOut(e)}
             />;
         } else {
-            return <AdmobAccountComponent account={this.state.selectedAccount as AdMobAccount}
-                                          historyInfo={this.props.syncHistory[this.state.selectedAccount.id]}
-                                          syncProgress={this.props.syncProgress[this.state.selectedAccount.id]}
-                                          logs={this.state.accountLogs}
+            return <AdmobAccountComponent account={this.selectedAccount as AdMobAccount}
+                                          historyInfo={this.props.syncHistory[this.selectedAccount.id]}
+                                          syncProgress={this.props.syncProgress[this.selectedAccount.id]}
+                                          logs={this.logs}
             />;
         }
     }
@@ -108,7 +93,7 @@ export class AccountsComponent extends React.Component<AccountsComponentProps, A
     }
 
     render () {
-        let {selectedAccount} = this.state,
+        let selectedAccount = this.selectedAccount,
             {appodealAccount} = this.props,
             {accounts} = appodealAccount;
         return (
