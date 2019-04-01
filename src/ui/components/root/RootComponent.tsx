@@ -2,6 +2,7 @@ import {AppState} from 'core/store';
 import {remote} from 'electron';
 import {classNames} from 'lib/dom';
 import React from 'react';
+import {OfflineComponent} from 'ui/components/offline/OfflineComponent';
 import {AccountsComponent} from '../accounts/AccountsComponent';
 import style from './Root.scss';
 
@@ -45,6 +46,9 @@ export class RootComponent extends React.Component<RootComponentProps, RootCompo
     }
 
     render () {
+        if (!this.props.store.online) {
+            return <OfflineComponent nextReconnect={this.props.store.nextReconnect}/>;
+        }
         return (
             <section className={style.tabsContainer}>
                 <div className={style.tabsBar}>

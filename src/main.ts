@@ -1,8 +1,10 @@
 require('source-map-support').install();
 import {AccountsConnector} from 'core/accounts-connector';
 import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
+import {OnlineService} from 'core/appdeal-api/online.service';
 import {ErrorFactoryService} from 'core/error-factory/error-factory.service';
 import {LogsConnector} from 'core/logs-connector';
+import {OnlineConnector} from 'core/online-connector';
 import {Store} from 'core/store';
 import {SyncService} from 'core/sync-apps/sync.service';
 import {SyncConnector} from 'core/sync-connector';
@@ -31,17 +33,21 @@ app.on('ready', () => {
 
     let errorFactory = new ErrorFactoryService(),
         appodealApi = new AppodealApiService(errorFactory),
+        onlineService = new OnlineService(appodealApi),
         store = new Store(
-            appodealApi
+            appodealApi,
+            onlineService
         ),
         accountsConnector = new AccountsConnector(store),
         logsConnector = new LogsConnector(store, appodealApi),
-
-        syncService = new SyncService(store, appodealApi),
+        onlineConnector = new OnlineConnector(store),
+        syncService = new SyncService(store, appodealApi, onlineService),
         // syncScheduler = new SyncScheduler(syncService, store),
         syncConnector = new SyncConnector(store, appodealApi, syncService);
 
+
     appodealApi.init()
+        .then(() => onlineService.onceOnline())
         .then(() => store.appodealFetchUser())
         .then(account => {
             if (account === AppodealApiService.emptyAccount) {
@@ -56,12 +62,18 @@ app.on('ready', () => {
 
 
     const cleanUpOnExit = async function () {
+        await onlineConnector.destroy();
         await accountsConnector.destroy();
         await syncConnector.destroy();
         await logsConnector.destroy();
         await syncService.destroy();
+        await onlineService.destroy();
         // await syncScheduler.destroy();
     };
+
+    onlineService.online().subscribe(v => {
+        console.warn('online', v);
+    });
 
 
     process.on('SIGTERM', () => app.quit());
