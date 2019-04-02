@@ -1,3 +1,4 @@
+import {UpdatesConnector} from 'core/updates-connector';
 import {Menu, Tray} from 'electron';
 import {showAboutDialog} from 'lib/about';
 import {getDefaultTrayIcon} from 'lib/icon';
@@ -10,7 +11,7 @@ class AppTray {
     private readonly tray: Tray;
     private warningIconInterval;
 
-    constructor () {
+    constructor (private updatesConnector?: UpdatesConnector) {
         if (INSTANCE instanceof AppTray) {
             return INSTANCE;
         } else {
@@ -20,6 +21,7 @@ class AppTray {
         this.tray.setContextMenu(Menu.buildFromTemplate([
             {type: 'normal', label: 'Settings', click: () => openSettingsWindow()},
             {type: 'normal', label: 'About', click: () => showAboutDialog()},
+            {type: 'normal', label: 'Check for updates', click: () => this.updatesConnector.checkForUpdates(false, 'modal')},
             {type: 'separator'},
             {type: 'normal', label: 'Quit', role: 'quit'}
         ]));
@@ -43,8 +45,8 @@ class AppTray {
     }
 }
 
-export function createAppTray () {
-    INSTANCE = new AppTray();
+export function createAppTray (updatesConnector: UpdatesConnector) {
+    INSTANCE = new AppTray(updatesConnector);
 }
 
 export function getAppTray (): AppTray {

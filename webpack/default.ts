@@ -55,6 +55,19 @@ export const entries = [main, settings].map(entry => (env: webpack.Configuration
                     ]
                 },
                 {
+                    test: /\.ico$/,
+                    use: [
+                        {
+                            loader: 'file-loader',
+                            options: {
+                                name: '[name].[ext]',
+                                publicPath: './assets/images',
+                                outputPath: './assets/images'
+                            }
+                        }
+                    ]
+                },
+                {
                     test: /\.scss$/, use: [
                         CSSExtractPlugin.loader,
                         {

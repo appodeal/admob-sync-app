@@ -9,3 +9,16 @@ export function isWindows (): boolean {
 export function isLinux (): boolean {
     return process.platform === 'linux';
 }
+
+export function getOsName () {
+    switch (process.platform) {
+    case 'linux':
+        return 'linux';
+    case 'darwin':
+        return 'mac';
+    case 'win32':
+        return 'win';
+    default:
+        return process.platform;
+    }
+}

@@ -8,12 +8,15 @@ import {OnlineConnector} from 'core/online-connector';
 import {Store} from 'core/store';
 import {SyncService} from 'core/sync-apps/sync.service';
 import {SyncConnector} from 'core/sync-connector';
+import {UpdatesConnector} from 'core/updates-connector';
 import {app} from 'electron';
 import {createAppMenu} from 'lib/app-menu';
+import {Preferences} from 'lib/app-preferences';
 import {createAppTray} from 'lib/app-tray';
 import {initBugTracker, Sentry} from 'lib/sentry';
 import {openSettingsWindow} from 'lib/settings';
 import {initThemeSwitcher} from 'lib/theme';
+import {UpdatesService} from 'lib/updates';
 
 
 if (!environment.development) {
@@ -27,23 +30,25 @@ if (app.dock) {
     app.dock.hide();
 }
 app.on('window-all-closed', () => {});
-app.on('ready', () => {
-    createAppTray();
-    createAppMenu();
+app.on('ready', async () => {
 
-    let errorFactory = new ErrorFactoryService(),
+    let preferences = await Preferences.load(),
+        errorFactory = new ErrorFactoryService(),
         appodealApi = new AppodealApiService(errorFactory),
         onlineService = new OnlineService(appodealApi),
         store = new Store(
             appodealApi,
-            onlineService
+            onlineService,
+            preferences
         ),
         accountsConnector = new AccountsConnector(store),
         logsConnector = new LogsConnector(store, appodealApi),
         onlineConnector = new OnlineConnector(store),
         syncService = new SyncService(store, appodealApi, onlineService),
         // syncScheduler = new SyncScheduler(syncService, store),
-        syncConnector = new SyncConnector(store, appodealApi, syncService);
+        syncConnector = new SyncConnector(store, appodealApi, syncService),
+        updates = new UpdatesService(preferences.updates.lastCheck),
+        updatesConnector = new UpdatesConnector(store, updates);
 
 
     appodealApi.init()
@@ -61,15 +66,16 @@ app.on('ready', () => {
         });
 
 
-    const cleanUpOnExit = async function () {
-        await onlineConnector.destroy();
-        await accountsConnector.destroy();
-        await syncConnector.destroy();
-        await logsConnector.destroy();
-        await syncService.destroy();
-        await onlineService.destroy();
-        // await syncScheduler.destroy();
-    };
+    const cleanUpOnExit = () => Promise.all([
+        onlineConnector.destroy(),
+        accountsConnector.destroy(),
+        syncConnector.destroy(),
+        logsConnector.destroy(),
+        syncService.destroy(),
+        updatesConnector.destroy(),
+        onlineService.destroy()
+        // syncScheduler.destroy();
+    ]);
 
     onlineService.online().subscribe(v => {
         console.warn('online', v);
@@ -78,6 +84,7 @@ app.on('ready', () => {
 
     process.on('SIGTERM', () => app.quit());
     process.on('SIGINT', () => app.quit());
+
     let cleanUpFinished = false;
     app.on('before-quit', async (e) => {
         console.log('before-quit', cleanUpFinished);
@@ -92,5 +99,13 @@ app.on('ready', () => {
             setTimeout(() => app.quit());
         }
     });
+
+
+    createAppTray(updatesConnector);
+    createAppMenu();
+
+    let {checkPeriod, customOptions} = store.state.preferences.updates;
+    updatesConnector.checkForUpdates(true, 'notification');
+    updatesConnector.runScheduler(checkPeriod, customOptions);
 });
 
