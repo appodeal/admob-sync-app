@@ -119,7 +119,6 @@ export class ErrorFactoryService {
             extensions: error.operation.extensions
         };
         fingerPrint.push(extra.graphQLRequest.operationName);
-        extra.graphQLContext = error.operation.getContext();
         if (error.graphQLErrors) {
             extra.graphQLErrors = error.graphQLErrors;
             error.graphQLErrors
