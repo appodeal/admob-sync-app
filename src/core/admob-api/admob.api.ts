@@ -8,6 +8,10 @@ import {getTranslator} from 'lib/translators/translator.helpers';
 import trim from 'lodash.trim';
 
 
+export class RefreshXsrfTokenError extends Error {
+
+}
+
 export class AdmobApiService {
 
     private host = trim(environment.services.ad_mob, '/');
@@ -56,7 +60,7 @@ export class AdmobApiService {
         const mathResult = body.match(/xsrfToken: '([^\']*)'/);
         if (!mathResult || !mathResult[1]) {
             // may be user's action required
-            throw new Error('failed to refresh xsrfToken');
+            throw new RefreshXsrfTokenError('failed to refresh xsrfToken');
         }
         this.setXrfToken(mathResult[1]);
     }

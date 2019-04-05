@@ -149,6 +149,7 @@
     "apollo-link-batch-http": "^1.2.8",
     "apollo-link-context": "^1.0.15",
     "apollo-link-error": "^1.1.7",
+    "compare-versions": "^3.4.0",
     "electron-platform": "^1.2.0",
     "fs-extra": "^7.0.1",
     "graphql": "^14.1.1",

@@ -1,3 +1,4 @@
+import {OnlineService} from 'core/appdeal-api/online.service';
 import {Store} from 'core/store';
 import {SyncHistory} from 'core/sync-apps/sync-history';
 import {SyncService} from 'core/sync-apps/sync.service';
@@ -19,7 +20,7 @@ export class SyncScheduler {
     private intervalID;
     private initialized = false;
 
-    constructor (private syncService: SyncService, private store: Store) {
+    constructor (private syncService: SyncService, private store: Store, private online: OnlineService) {
         this.init();
     }
 
@@ -39,23 +40,31 @@ export class SyncScheduler {
     }
 
     runOnStart () {
-        let unsubscribe = observe(this.store.state, 'selectedAppodealAccount', () => {
-            // after app started
-            // once appodeal account loaded
-            // run sync automatically
-            if (this.store.state.selectedAppodealAccount) {
-                unsubscribe();
-                unsubscribe = null;
-                this.store.state.selectedAppodealAccount.accounts.forEach(adMobAccount => {
-                    this.log(`App started. Run sync for Admob Account [${adMobAccount.id} ${adMobAccount.email}]`);
-                    this.syncService.runSync(this.store.state.selectedAppodealAccount.id, adMobAccount);
-                });
-            }
+
+        this.online.onceOnline().then(() => {
+
+            let unsubscribe = observe(this.store.state, 'selectedAppodealAccount', () => {
+                // after app started
+                // once appodeal account loaded
+                // run sync automatically
+                if (this.store.state.selectedAppodealAccount) {
+                    unsubscribe();
+                    unsubscribe = null;
+                    this.store.state.selectedAppodealAccount.accounts.forEach(adMobAccount => {
+                        this.log(`App started. Run sync for Admob Account [${adMobAccount.id} ${adMobAccount.email}]`);
+                        this.syncService.runSync(this.store.state.selectedAppodealAccount.id, adMobAccount);
+                    });
+                }
+            });
         });
     }
 
     runPeriodically () {
         this.intervalID = setInterval(() => {
+            if (this.online.isOffline()) {
+                // we are offline. do nothing unless get online
+                return;
+            }
             if (this.store.state.selectedAppodealAccount) {
                 const {accounts} = this.store.state.selectedAppodealAccount;
                 accounts.forEach(async adMobAccount => {

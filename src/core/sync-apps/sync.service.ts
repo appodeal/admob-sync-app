@@ -48,6 +48,11 @@ export class SyncService {
             return;
         }
 
+        if (!await this.store.validateAppVersion()) {
+            console.log('[Sync Service] Can not run sync. App version is OutDated!');
+            return;
+        }
+
         const admobSession = await AdMobSessions.getSession(admobAccount);
 
         if (!admobSession) {
