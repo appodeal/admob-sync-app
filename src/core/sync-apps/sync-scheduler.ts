@@ -62,7 +62,8 @@ export class SyncScheduler {
     runPeriodically () {
         this.intervalID = setInterval(() => {
             if (this.online.isOffline()) {
-                // we are offline. do nothin unless g
+                // we are offline. do nothing unless get online
+                return;
             }
             if (this.store.state.appodealAccount) {
                 const {accounts} = this.store.state.appodealAccount;
