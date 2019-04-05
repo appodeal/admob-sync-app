@@ -32,6 +32,9 @@
       + button:not(.active) {
         outline: 1px solid #525251;
       }
+      &[disabled] {
+         background-color: rgb(70, 79, 79);
+      }
 
       &.active {
         background-image: linear-gradient(to bottom, #1869e6, #155ecc);
@@ -52,4 +55,15 @@
     display: flex;
   }
 
+}
+
+.outdated {
+  background: #ca8200;
+  text-align: center;
+  margin: 20px 0;
+  border-radius: 8px;
+  height: 50px;
+  line-height: 50px;
+  color: #fff7e7;
+  font-size: 14px;
 }

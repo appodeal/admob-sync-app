@@ -1,4 +1,5 @@
 import {configureScope} from '@sentry/electron';
+import compareVersions from 'compare-versions';
 import {AdMobSessions} from 'core/admob-api/admob-sessions.helper';
 import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
 import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
@@ -6,11 +7,13 @@ import {AppodealAccount} from 'core/appdeal-api/interfaces/appodeal.account.inte
 import {OnlineService} from 'core/appdeal-api/online.service';
 import {SyncHistory, SyncHistoryInfo} from 'core/sync-apps/sync-history';
 import {SyncEvent, SyncEventsTypes, SyncReportProgressEvent} from 'core/sync-apps/sync.events';
-import {BrowserWindow} from 'electron';
+import {BrowserWindow, Notification} from 'electron';
+import {getAppVersion} from 'lib/about';
 import {ActionTypes} from 'lib/actions';
 import {AppPreferences, Preferences} from 'lib/app-preferences';
 import {deepAssign} from 'lib/core';
 import {onActionFromRenderer} from 'lib/messages';
+import {openSettingsWindow} from 'lib/settings';
 import {getLogsList, LogFileInfo} from 'lib/sync-logs/logger';
 import {confirmDialog, messageDialog, openWindow, waitForNavigation} from 'lib/window';
 import {action, observable, observe, set} from 'mobx';
@@ -36,6 +39,7 @@ export interface AppState {
     syncProgress: Record<AccountID, SyncProgress | undefined>;
     preferences: AppPreferences;
     online: boolean;
+    outdatedVersion: boolean;
     nextReconnect: number;
 }
 
@@ -56,6 +60,7 @@ export class Store {
         syncProgress: {},
         preferences: null,
         online: false,
+        outdatedVersion: false,
         nextReconnect: 0
     };
 
@@ -130,12 +135,51 @@ export class Store {
         set<AppState>(this.state, 'syncHistory', {...(this.state.syncHistory || {}), [account.id]: history});
     }
 
+
+    async validateAppVersion () {
+        if (this.state.outdatedVersion) {
+            return false;
+        }
+
+        const minimalVersion = await this.appodealApi.getMinimalAppVersion();
+        if (compareVersions(minimalVersion, getAppVersion()) !== 1) {
+            console.log(`Minimal app version ${minimalVersion}. OK.`);
+            // everything is ok
+            return true;
+        }
+        console.warn(`Minimal app version ${minimalVersion}. Current one is ${getAppVersion()}.`);
+        this.notifyThatAppOutdated();
+
+        return false;
+    }
+
+    notifyThatAppOutdated () {
+        if (this.state.outdatedVersion) {
+            // already notified
+            return false;
+        }
+        set<AppState>(this.state, 'outdatedVersion', true);
+        // notify user
+        let notification = new Notification({
+            title: 'AdMob Sync is outdated ',
+            body: `AdMob Sync is outdated. Please update it to be able to sync your apps.`
+        });
+        notification.once('click', () => {
+            notification.close();
+            openSettingsWindow();
+        });
+        notification.once('close', () => {
+            notification = null;
+        });
+        notification.show();
+    }
+
     isSyncing () {
         return Object.values(this.state.syncProgress).filter(Boolean).length !== 0;
     }
 
     hasWarnings () {
-        return this.state.appodealAccount.accounts
+        return this.state.outdatedVersion || this.state.appodealAccount.accounts
             .map(account => this.state.syncHistory[account.id])
             .filter(Boolean)
             .map(v => v.admobAuthorizationRequired)
