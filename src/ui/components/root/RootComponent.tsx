@@ -2,8 +2,8 @@ import {AppState} from 'core/store';
 import {remote} from 'electron';
 import {classNames} from 'lib/dom';
 import React from 'react';
-import {UpdatesSettings} from 'ui/components/updates-settings/UpdatesSettingsComponent';
 import {OfflineComponent} from 'ui/components/offline/OfflineComponent';
+import {UpdatesSettings} from 'ui/components/updates-settings/UpdatesSettingsComponent';
 import {AccountsComponent} from '../accounts/AccountsComponent';
 import style from './Root.scss';
 
@@ -18,9 +18,9 @@ interface RootComponentState {
 
 export class RootComponent extends React.Component<RootComponentProps, RootComponentState> {
     private tabs = [
-        {id: 'accounts', label: 'Accounts'},
-        {id: 'updates', label: 'Updates'},
-        {id: 'development', label: 'Development'}
+        {id: 'accounts', label: 'Accounts', isDisabled: () => this.props.store.outdatedVersion},
+        {id: 'updates', label: 'Updates', isDisabled: () => false},
+        {id: 'development', label: 'Development', isDisabled: () => false}
     ];
 
     constructor (props) {
@@ -30,7 +30,19 @@ export class RootComponent extends React.Component<RootComponentProps, RootCompo
         };
     }
 
-    private setTab (tabId) {
+    componentWillMount (): void {
+        if (this.props.store.outdatedVersion) {
+            this.selectTab('updates');
+        }
+    }
+
+    componentDidUpdate (prevProps: Readonly<RootComponentProps>, prevState: Readonly<RootComponentState>, snapshot?: any): void {
+        if (this.tabs.find(tab => tab.id === this.state.tab).isDisabled()) {
+            this.selectTab(this.tabs.find(tab => !tab.isDisabled()).id);
+        }
+    }
+
+    private selectTab (tabId) {
         this.setState({
             tab: tabId
         });
@@ -53,13 +65,16 @@ export class RootComponent extends React.Component<RootComponentProps, RootCompo
         if (!this.props.store.online) {
             return <OfflineComponent nextReconnect={this.props.store.nextReconnect}/>;
         }
-        return (
+        return (<>
+            {this.props.store.outdatedVersion &&
+            <div className={style.outdated}>App version is outdated! Please update it to be able to run sync!</div>}
             <section className={style.tabsContainer}>
                 <div className={style.tabsBar}>
                     {this.tabs.map(tab => {
                         return <button type="button"
                                        key={tab.id}
-                                       onClick={() => this.setTab(tab.id)}
+                                       disabled={tab.isDisabled()}
+                                       onClick={() => this.selectTab(tab.id)}
                                        className={classNames({[style.active]: tab.id === this.state.tab})}
                         >{tab.label}</button>;
                     })}
@@ -68,6 +83,6 @@ export class RootComponent extends React.Component<RootComponentProps, RootCompo
                     {this.renderTabContent(this.state.tab)}
                 </div>
             </section>
-        );
+        </>);
     }
 }

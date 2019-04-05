@@ -6,6 +6,7 @@ import {ErrorFactoryService} from 'core/error-factory/error-factory.service';
 import {LogsConnector} from 'core/logs-connector';
 import {OnlineConnector} from 'core/online-connector';
 import {Store} from 'core/store';
+import {SyncScheduler} from 'core/sync-apps/sync-scheduler';
 import {SyncService} from 'core/sync-apps/sync.service';
 import {SyncConnector} from 'core/sync-connector';
 import {UpdatesConnector} from 'core/updates-connector';
@@ -44,13 +45,13 @@ app.on('ready', async () => {
         ),
         updates = new UpdatesService(preferences.updates.lastCheck),
         updatesConnector = new UpdatesConnector(store, updates),
+        syncService = new SyncService(store, appodealApi, onlineService),
         tray = new AppTray(updatesConnector),
         trayIcon = new TrayIcon(store, tray),
         accountsConnector = new AccountsConnector(store),
         logsConnector = new LogsConnector(store, appodealApi),
         onlineConnector = new OnlineConnector(store),
-        syncService = new SyncService(store, appodealApi, onlineService),
-        // syncScheduler = new SyncScheduler(syncService, store),
+        syncScheduler = new SyncScheduler(syncService, store, onlineService),
         syncConnector = new SyncConnector(store, appodealApi, syncService);
 
 
@@ -60,6 +61,7 @@ app.on('ready', async () => {
         .then(account => {
             if (account === AppodealApiService.emptyAccount) {
                 openSettingsWindow();
+                store.validateAppVersion();
             }
         })
         .catch(e => {
@@ -78,8 +80,8 @@ app.on('ready', async () => {
         logsConnector.destroy(),
         syncService.destroy(),
         updatesConnector.destroy(),
-        onlineService.destroy()
-        // syncScheduler.destroy();
+        onlineService.destroy(),
+        syncScheduler.destroy()
     ]);
 
     onlineService.online().subscribe(v => {
