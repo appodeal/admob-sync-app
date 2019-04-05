@@ -4,7 +4,6 @@ import {getAppVersion} from 'lib/about';
 import {AppPreferences} from 'lib/app-preferences';
 import {nodeFetch} from 'lib/fetch';
 import {getOsName} from 'lib/platform';
-import {URLS} from 'lib/urls';
 import {messageDialog} from 'lib/window';
 import Timeout = NodeJS.Timeout;
 
@@ -24,11 +23,11 @@ class Dist implements DistInfo {
     }
 
     download () {
-        shell.openExternal(`${URLS.updates}/${this.fileName}`);
+        shell.openExternal(`${environment.updates.updatesServerUrl}/${this.fileName}`);
     }
 
     viewReleaseNotes () {
-        shell.openExternal(`${URLS.releaseNotes}/`);
+        shell.openExternal(`${environment.updates.releaseNotesUrl}/`);
     }
 
     async notify () {
@@ -85,7 +84,7 @@ export class UpdatesService extends EventEmitter {
     }
 
     private async fetchDistInfo (): Promise<DistInfo> {
-        let response = await nodeFetch<{ [key: string]: DistInfo }>(`${URLS.updates}/dist-info.json`, {
+        let response = await nodeFetch<{ [key: string]: DistInfo }>(`${environment.updates.updatesServerUrl}/dist-info.json`, {
                 headers: {
                     'cache-control': 'no-cache'
                 }

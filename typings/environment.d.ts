@@ -17,6 +17,10 @@ declare interface Environment {
         password: string
     };
     readonly multipleAccountsSupport: boolean;
+    readonly updates: {
+        releaseNotesUrl: string,
+        updatesServerUrl: string
+    };
 }
 
 declare const environment: Environment;
