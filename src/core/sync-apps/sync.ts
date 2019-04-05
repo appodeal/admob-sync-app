@@ -1,5 +1,5 @@
 import {captureMessage} from '@sentry/core';
-import {AdmobApiService} from 'core/admob-api/admob.api';
+import {AdmobApiService, RefreshXsrfTokenError} from 'core/admob-api/admob.api';
 import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
 import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
 import {AdType, AppodealAdUnit, AppodealApp, AppodealPlatform, Format} from 'core/appdeal-api/interfaces/appodeal-app.interface';
@@ -148,9 +148,15 @@ export class Sync {
 
         yield `refrech Admob xsrf Token`;
         try {
-            await retry(() => this.adMobApi.refreshXsrfToken(), 3, 1000);
+            await retry(async () => this.adMobApi.refreshXsrfToken(), 3, 1000);
         } catch (e) {
-            this.emitError(e);
+            if (e instanceof RefreshXsrfTokenError) {
+                // this error is not supposed to be emitted and handler further
+                this.hasErrors = true;
+                this.logger.error(e);
+            } else {
+                this.emitError(e);
+            }
             this.emit(SyncEventsTypes.UserActionsRequired);
             this.terminated = true;
             yield 'Terminated as User Actions is Required';
