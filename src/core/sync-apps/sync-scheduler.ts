@@ -39,16 +39,16 @@ export class SyncScheduler {
     }
 
     runOnStart () {
-        let unsubscribe = observe(this.store.state, 'appodealAccount', () => {
+        let unsubscribe = observe(this.store.state, 'selectedAppodealAccount', () => {
             // after app started
             // once appodeal account loaded
             // run sync automatically
-            if (this.store.state.appodealAccount) {
+            if (this.store.state.selectedAppodealAccount) {
                 unsubscribe();
                 unsubscribe = null;
-                this.store.state.appodealAccount.accounts.forEach(adMobAccount => {
+                this.store.state.selectedAppodealAccount.accounts.forEach(adMobAccount => {
                     this.log(`App started. Run sync for Admob Account [${adMobAccount.id} ${adMobAccount.email}]`);
-                    this.syncService.runSync(adMobAccount);
+                    this.syncService.runSync(this.store.state.selectedAppodealAccount.id, adMobAccount);
                 });
             }
         });
@@ -56,14 +56,14 @@ export class SyncScheduler {
 
     runPeriodically () {
         this.intervalID = setInterval(() => {
-            if (this.store.state.appodealAccount) {
-                const {accounts} = this.store.state.appodealAccount;
+            if (this.store.state.selectedAppodealAccount) {
+                const {accounts} = this.store.state.selectedAppodealAccount;
                 accounts.forEach(async adMobAccount => {
                     const lastSync = await SyncHistory.getLastSync(adMobAccount);
                     if (!lastSync) {
 
                         this.log(`Admob Account [${adMobAccount.id} ${adMobAccount.email}] has never synced. Run sync.`);
-                        return this.syncService.runSync(adMobAccount);
+                        return this.syncService.runSync(this.store.state.selectedAppodealAccount.id, adMobAccount);
                     }
                     const scienceLastSync = Date.now() - lastSync.getTime();
                     if (scienceLastSync > this.syncPeriod) {
@@ -71,7 +71,7 @@ export class SyncScheduler {
                             timeConversion(scienceLastSync)
                             }. Run sync.`
                         );
-                        return this.syncService.runSync(adMobAccount);
+                        return this.syncService.runSync(this.store.state.selectedAppodealAccount.id, adMobAccount);
                     }
                 });
             }

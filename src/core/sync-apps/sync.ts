@@ -56,7 +56,7 @@ export class Sync {
         private adMobApi: AdmobApiService,
         private appodealApi: AppodealApiService,
         public adMobAccount: AdMobAccount,
-        private appodealAccount: AppodealAccount,
+        private appodealAccountId: string,
         private logger: Partial<Console>,
         // some uniq syncId
         public readonly id: string
@@ -142,7 +142,7 @@ export class Sync {
         this.emit(SyncEventsTypes.Started);
         this.logger.info(`Sync Params
         uuid: ${this.id}
-        AppodealAccount: '${this.appodealAccount.id}}': '${this.appodealAccount.email}}'
+        AppodealAccount: '${this.appodealAccountId}}'
         AdmobAccount: '${this.adMobAccount.id}}': '${this.adMobAccount.email}}'
         `);
 

@@ -16,6 +16,7 @@ declare interface Environment {
         login: string,
         password: string
     };
+    readonly multipleAccountsSupport: boolean;
 }
 
 declare const environment: Environment;

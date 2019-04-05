@@ -15,6 +15,7 @@ import style from './AdmobAccount.scss';
 
 
 interface AdmobAccountComponentProps {
+    appodealAccountId: string;
     account: AdMobAccount;
     syncProgress: SyncProgress;
     historyInfo: SyncHistoryInfo;
@@ -39,7 +40,7 @@ export class AdmobAccountComponent extends Component<AdmobAccountComponentProps,
     }
 
     get signedIn () {
-        return !this.props.historyInfo.admobAuthorizationRequired;
+        return !!this.props.historyInfo && !this.props.historyInfo.admobAuthorizationRequired;
     }
 
     componentWillReceiveProps (nextProps: Readonly<AdmobAccountComponentProps>) {
@@ -71,15 +72,23 @@ export class AdmobAccountComponent extends Component<AdmobAccountComponentProps,
     }
 
     private runSync () {
-        return sendToMain('sync', action(ActionTypes.runSync, this.props.account));
+        return sendToMain('sync', action(ActionTypes.runSync, {
+            appodealAccountId: this.props.appodealAccountId,
+            adMobAccount: this.props.account
+        }));
     }
 
     private openAdMob () {
-        return sendToMain('accounts', action(ActionTypes.openAdmobPage, this.props.account));
+        return sendToMain('accounts', action(ActionTypes.openAdmobPage, {
+            adMobAccount: this.props.account
+        }));
     }
 
     private signInAdMob () {
-        return sendToMain('accounts', action(ActionTypes.appodealReSignIn, this.props.account)).catch(e => alert(e.message));
+        return sendToMain('accounts', action(ActionTypes.adMobReSignIn, {
+            appodealAccountId: this.props.appodealAccountId,
+            adMobAccount: this.props.account
+        })).catch(e => alert(e.message));
     }
 
     private setupDone (event: Event) {
@@ -89,9 +98,12 @@ export class AdmobAccountComponent extends Component<AdmobAccountComponentProps,
             clientSecret = getFormElement(form, 'clientSecret').value.trim(),
             accountId = this.props.account.id;
         return sendToMain('accounts', action(ActionTypes.adMobSetCredentials, {
-            clientId,
-            clientSecret,
-            accountId
+            appodealAccountId: this.props.appodealAccountId,
+            credentialsInfo: {
+                clientId,
+                clientSecret,
+                accountId
+            }
         }))
             .then(() => this.displaySetupForm(this.props.account.isReadyForReports))
             .catch(error => messageDialog(error.message));
@@ -133,6 +145,13 @@ export class AdmobAccountComponent extends Component<AdmobAccountComponentProps,
             </div>}
             <div>
                 {this.signedIn && <>
+                    {
+                        //  make public when open admob safe browsing admob is implemented
+                        environment.development &&
+                        <div style={{marginBottom: '10px'}}>
+                            <button type="button" onClick={singleEvent(this.openAdMob, this)}>Open Admob (For developers only)</button>
+                        </div>
+                    }
                     <button type="button"
                             onClick={singleEvent(this.runSync, this)}
                             className={'primary'}
@@ -140,11 +159,7 @@ export class AdmobAccountComponent extends Component<AdmobAccountComponentProps,
                     >
                         Run Sync
                     </button>
-                    {
-                        //  make public when open admob safe browsing admob is implemented
-                        environment.development &&
-                        <button type="button" onClick={singleEvent(this.openAdMob, this)}>Open Admob (For developers only)</button>
-                    }
+
                     {!this.isSetupFormVisible(account) &&
                     <button type="button" onClick={() => this.displaySetupForm(true)}>Set credentials</button>}
                 </>}

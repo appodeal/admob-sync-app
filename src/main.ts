@@ -1,6 +1,9 @@
 require('source-map-support').install();
 import {AccountsConnector} from 'core/accounts-connector';
-import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
+import {AdMobSessions} from 'core/admob-api/admob-sessions.helper';
+import {AppodealApi} from 'core/appdeal-api/appodeal-api.factory';
+import {AppodealSessions} from 'core/appdeal-api/appodeal-sessions.helper';
+import {AuthContext} from 'core/appdeal-api/auth-context';
 import {OnlineService} from 'core/appdeal-api/online.service';
 import {ErrorFactoryService} from 'core/error-factory/error-factory.service';
 import {LogsConnector} from 'core/logs-connector';
@@ -14,8 +17,8 @@ import {createAppMenu} from 'lib/app-menu';
 import {Preferences} from 'lib/app-preferences';
 import {createAppTray} from 'lib/app-tray';
 import {initBugTracker, Sentry} from 'lib/sentry';
-import {openSettingsWindow} from 'lib/settings';
 import {initThemeSwitcher} from 'lib/theme';
+import {openAppodealSignInWindow} from 'lib/ui-windows';
 import {UpdatesService} from 'lib/updates';
 
 
@@ -32,10 +35,15 @@ if (app.dock) {
 app.on('window-all-closed', () => {});
 app.on('ready', async () => {
 
-    let preferences = await Preferences.load(),
+    let [preferences] = await Promise.all([
+            Preferences.load(),
+            AppodealSessions.init(),
+            AdMobSessions.init(),
+            AuthContext.init()
+        ]),
         errorFactory = new ErrorFactoryService(),
-        appodealApi = new AppodealApiService(errorFactory),
-        onlineService = new OnlineService(appodealApi),
+        appodealApi = new AppodealApi(errorFactory, preferences.accounts.appodealAccounts),
+        onlineService = new OnlineService(appodealApi.getDefault()),
         store = new Store(
             appodealApi,
             onlineService,
@@ -46,17 +54,15 @@ app.on('ready', async () => {
         onlineConnector = new OnlineConnector(store),
         syncService = new SyncService(store, appodealApi, onlineService),
         // syncScheduler = new SyncScheduler(syncService, store),
-        syncConnector = new SyncConnector(store, appodealApi, syncService),
+        syncConnector = new SyncConnector(store, syncService),
         updates = new UpdatesService(preferences.updates.lastCheck),
         updatesConnector = new UpdatesConnector(store, updates);
 
 
-    appodealApi.init()
-        .then(() => onlineService.onceOnline())
-        .then(() => store.appodealFetchUser())
-        .then(account => {
-            if (account === AppodealApiService.emptyAccount) {
-                openSettingsWindow();
+    onlineService.onceOnline()
+        .then(() => {
+            if (preferences.accounts.appodealAccounts.length === 0) {
+                openAppodealSignInWindow();
             }
         })
         .catch(e => {

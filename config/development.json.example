@@ -10,6 +10,7 @@
     "basicAuth": {
       "login": "",
       "password": ""
-    }
+    },
+    "multipleAccountsSupport": false
   }
 }

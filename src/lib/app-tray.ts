@@ -2,7 +2,7 @@ import {UpdatesConnector} from 'core/updates-connector';
 import {Menu, Tray} from 'electron';
 import {showAboutDialog} from 'lib/about';
 import {getDefaultTrayIcon} from 'lib/icon';
-import {openSettingsWindow} from 'lib/settings';
+import {openSettingsWindow} from 'lib/ui-windows';
 
 
 let INSTANCE: AppTray = null;

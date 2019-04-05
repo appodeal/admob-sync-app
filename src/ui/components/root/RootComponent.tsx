@@ -2,8 +2,8 @@ import {AppState} from 'core/store';
 import {remote} from 'electron';
 import {classNames} from 'lib/dom';
 import React from 'react';
-import {UpdatesSettings} from 'ui/components/updates-settings/UpdatesSettingsComponent';
 import {OfflineComponent} from 'ui/components/offline/OfflineComponent';
+import {UpdatesSettings} from 'ui/components/updates-settings/UpdatesSettingsComponent';
 import {AccountsComponent} from '../accounts/AccountsComponent';
 import style from './Root.scss';
 

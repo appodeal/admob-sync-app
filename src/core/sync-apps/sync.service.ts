@@ -1,8 +1,10 @@
 import * as Sentry from '@sentry/electron';
 import {AdMobSessions} from 'core/admob-api/admob-sessions.helper';
 import {AdmobApiService} from 'core/admob-api/admob.api';
+import {AppodealApi} from 'core/appdeal-api/appodeal-api.factory';
 import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
 import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
+import {AppodealAccount} from 'core/appdeal-api/interfaces/appodeal.account.interface';
 import {OnlineService} from 'core/appdeal-api/online.service';
 import {Store} from 'core/store';
 import {Sync} from 'core/sync-apps/sync';
@@ -20,7 +22,7 @@ export class SyncService {
     private activeSyncs = new Map<Sync, FinishPromise>();
 
 
-    constructor (private store: Store, private appodealApi: AppodealApiService, private onlineService: OnlineService) {
+    constructor (private store: Store, private appodealApi: AppodealApi, private onlineService: OnlineService) {
 
     }
 
@@ -33,7 +35,7 @@ export class SyncService {
     }
 
 
-    public async runSync (admobAccount: AdMobAccount) {
+    public async runSync (appodealAccountId: string, admobAccount: AdMobAccount) {
 
         if (this.onlineService.isOffline()) {
             console.log('[Sync Service] Can not run sync. No Internet Connection');
@@ -61,9 +63,9 @@ export class SyncService {
 
         const sync = new Sync(
             adMobApi,
-            this.appodealApi,
+            this.appodealApi.getFor(appodealAccountId),
             admobAccount,
-            this.store.state.appodealAccount,
+            appodealAccountId,
             logger,
             id
         );
@@ -137,7 +139,7 @@ export class SyncService {
 
     private async submitLog (admobAccount: AdMobAccount, syncId: string) {
         const rawLog = await getLogContent(admobAccount, syncId);
-        return this.appodealApi.submitLog(admobAccount.id, syncId, rawLog);
+        return this.appodealApi.getDefault().submitLog(admobAccount.id, syncId, rawLog);
     }
 
     public async destroy () {

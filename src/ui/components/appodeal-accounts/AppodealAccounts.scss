@@ -1,0 +1,57 @@
+.accountsList {
+  display: grid;
+  height: 100%;
+  grid-template-columns: 1fr 100px;
+  grid-template-rows: 1fr;
+  grid-gap: 0 20px;
+
+  ul {
+    margin: 0;
+    padding: 0;
+    list-style-type: none;
+    border: 1px solid #727274;
+    background-color: #262525;
+    overflow: auto;
+
+    li {
+      padding: 5px;
+      display: flex;
+      max-width: 100%;
+      overflow: hidden;
+      align-items: center;
+
+      &.active {
+        background-color: #0058d0;
+        color: #bcd2f3;
+      }
+
+      .email {
+        flex: 1 1 auto;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+
+      .warning {
+        flex: 0 0 16px;
+        height: 16px;
+        margin-inline-start: 10px;
+        --warning-color: #b8c737;
+
+        &:empty {
+          display: none;
+        }
+      }
+    }
+  }
+
+  .actions {
+    button {
+      width: 100%;
+
+      & + button {
+        margin-block-start: 10px;
+      }
+    }
+  }
+}

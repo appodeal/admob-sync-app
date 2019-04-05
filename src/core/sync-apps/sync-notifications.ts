@@ -3,7 +3,7 @@ import {Store} from 'core/store';
 import {Sync} from 'core/sync-apps/sync';
 import {SyncEventsTypes} from 'core/sync-apps/sync.events';
 import {Notification} from 'electron';
-import {openSettingsWindow} from 'lib/settings';
+import {openSettingsWindow} from 'lib/ui-windows';
 
 
 export class SyncNotifications {
@@ -44,7 +44,7 @@ export class SyncNotifications {
     }
 
     openAccount (account: AdMobAccount) {
-        this.store.selectAccount(account);
+        this.store.selectAdMobAccount(account);
         return openSettingsWindow();
     }
 

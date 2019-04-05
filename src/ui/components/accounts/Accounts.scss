@@ -6,6 +6,25 @@
   grid-gap: 0 10px;
   grid-template-areas: 'description description' 'list details' 'list-controls details';
 
+  .accountsWarning {
+    grid-column: 1 / span 2;
+    grid-row: 2 / span 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8em;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+  }
+
+  .noSelectedAccount {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8em;
+  }
+
   .description {
     grid-area: description;
     margin-bottom: 20px;

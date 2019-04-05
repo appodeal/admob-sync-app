@@ -3,7 +3,6 @@ import {classNames} from 'lib/dom';
 import {isMacOS} from 'lib/platform';
 import React from 'react';
 import style from './WindowsControls.scss';
-import Timeout = NodeJS.Timeout;
 
 
 export interface WindowsControlsProps {
@@ -17,7 +16,7 @@ export class WindowsControlsComponent extends React.Component<WindowsControlsPro
     onWindowMaximized: () => void;
     onWindowUnMaximized: () => void;
     onWindowResize: () => void;
-    resizeDelay: Timeout;
+    resizeDelay: number;
 
     constructor (props: WindowsControlsProps) {
         super(props);
@@ -31,7 +30,9 @@ export class WindowsControlsComponent extends React.Component<WindowsControlsPro
         this.onWindowUnMaximized = () => this.setMaximized(false);
         this.onWindowResize = () => {
             clearTimeout(this.resizeDelay);
-            this.resizeDelay = setTimeout(() => this.setMaximized(remote.getCurrentWindow().isMaximized()), 100);
+            this.resizeDelay = setTimeout(() => {
+                this.setMaximized(remote.getCurrentWindow().isMaximized());
+            }, 100) as unknown as number;
         };
     }
 

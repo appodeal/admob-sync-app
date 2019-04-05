@@ -1,5 +1,6 @@
 import {configureScope} from '@sentry/electron';
 import {AdMobSessions} from 'core/admob-api/admob-sessions.helper';
+import {AppodealApi} from 'core/appdeal-api/appodeal-api.factory';
 import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
 import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
 import {AppodealAccount} from 'core/appdeal-api/interfaces/appodeal.account.interface';
@@ -7,6 +8,7 @@ import {OnlineService} from 'core/appdeal-api/online.service';
 import {SyncHistory, SyncHistoryInfo} from 'core/sync-apps/sync-history';
 import {SyncEvent, SyncEventsTypes, SyncReportProgressEvent} from 'core/sync-apps/sync.events';
 import {BrowserWindow} from 'electron';
+import {AppodealAccountState, UserAccount} from 'interfaces/common.interfaces';
 import {ActionTypes} from 'lib/actions';
 import {AppPreferences, Preferences} from 'lib/app-preferences';
 import {deepAssign} from 'lib/core';
@@ -28,10 +30,10 @@ export interface SyncProgress {
 
 export interface AppState {
     selectedAccount: {
-        account: AppodealAccount | AdMobAccount;
+        account: AdMobAccount;
         logs: LogFileInfo[];
     }
-    appodealAccount: AppodealAccount;
+    selectedAppodealAccount: AppodealAccount;
     syncHistory: Record<AccountID, SyncHistoryInfo>;
     syncProgress: Record<AccountID, SyncProgress | undefined>;
     preferences: AppPreferences;
@@ -48,10 +50,10 @@ export class Store {
 
     @observable readonly state: AppState = {
         selectedAccount: {
-            account: AppodealApiService.emptyAccount,
+            account: null,
             logs: []
         },
-        appodealAccount: AppodealApiService.emptyAccount,
+        selectedAppodealAccount: null,
         syncHistory: {},
         syncProgress: {},
         preferences: null,
@@ -59,11 +61,13 @@ export class Store {
         nextReconnect: 0
     };
 
+    private appodealAccounts: Map<string, AppodealAccount>;
+
     updatedID;
     pingTimer;
 
     constructor (
-        private appodealApi: AppodealApiService,
+        private appodealApi: AppodealApi,
         private onlineService: OnlineService,
         preferences: AppPreferences
     ) {
@@ -97,7 +101,7 @@ export class Store {
 
         return this.onlineService.sendPing(false)
             .then(
-                () => this.appodealFetchUser(),
+                () => this.fetchAllAppodealUsers(),
                 () => {
                     set<AppState>(this.state, 'nextReconnect', Date.now() + ONE_MINUTE);
                     this.pingTimer = setTimeout(() => this.pingAppodeal(), ONE_MINUTE);
@@ -176,39 +180,92 @@ export class Store {
     @action
     appodealSignIn (email: string, password: string): Promise<AppodealAccount> {
         return this.appodealApi.signIn(email, password)
-            .then(() => this.appodealApi.fetchCurrentUser())
-            .then(account => this.setAppodealAccount(account));
+            .then(account => this.addAppodealAccount(account))
+            .then(account => this.selectAppodealAccount(account));
     }
 
     @action
-    appodealFetchUser (): Promise<AppodealAccount> {
-        return this.appodealApi.fetchCurrentUser().then(account => this.setAppodealAccount(account));
+    appodealSignOut (accountId: string): Promise<AppodealAccount> {
+        return this.appodealApi.signOut(accountId)
+            .then(async () => {
+                this.appodealAccounts.delete(accountId);
+                let accountIndex = 0,
+                    updatedAccounts = this.state.preferences.accounts.appodealAccounts.filter((acc, index) => {
+                        if (acc.id === accountId) {
+                            accountIndex = index;
+                        }
+                        return acc.id !== accountId;
+                    });
+                await this.patchPreferences({
+                    accounts: {
+                        appodealAccounts: updatedAccounts
+                    }
+                });
+                return updatedAccounts[accountIndex] || updatedAccounts[accountIndex - 1] || null;
+            })
+            .then(accState => this.selectAppodealAccount(accState ? this.appodealAccounts.get(accState.id) : null));
+    }
 
+    fetchAppodealUser (accountId: string) {
+        return this.appodealApi.getFor(accountId).fetchCurrentUser()
+            .then(account => this.addAppodealAccount(account));
     }
 
     @action
-    appodealSignOut (): Promise<AppodealAccount> {
-        return this.appodealApi.signOut()
-            .then(() => this.setAppodealAccount(AppodealApiService.emptyAccount));
+    fetchAllAppodealUsers (): Promise<Map<string, AppodealAccount>> {
+        let accountsState = new Map(
+            this.state.preferences.accounts.appodealAccounts
+                .map<[string, AppodealAccountState]>(account => {
+                    return [account.id, account];
+                })
+        );
+        return this.appodealApi.fetchAllAccounts()
+            .then(async accounts => {
+                let updatedAccounts: Array<AppodealAccountState> = [];
+                accounts.forEach((account, accountId) => {
+                    if (accountsState.has(accountId)) {
+                        let oldState = accountsState.get(accountId);
+                        updatedAccounts.push({
+                            ...oldState,
+                            active: !!account,
+                            email: account ? account.email : oldState.email
+                        });
+                    }
+                });
+                await this.patchPreferences({
+                    accounts: {
+                        appodealAccounts: updatedAccounts
+                    }
+                });
+                this.appodealAccounts = accounts;
+                if (!this.state.selectedAppodealAccount) {
+                    this.selectAppodealAccount(updatedAccounts[0] || null);
+                }
+                return accounts;
+            });
     }
 
     @action
-    async selectAccount (account: AppodealAccount | AdMobAccount) {
+    selectAdMobAccount (newAccount: AdMobAccount) {
+        let {account} = this.state.selectedAccount;
         set<AppState>(this.state, 'selectedAccount', {
-            account: account,
-            logs: this.state.selectedAccount.account.id === account.id ? this.state.selectedAccount.logs : []
+            account: newAccount,
+            logs: account && newAccount && account.id === newAccount.id ? this.state.selectedAccount.logs : []
         });
         // we dont need to wait while logs are loading
         // we want provide quick response to UI
         // once log-list is loaded - we will show it
-        if (this.state.appodealAccount.id !== account.id) {
-            const logs = await this.loadSelectedAdMobAccountLogs(<AdMobAccount>account);
-            if (this.state.selectedAccount.account.id === account.id) {
-                set<AppState>(this.state, 'selectedAccount', {
-                    account: account,
-                    logs
-                });
-            }
+        if (newAccount) {
+            setTimeout(async () => {
+                const logs = await this.loadSelectedAdMobAccountLogs(<AdMobAccount>newAccount);
+                let {account} = this.state.selectedAccount;
+                if (account && account.id === newAccount.id) {
+                    set<AppState>(this.state, 'selectedAccount', {
+                        account: newAccount,
+                        logs
+                    });
+                }
+            });
         }
     }
 
@@ -223,14 +280,14 @@ export class Store {
     }
 
     @action
-    async addAdMobAccount () {
+    async addAdMobAccount (appodealAccountId: string) {
         let account = await AdMobSessions.signIn();
         if (account) {
-            let existingAccount = this.state.appodealAccount.accounts.find(acc => acc.id === account.id);
+            let existingAccount = this.state.selectedAppodealAccount.accounts.find(acc => acc.id === account.id);
             if (!existingAccount) {
-                let added = await this.appodealApi.addAdMobAccount(account);
+                let added = await this.appodealApi.getFor(appodealAccountId).addAdMobAccount(account);
                 if (added) {
-                    await this.appodealFetchUser();
+                    await this.fetchAllAppodealUsers();
                     return {
                         existingAccount: null,
                         newAccount: account
@@ -251,8 +308,11 @@ export class Store {
     }
 
     @action
-    setAdMobCredentials ({accountId, clientId, clientSecret}: { accountId: string, clientId: string, clientSecret: string }) {
-        return this.appodealApi.setAdMobAccountCredentials(accountId, clientId, clientSecret)
+    setAdMobCredentials (
+        appodealAccountId: string,
+        {accountId, clientId, clientSecret}: { accountId: string, clientId: string, clientSecret: string }
+    ) {
+        return this.appodealApi.getFor(appodealAccountId).setAdMobAccountCredentials(accountId, clientId, clientSecret)
             .then(async oAuthUrl => {
                 let window = await openWindow(oAuthUrl, {
                     frame: true,
@@ -272,23 +332,47 @@ export class Store {
                 await waitForNavigation(window, /\/admob_plugin\/api\/v3\/oauth\/success/);
                 window.close();
             })
-            .then(() => this.appodealApi.fetchCurrentUser())
-            .then(account => this.setAppodealAccount(account));
+            .then(() => this.fetchAppodealUser(appodealAccountId))
+            .then(account => this.selectAppodealAccount(account));
     }
 
     @action
-    async setAppodealAccount (account) {
-        await this.updateAdmobAccountsInfo(account);
-        configureScope(scope => {
-            scope.setUser(account);
-            scope.setExtra('syncHistory', this.state.syncHistory);
+    async selectAppodealAccount (accountState: UserAccount) {
+        if (accountState) {
+            let account = this.appodealAccounts.get(accountState.id);
+            await this.updateAdmobAccountsInfo(account);
+            configureScope(scope => {
+                scope.setUser(account);
+                scope.setExtra('syncHistory', this.state.syncHistory);
+            });
+            set<AppState>(this.state, 'selectedAppodealAccount', account);
+            this.selectAdMobAccount(null);
+            return account;
+        }
+        return null;
+    }
+
+    @action
+    async addAppodealAccount (account: AppodealAccount) {
+        await this.patchPreferences({
+            accounts: {
+                appodealAccounts: [
+                    ...this.state.preferences.accounts.appodealAccounts.filter(acc => acc.id !== account.id),
+                    {
+                        id: account.id,
+                        email: account.email,
+                        active: true
+                    }
+                ]
+            }
         });
-        set<AppState>(this.state, 'appodealAccount', account);
+        this.appodealAccounts.set(account.id, account);
         return account;
     }
 
+
     @action
-    async reSignInAdmob (currentAccount: AdMobAccount) {
+    async reSignInAdmob (appodealAccountId: string, currentAccount: AdMobAccount) {
         const resultAccount = await reSignIn(currentAccount);
         if (!resultAccount) {
             return;
@@ -297,7 +381,7 @@ export class Store {
             return await this.updateAdMobAccountInfo(currentAccount);
         }
 
-        const existedAccount = this.state.appodealAccount.accounts.find(account => account.id === resultAccount.id);
+        const existedAccount = this.state.selectedAppodealAccount.accounts.find(account => account.id === resultAccount.id);
         if (existedAccount) {
             messageDialog(`You were supposed to sign in ${currentAccount.email}, but you have signed in another account ${resultAccount.email}. Try again to sign In.`);
             return;
@@ -313,8 +397,8 @@ Do you what to add new Account (${resultAccount.email})?`
             // question
             console.log(`adding new account ${resultAccount.email}`);
 
-            if (await this.appodealApi.addAdMobAccount(resultAccount)) {
-                return await this.appodealFetchUser();
+            if (await this.appodealApi.getFor(appodealAccountId).addAdMobAccount(resultAccount)) {
+                return await this.fetchAppodealUser(appodealAccountId);
             }
             return this.updateAdMobAccountInfo(currentAccount);
         }
@@ -324,7 +408,7 @@ Do you what to add new Account (${resultAccount.email})?`
     }
 
     @action
-    async patchPreferences (patch: { [P in keyof AppPreferences]: Partial<AppPreferences[P]> }) {
+    async patchPreferences (patch: Partial<{ [P in keyof AppPreferences]: Partial<AppPreferences[P]> }>) {
         set<AppState>(this.state, 'preferences', deepAssign({...this.state.preferences}, patch));
         await Preferences.save(this.state.preferences);
     }

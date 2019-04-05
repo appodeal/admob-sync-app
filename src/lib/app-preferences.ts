@@ -1,4 +1,6 @@
+import {AppodealAccountState} from 'interfaces/common.interfaces';
 import {getAppVersion} from 'lib/about';
+import {deepAssign, deepFreeze} from 'lib/core';
 import {getJsonFile, saveJsonFile} from 'lib/json-storage';
 import {TimePeriod, UpdatePeriod} from 'lib/updates';
 
@@ -14,13 +16,17 @@ export interface AppPreferences {
             interval: TimePeriod
         }
     };
+    accounts: {
+        appodealAccounts: Array<AppodealAccountState>
+    };
+    multipleAccountsSupport: boolean
 }
 
 export namespace Preferences {
 
     const PREFERENCES_FILE_PATH = 'preferences';
 
-    export const DEFAULT_PREFERENCES: AppPreferences = {
+    export const DEFAULT_PREFERENCES = deepFreeze<AppPreferences>({
         updates: {
             currentVersion: getAppVersion(),
             availableVersion: null,
@@ -30,15 +36,22 @@ export namespace Preferences {
                 value: 1,
                 interval: TimePeriod.day
             }
-        }
-    };
+        },
+        accounts: {
+            appodealAccounts: []
+        },
+        multipleAccountsSupport: false
+    });
 
     export async function load (): Promise<AppPreferences> {
         let preferences = await getJsonFile<AppPreferences>(PREFERENCES_FILE_PATH);
         if (!preferences) {
-            preferences = DEFAULT_PREFERENCES;
+            preferences = deepAssign<AppPreferences>({}, DEFAULT_PREFERENCES);
             await save(preferences);
+        } else {
+            preferences = deepAssign({}, DEFAULT_PREFERENCES, preferences);
         }
+        preferences.multipleAccountsSupport = environment.multipleAccountsSupport;
         return preferences;
     }
 

@@ -122,7 +122,7 @@ export class UpdatesService extends EventEmitter {
                 if (Date.now() - this.lastCheck.getTime() <= time) {
                     this.emit('check');
                 }
-            }, TimePeriod.hour);
+            }, TimePeriod.hour) as unknown as Timeout;
         }
     }
 
