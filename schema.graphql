@@ -1,0 +1,133 @@
+# This file was generated based on ".graphqlconfig" at Fri Apr 05 14:15:07 MSK 2019. Do not edit manually.
+
+schema {
+    query: Queries
+    mutation: Mutations
+}
+
+type AdmobAccount {
+    "Account apps with pagination"
+    apps(page: Int = 1, pageSize: Int = 100): AppPaginatableCollection!
+    email: String!
+    "Admob AccountId"
+    id: ID!
+    isReadyForReports: Boolean!
+}
+
+type App {
+    admobAppId: ID
+    bundleId: String!
+    ecpmFloors: [EcpmFloors!]!
+    id: ID!
+    isDeleted: Boolean!
+    name: String!
+    platform: Platform!
+}
+
+type AppPaginatableCollection {
+    nodes: [App!]!
+    pageInfo: PageInfo!
+    totalCount: Int!
+}
+
+type EcpmFloors {
+    adType: AdType!
+    ecpmFloor: [Float!]!
+    format: Format!
+}
+
+type Mutations {
+    addAdmobAccount(accountId: ID!, email: String!): Boolean!
+    endSync(id: ID!): Boolean!
+    refreshAccessToken(refreshToken: String!): Session!
+    setAdmobAccountCredentials(accountId: ID!, clientId: String!, clientSecret: String!): OAuthParams!
+    signIn(email: String!, password: String!): Session!
+    signOut: Boolean!
+    startSync(admobAccountId: ID!, id: ID!): Boolean!
+    submitLog(admobAccountId: ID!, rawLog: String!, syncId: ID!): Boolean!
+    syncApp(adUnits: [AdUnit!]!, admobAccountId: ID!, admobAppId: ID!, id: ID!, syncSessionId: ID!): Boolean!
+}
+
+type OAuthParams {
+    oAuthUrl: String!
+}
+
+type PageInfo {
+    currentPage: Int!
+    pageSize: Int!
+    totalPages: Int!
+}
+
+type Queries {
+    "Return current user"
+    currentUser: User
+    minimalAppVersion: String!
+    ping: String!
+    user(id: ID!): User!
+}
+
+type Session {
+    accessToken: String!
+    refreshToken: String!
+}
+
+type User {
+    account(
+        #Admob AccountId - `pub-\\d+`
+        id: ID!
+    ): AdmobAccount!
+    accounts: [AdmobAccount!]
+    email: String!
+    id: ID!
+    isDccEnabled: Boolean!
+}
+
+enum AdType {
+    #Banners
+    BANNER
+    #Interstitials
+    INTERSTITIAL
+    #MREC
+    MREC
+    #Native Ads
+    NATIVE
+    #Rewarded Videos
+    REWARDED_VIDEO
+    #Videos
+    VIDEO
+}
+
+enum Format {
+    #Image
+    IMAGE
+    #Image and text
+    IMAGE_AND_TEXT
+    #Rewarded
+    REWARDED
+    #Rich media
+    RICHMEDIA
+    #Simple video
+    SIMPLE_VIDEO
+    #Text
+    TEXT
+    #Undefined
+    UNDEFINED
+}
+
+enum Platform {
+    #Amazon
+    AMAZON
+    #Android
+    ANDROID
+    #iOS
+    IOS
+}
+
+input AdUnit {
+    adType: AdType!
+    "Admob ad unit's id"
+    code: String!
+    "Ad unit's eCPM"
+    ecpmFloor: Float!
+    format: Format!
+}
