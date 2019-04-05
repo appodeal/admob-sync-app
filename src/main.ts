@@ -15,10 +15,11 @@ import {UpdatesConnector} from 'core/updates-connector';
 import {app} from 'electron';
 import {createAppMenu} from 'lib/app-menu';
 import {Preferences} from 'lib/app-preferences';
-import {createAppTray} from 'lib/app-tray';
+import {AppTray} from 'lib/app-tray';
 import {initBugTracker, Sentry} from 'lib/sentry';
 import {initThemeSwitcher} from 'lib/theme';
 import {openAppodealSignInWindow} from 'lib/ui-windows';
+import {TrayIcon} from 'lib/tray-icon';
 import {UpdatesService} from 'lib/updates';
 
 
@@ -49,14 +50,16 @@ app.on('ready', async () => {
             onlineService,
             preferences
         ),
+        updates = new UpdatesService(preferences.updates.lastCheck),
+        updatesConnector = new UpdatesConnector(store, updates),
+        tray = new AppTray(updatesConnector),
+        trayIcon = new TrayIcon(store, tray),
         accountsConnector = new AccountsConnector(store),
         logsConnector = new LogsConnector(store, appodealApi),
         onlineConnector = new OnlineConnector(store),
         syncService = new SyncService(store, appodealApi, onlineService),
         // syncScheduler = new SyncScheduler(syncService, store),
-        syncConnector = new SyncConnector(store, syncService),
-        updates = new UpdatesService(preferences.updates.lastCheck),
-        updatesConnector = new UpdatesConnector(store, updates);
+        syncConnector = new SyncConnector(store, syncService);
 
 
     onlineService.onceOnline()
@@ -73,6 +76,8 @@ app.on('ready', async () => {
 
 
     const cleanUpOnExit = () => Promise.all([
+        trayIcon.destroy(),
+        tray.destroy(),
         onlineConnector.destroy(),
         accountsConnector.destroy(),
         syncConnector.destroy(),
@@ -106,8 +111,6 @@ app.on('ready', async () => {
         }
     });
 
-
-    createAppTray(updatesConnector);
     createAppMenu();
 
     let {checkPeriod, customOptions} = store.state.preferences.updates;

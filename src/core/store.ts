@@ -134,6 +134,31 @@ export class Store {
         set<AppState>(this.state, 'syncHistory', {...(this.state.syncHistory || {}), [account.id]: history});
     }
 
+    isSyncing () {
+        return Object.values(this.state.syncProgress).filter(Boolean).length !== 0;
+    }
+
+    hasWarnings () {
+        if (!this.state.selectedAppodealAccount) {
+            return false;
+        }
+        return this.state.selectedAppodealAccount.accounts
+            .map(account => this.state.syncHistory[account.id])
+            .filter(Boolean)
+            .map(v => v.admobAuthorizationRequired)
+            .some(Boolean);
+    }
+
+    isEachAccountSynced () {
+        if (!this.state.selectedAppodealAccount) {
+            return false;
+        }
+        return this.state.selectedAppodealAccount.accounts
+            .map(account => this.state.syncHistory[account.id])
+            .map(info => (info && info.lastSuccessfulSync))
+            .every(Boolean);
+    }
+
     @action
     fireSyncUpdated () {
         if (this.updatedID) {
@@ -171,7 +196,7 @@ export class Store {
             };
             return this.fireSyncUpdated();
         case SyncEventsTypes.Stopped:
-            this.state.syncProgress[event.accountId] = null;
+            delete this.state.syncProgress[event.accountId];
             this.fireSyncUpdated();
             return this.updateAdMobAccountInfo(account);
         }

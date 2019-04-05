@@ -1,22 +1,17 @@
 import {UpdatesConnector} from 'core/updates-connector';
 import {Menu, Tray} from 'electron';
 import {showAboutDialog} from 'lib/about';
-import {getDefaultTrayIcon} from 'lib/icon';
+import {getDefaultTrayIcon, getSyncingTrayIcon, getWarningTrayIcon} from 'lib/icon';
 import {openSettingsWindow} from 'lib/ui-windows';
 
 
-let INSTANCE: AppTray = null;
-
-class AppTray {
+export class AppTray {
     private readonly tray: Tray;
     private warningIconInterval;
 
+
     constructor (private updatesConnector?: UpdatesConnector) {
-        if (INSTANCE instanceof AppTray) {
-            return INSTANCE;
-        } else {
-            INSTANCE = this;
-        }
+
         this.tray = new Tray(getDefaultTrayIcon());
         this.tray.setContextMenu(Menu.buildFromTemplate([
             {type: 'normal', label: 'Settings', click: () => openSettingsWindow()},
@@ -28,27 +23,39 @@ class AppTray {
         this.tray.on('click', () => this.tray.popUpContextMenu());
     }
 
-    setProgressIcon () {
-        this.warningIconInterval = setInterval(() => {
 
-        }, 16);
+    setProgressIcon () {
+        let counter = 1;
+        this.warningIconInterval = setInterval(() => {
+            counter = (counter) % 4;
+            counter++;
+            this.tray.setImage(getSyncingTrayIcon(counter));
+        }, 250);
+        this.tray.setImage(getSyncingTrayIcon(counter));
+        console.log('setProgressIcon');
     }
 
     setWarningIcon () {
         clearInterval(this.warningIconInterval);
+        console.log('setWarningIcon');
+        this.tray.setImage(getWarningTrayIcon());
+    }
+
+    setSyncedIcon () {
+        clearInterval(this.warningIconInterval);
+        console.log('setSyncedIcon');
         this.tray.setImage(getDefaultTrayIcon());
     }
 
     setDefaultIcon () {
         clearInterval(this.warningIconInterval);
         this.tray.setImage(getDefaultTrayIcon());
+        console.log('setDefaultIcon');
     }
-}
 
-export function createAppTray (updatesConnector: UpdatesConnector) {
-    INSTANCE = new AppTray(updatesConnector);
-}
 
-export function getAppTray (): AppTray {
-    return new AppTray();
+    destroy () {
+        // unsubscribe
+    }
+
 }
