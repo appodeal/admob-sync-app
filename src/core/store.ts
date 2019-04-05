@@ -214,9 +214,22 @@ export class Store {
     }
 
     @action
+    async pushLogs (account: AdMobAccount, logs?: Array<LogFileInfo>) {
+        logs = Array.isArray(logs) ? logs : await this.loadSelectedAdMobAccountLogs(account);
+        let selectedAccount = this.state.selectedAccount.account;
+        if (account && selectedAccount && account.id === selectedAccount.id) {
+            set(this.state, 'selectedAccount', {
+                logs,
+                account
+            });
+        }
+    }
+
+    @action
     updateSyncProgress (account: AdMobAccount, event: SyncEvent) {
         switch (event.type) {
         case SyncEventsTypes.Started:
+            this.pushLogs(account);
         case SyncEventsTypes.CalculatingProgress:
             this.state.syncProgress[event.accountId] = {
                 id: event.id,
@@ -324,16 +337,7 @@ export class Store {
         // we want provide quick response to UI
         // once log-list is loaded - we will show it
         if (newAccount) {
-            setTimeout(async () => {
-                const logs = await this.loadSelectedAdMobAccountLogs(<AdMobAccount>newAccount);
-                let {account} = this.state.selectedAccount;
-                if (account && account.id === newAccount.id) {
-                    set<AppState>(this.state, 'selectedAccount', {
-                        account: newAccount,
-                        logs
-                    });
-                }
-            });
+            setTimeout( () => this.pushLogs(newAccount));
         }
     }
 
