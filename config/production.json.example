@@ -6,6 +6,10 @@
     },
     "sentry": {
       "dsn": ""
+    },
+    "updates": {
+      "releaseNotesUrl": "https://wiki.appodeal.com",
+      "updatesServerUrl": "http://localhost:8083"
     }
   }
 }

@@ -16,6 +16,10 @@ declare interface Environment {
         login: string,
         password: string
     };
+    readonly updates: {
+        releaseNotesUrl: string,
+        updatesServerUrl: string
+    };
 }
 
 declare const environment: Environment;
