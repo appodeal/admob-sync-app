@@ -15,7 +15,7 @@ import {ErrorFactoryService} from '../error-factory/error-factory.service';
 import {InternalError} from '../error-factory/errors/internal-error';
 import addAdMobAccountMutation from './graphql/add-admob-account.mutation.graphql';
 import adMobAccountQuery from './graphql/admob-account-details.graphql';
-import criticalVersionQuery from './graphql/critical-version.query.graphql';
+import minimalAppVersionQuery from './graphql/minimal-app-version.query.graphql';
 import currentUserQuery from './graphql/current-user.query.graphql';
 import endSync from './graphql/end-sync.mutation.graphql';
 
@@ -141,10 +141,10 @@ export class AppodealApiService {
         this._onError.next(e);
     }
 
-    getCriticalPluginVersion (): Promise<string> {
-        return this.query<{ criticalVersion: string }>({
-            query: criticalVersionQuery
-        }).then(result => result.criticalVersion);
+    getMinimalAppVersion (): Promise<string> {
+        return this.query<{ minimalAppVersion: string }>({
+            query: minimalAppVersionQuery
+        }).then(result => result.minimalAppVersion);
     }
 
     signIn (email: string, password: string) {
