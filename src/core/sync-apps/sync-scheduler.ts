@@ -52,7 +52,10 @@ export class SyncScheduler {
                     unsubscribe = null;
                     this.store.state.selectedAppodealAccount.accounts.forEach(adMobAccount => {
                         this.log(`App started. Run sync for Admob Account [${adMobAccount.id} ${adMobAccount.email}]`);
-                        this.syncService.runSync(this.store.state.selectedAppodealAccount.id, adMobAccount);
+                        this.syncService.runSync(this.store.state.selectedAppodealAccount.id, adMobAccount)
+                            .catch(err => {
+
+                            });
                     });
                 }
             });
@@ -72,7 +75,10 @@ export class SyncScheduler {
                     if (!lastSync) {
 
                         this.log(`Admob Account [${adMobAccount.id} ${adMobAccount.email}] has never synced. Run sync.`);
-                        return this.syncService.runSync(this.store.state.selectedAppodealAccount.id, adMobAccount);
+                        return this.syncService.runSync(this.store.state.selectedAppodealAccount.id, adMobAccount)
+                            .catch(err => {
+
+                            });
                     }
                     const scienceLastSync = Date.now() - lastSync.getTime();
                     if (scienceLastSync > this.syncPeriod) {
@@ -80,7 +86,10 @@ export class SyncScheduler {
                             timeConversion(scienceLastSync)
                             }. Run sync.`
                         );
-                        return this.syncService.runSync(this.store.state.selectedAppodealAccount.id, adMobAccount);
+                        return this.syncService.runSync(this.store.state.selectedAppodealAccount.id, adMobAccount)
+                            .catch(err => {
+
+                            });
                     }
                 });
             }

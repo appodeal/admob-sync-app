@@ -37,7 +37,8 @@ export interface LogAction extends Action {
     type: ActionTypes.openLogFile | ActionTypes.submitLogToAppodeal,
     payload: {
         account: AdMobAccount,
-        log: LogFileInfo
+        log: LogFileInfo,
+        appodealAccountId: string
     }
 }
 

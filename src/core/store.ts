@@ -254,6 +254,7 @@ export class Store {
         case SyncEventsTypes.Stopped:
             delete this.state.syncProgress[event.accountId];
             this.fireSyncUpdated();
+            this.pushLogs(account);
             return this.updateAdMobAccountInfo(account);
         }
     }

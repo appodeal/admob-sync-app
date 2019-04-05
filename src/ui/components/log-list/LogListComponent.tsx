@@ -10,6 +10,7 @@ import style from './LogList.scss';
 interface LogListComponentProps {
     admobAccount: AdMobAccount;
     logs: LogFileInfo[];
+    appodealAccountId: string;
 }
 
 export class LogListComponent extends React.Component<LogListComponentProps> {
@@ -33,7 +34,8 @@ export class LogListComponent extends React.Component<LogListComponentProps> {
     submitLogToAppodeal (log: LogFileInfo) {
         sendToMain('logs', action(ActionTypes.submitLogToAppodeal, {
             account: this.props.admobAccount,
-            log
+            log,
+            appodealAccountId: this.props.appodealAccountId
         })).then(() => {
             alert(`Log has been  sent to Appodeal. You can mention '${log.uuid}' in support ticket.`);
         }).catch((e) => {

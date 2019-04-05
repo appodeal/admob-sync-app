@@ -75,7 +75,8 @@ export class AdmobAccountComponent extends Component<AdmobAccountComponentProps,
         return sendToMain('sync', action(ActionTypes.runSync, {
             appodealAccountId: this.props.appodealAccountId,
             adMobAccount: this.props.account
-        }));
+        }))
+            .catch(err => messageDialog(err.message));
     }
 
     private openAdMob () {
@@ -177,7 +178,7 @@ export class AdmobAccountComponent extends Component<AdmobAccountComponentProps,
                 <ProgressBar value={this.props.syncProgress.percent} status={this.getProgressBarStatus(this.props.syncProgress)}/>
             </div>
             }
-            <LogListComponent logs={logs || []} admobAccount={account}/>
+            <LogListComponent logs={logs || []} admobAccount={account} appodealAccountId={this.props.appodealAccountId}/>
         </>;
     }
 }

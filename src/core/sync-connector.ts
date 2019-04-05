@@ -15,7 +15,7 @@ export class SyncConnector extends Connector {
         switch (type) {
         case ActionTypes.runSync:
             if (this.syncService.canRun(payload.adMobAccount)) {
-                this.syncService.runSync(payload.appodealAccountId, payload.adMobAccount);
+                return this.syncService.runSync(payload.appodealAccountId, payload.adMobAccount);
             }
             return;
         default:

@@ -1,4 +1,5 @@
 import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
+import {AuthorizationError} from 'core/error-factory/errors/authorization.error';
 import {GraphQLError} from 'core/error-factory/errors/grahpql/graphql-error';
 import {InternalError} from 'core/error-factory/errors/internal-error';
 import {Sentry} from 'lib/sentry';
@@ -64,7 +65,7 @@ export class OnlineService {
 
     private listenApiErrors () {
         this.appodealApi.onError.subscribe((e: InternalError) => {
-            if (!(e instanceof GraphQLError)) {
+            if (!(e instanceof GraphQLError) && !(e instanceof AuthorizationError)) {
                 // can't reach appodeal
                 this.setOffline();
             }

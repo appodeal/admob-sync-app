@@ -21,7 +21,7 @@ export class LogsConnector extends Connector {
             this.openLog(payload.account, payload.log);
             return payload;
         case ActionTypes.submitLogToAppodeal:
-            return this.submitLog(payload.account, payload.log);
+            return this.submitLog(payload.account, payload.log, payload.appodealAccountId);
         }
 
     }
@@ -35,8 +35,8 @@ export class LogsConnector extends Connector {
         }
     }
 
-    async submitLog (account: AdMobAccount, log: LogFileInfo) {
+    async submitLog (account: AdMobAccount, log: LogFileInfo, appodealAccountId: string) {
         const rawLog = await getLogContent(account, log.uuid);
-        return this.appodealApi.getDefault().submitLog(account.id, log.uuid, rawLog);
+        return this.appodealApi.getFor(appodealAccountId).submitLog(account.id, log.uuid, rawLog);
     }
 }
