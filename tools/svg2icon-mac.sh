@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 SVGPATH=$1
 FILENAME=${SVGPATH%.*}
 
