@@ -1,0 +1,16 @@
+<svg
+        width="512"
+        height="512"
+        xmlns="http://www.w3.org/2000/svg"
+        version="1.1"
+        stroke-linejoin="round"
+        preserveAspectRatio="xMidYMid meet"
+        viewBox="0 0 64 64"
+>
+    <rect x="0" y="0" width="64" height="64" rx="16" ry="16" fill="#E11916" stroke="#E11916" stroke-width="0"/>
+    <rect x="5.5" y="5.5" width="53" height="53" rx="12" ry="12" stroke="#fff" stroke-width="4.5" fill="none"/>
+    <g transform="translate(1.2,1.2)">
+        <path fill="#fff" transform="scale(1.9) "
+              d="M17.2,11.9c0.3,0.6,0.7,1.2,1.2,1.6c0.5,0.4,1.2,0.5,1.9,0.7c2.2,0.4,2.3,0.6,0.8,2.2c-0.5,0.5-0.9,1.1-1.1,1.7c-0.2,0.6-0.1,1.4,0,2c0.3,2.3,0.1,2.4-1.8,1.4c-0.6-0.3-1.3-0.6-1.9-0.6c-0.7,0-1.3,0.3-1.9,0.6c-2,1-2.2,0.9-1.9-1.3c0.1-0.7,0.1-1.4-0.1-2.1c-0.2-0.6-0.7-1.2-1.1-1.7c-1.6-1.7-1.5-1.9,0.6-2.3c0.7-0.1,1.4-0.3,1.9-0.7c0.5-0.4,0.9-1,1.2-1.6C15.9,9.9,16.1,9.9,17.2,11.9L17.2,11.9z"/>
+    </g>
+</svg>

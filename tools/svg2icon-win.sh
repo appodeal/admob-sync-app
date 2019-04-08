@@ -6,7 +6,7 @@ if [ ! -f $SVGPATH ]; then
     exit 0
 fi
 
-ALL_SIZES="16 32 48 64 96 128 256"
+ALL_SIZES="16 20 24 32 40 48 60 64 72 96 128 256"
 
 for SIZE in $ALL_SIZES
 do
@@ -20,7 +20,9 @@ do
 PNGS+=" $FILENAME$SIZE.png"
 done
 
-convert $PNGS $FILENAME.ico
+convert ${FILENAME}16.png ${FILENAME}20.png ${FILENAME}24.png ${FILENAME}32.png ${FILENAME}256.png $FILENAME.ico
+convert ${FILENAME}32.png ${FILENAME}40.png ${FILENAME}48.png ${FILENAME}64.png ${FILENAME}256.png $FILENAME@2x.ico
+convert ${FILENAME}48.png ${FILENAME}60.png ${FILENAME}72.png ${FILENAME}96.png ${FILENAME}256.png $FILENAME@3x.ico
 cp ${FILENAME}16.png $FILENAME.png
 cp ${FILENAME}32.png $FILENAME@2x.png
 cp ${FILENAME}64.png $FILENAME@3x.png
