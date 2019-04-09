@@ -57,13 +57,6 @@ export interface ApiMutationOptions<T, V> extends MutationOptions<T, V> {
 
 export class AppodealApiService {
 
-    static emptyAccount: AppodealAccount = {
-        id: null,
-        email: null,
-        accounts: [],
-        __typename: 'User'
-    };
-
     private client: ApolloClient<NormalizedCacheObject>;
     private _onError = new PushStream<InternalError>();
 
@@ -207,12 +200,12 @@ export class AppodealApiService {
             query: currentUserQuery,
         })
             .then(result => {
-                return result.currentUser || AppodealApiService.emptyAccount;
+                return result.currentUser;
             })
             .catch(err => {
                 if (err instanceof AuthorizationError) {
                     this.authContext.remove();
-                    return AppodealApiService.emptyAccount;
+                    return null;
                 }
                 throw err;
             });
