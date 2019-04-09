@@ -1,9 +1,8 @@
+import {UserAccount} from 'interfaces/common.interfaces';
 import {AdMobAccount} from './admob-account.interface';
 
 
-export interface AppodealAccount {
-    id: string
-    email: string;
+export interface AppodealAccount extends UserAccount {
     accounts: AdMobAccount[];
     __typename: string;
 }

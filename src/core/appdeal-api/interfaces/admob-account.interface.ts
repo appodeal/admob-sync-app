@@ -1,9 +1,8 @@
 import {AppodealApp} from 'core/appdeal-api/interfaces/appodeal-app.interface';
+import {UserAccount} from 'interfaces/common.interfaces';
 
 
-export interface AdMobAccount {
-    id: string;
-    email: string;
+export interface AdMobAccount extends UserAccount {
     isReadyForReports: boolean;
     __typename: string;
 }

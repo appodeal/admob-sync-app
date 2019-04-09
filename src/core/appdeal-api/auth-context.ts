@@ -1,88 +1,95 @@
 import {ApolloLink} from 'apollo-link';
 import {setContext} from 'apollo-link-context';
-import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
 import jwt_decode from 'jwt-decode';
 import {getJsonFile, saveJsonFile} from 'lib/json-storage';
+import {EventEmitter} from 'events';
 
 
-export class AuthContext {
+export interface TokensInfo {
+    accessToken: string;
+    refreshToken: string;
+}
 
-    static tokensFile = 'appodealtokens';
+
+export class AuthContext extends EventEmitter {
+
+    private static TOKENS_FILE = 'appodeal-tokens';
+
+    private static TOKENS: Map<string, TokensInfo>;
+
+    static async init () {
+        AuthContext.TOKENS = new Map(Object.entries(await getJsonFile(this.TOKENS_FILE, {})));
+    }
+
+    static async saveTokens (accountId: string, accessToken: string, refreshToken: string) {
+        AuthContext.TOKENS.set(accountId, {
+            accessToken,
+            refreshToken
+        });
+        await saveJsonFile(AuthContext.TOKENS_FILE, [...AuthContext.TOKENS.entries()].reduce((tokens, [accountId, tokensInfo]) => {
+            tokens[accountId] = tokensInfo;
+            return tokens;
+        }, {}));
+    }
+
+    static getTokens (accountId: string): TokensInfo {
+        return AuthContext.TOKENS.get(accountId);
+    }
 
     private accessToken: string = null;
     private refreshToken: string = null;
+    private accountId: string = null;
 
-    constructor (private api: AppodealApiService) {
+    init (accountId: string) {
+        this.setAccountId(accountId);
+        this.setTokensInfo(AuthContext.getTokens(accountId));
+        // check should we update refresh token each 1 minute
+        setInterval(() => this.emitRefresh(), 60000);
+        this.emitRefresh();
     }
 
-    async loadFromFile () {
-        const tokens = await getJsonFile(AuthContext.tokensFile);
-        if (tokens) {
-            await this.setAccessTokens(tokens, false);
-            console.log('Appodeal AuthContext loaded from file');
-        } else {
-            console.log('Appodeal AuthContext NO saved tokens');
+    private emitRefresh () {
+        if (this.isTimeToRefresh()) {
+            this.emit('refresh', this.refreshToken);
         }
     }
 
-    async saveToFile () {
-        if (this.accessToken && this.refreshToken) {
-            await saveJsonFile(AuthContext.tokensFile, {
-                accessToken: this.accessToken,
-                refreshToken: this.refreshToken
-            });
-        }
-    }
 
-    async init () {
-        await this.loadFromFile();
-        // check should we update refresh token each 1 minutes
-        setInterval(() => this.checkRefreshToken(), 1 * 60 * 1000);
-        this.checkRefreshToken();
-    }
-
-
-    async checkRefreshToken () {
+    private isTimeToRefresh (): boolean {
         if (!this.refreshToken) {
             // nothing to refresh
-            return;
+            return false;
         }
-        try {
-            const token = jwt_decode<{ rfr: number, exp: number }>(this.refreshToken);
-            const nowMilliseconds = Date.now() / 1000;
-            console.debug('checkRefreshToken', token, nowMilliseconds);
-            if (token.rfr && token.rfr < nowMilliseconds && nowMilliseconds < token.exp) {
-                console.log('attempt to refresh token');
-                await this.api.refreshAccessToken(this.refreshToken);
-                console.log('access token refreshed');
-            }
-        } catch (e) {
-            console.log(`failed to refresh access token`, e);
-        }
+        let token = jwt_decode<{ rfr: number, exp: number }>(this.refreshToken),
+            secondsNow = Date.now() / 1000;
+        console.debug('isTimeToRefresh', token, secondsNow);
+        return token.rfr && token.rfr < secondsNow && secondsNow < token.exp;
     }
 
-    async setAccessTokens ({accessToken, refreshToken}, autoSave = true) {
+    remove () {
+        return saveJsonFile(
+            AuthContext.TOKENS_FILE,
+            [...AuthContext.TOKENS.entries()]
+                .filter(([accountId]) => accountId !== this.accountId)
+                .reduce((data, [accountId, tokensInfo]) => {
+                    data[accountId] = tokensInfo;
+                    return data;
+                }, {})
+        );
+    }
+
+    setTokensInfo ({accessToken, refreshToken}: { accessToken: string, refreshToken: string }) {
         this.accessToken = accessToken;
         this.refreshToken = refreshToken;
-        if (autoSave) {
-            return this.saveToFile();
-        }
     }
 
-    invalidateAccessToken () {
-        this.accessToken = null;
-        this.refreshToken = null;
-        return saveJsonFile(AuthContext.tokensFile, null);
+    setAccountId (accountId: string) {
+        this.accountId = accountId;
     }
 
-
-    storeSessionFromResponse = (data: { accessToken, refreshToken }) => {
-        if (data) {
-            this.setAccessTokens(data);
-        }
-        return data;
-    };
-
+    save () {
+        AuthContext.saveTokens(this.accountId, this.accessToken, this.refreshToken);
+    }
 
     createLink (): ApolloLink {
         return setContext((_, {headers}) => {

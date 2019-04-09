@@ -4,7 +4,7 @@ import {LogFileInfo} from 'lib/sync-logs/logger';
 
 export enum ActionTypes {
     appodealSignIn = 'appodealSignIn',
-    appodealReSignIn = 'appodealReSignIn',
+    adMobReSignIn = 'appodealReSignIn',
     appodealSignOut = 'appodealSignOut',
     appodealPing = 'appodealPing',
     adMobAddAccount = 'adMobAddAccount',
@@ -13,6 +13,7 @@ export enum ActionTypes {
     runSync = 'RunSync',
     openAdmobPage = 'openAdmobPage',
     selectAccount = 'selectAdmobAccount',
+    selectAppodealAccount = 'selectAppodealAccount',
     openLogFile = 'openLogFile',
     submitLogToAppodeal = 'submitLogToAppodeal',
     getStore = 'getStore',
@@ -20,7 +21,9 @@ export enum ActionTypes {
     downloadDist = 'downloadDist',
     getDist = 'getDist',
     viewReleaseNotes = 'viewReleaseNotes',
-    updatesCheckPeriod = 'updatesCheckPeriod'
+    updatesCheckPeriod = 'updatesCheckPeriod',
+    addAppodealAccount = 'addAppodealAccount',
+    manageAppodealAccounts = 'manageAppodealAccounts'
 }
 
 
@@ -34,12 +37,13 @@ export interface LogAction extends Action {
     type: ActionTypes.openLogFile | ActionTypes.submitLogToAppodeal,
     payload: {
         account: AdMobAccount,
-        log: LogFileInfo
+        log: LogFileInfo,
+        appodealAccountId: string
     }
 }
 
 
-export function action (type: ActionTypes, payload: any = null): Action {
+export function action (type: ActionTypes, payload: any = {}): Action {
     return {
         type,
         payload

@@ -1,0 +1,8 @@
+.accountChooser {
+  display: flex;
+  align-items: center;
+
+  > * + * {
+    margin-inline-start: 10px;
+  }
+}

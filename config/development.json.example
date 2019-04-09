@@ -11,6 +11,7 @@
       "login": "",
       "password": ""
     },
+    "multipleAccountsSupport": false,
     "updates": {
       "releaseNotesUrl": "https://wiki.appodeal.com",
       "updatesServerUrl": "http://localhost:8083"

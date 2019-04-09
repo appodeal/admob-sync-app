@@ -5,6 +5,7 @@ import {SyncHistory} from 'core/sync-apps/sync-history';
 import {app, BrowserWindow, Session, session, shell} from 'electron';
 import * as fs from 'fs-extra';
 import {ExtractedAdmobAccount} from 'interfaces/common.interfaces';
+import {removeSession} from 'lib/core';
 import {nodeFetch} from 'lib/fetch';
 import {getJsonFile, saveJsonFile} from 'lib/json-storage';
 import {retry} from 'lib/retry';
@@ -21,9 +22,11 @@ export namespace AdMobSessions {
         return session.fromPartition(`persist:${sessionID}`);
     }
 
-    getJsonFile('admob-sessions').then(sessions => {
-        SESSIONS = sessions ? new Map(Object.entries(sessions)) : new Map();
-    });
+    export function init () {
+        return getJsonFile('admob-sessions').then(sessions => {
+            SESSIONS = sessions ? new Map(Object.entries(sessions)) : new Map();
+        });
+    }
 
     /**
      * for dev purposes
@@ -85,16 +88,8 @@ export namespace AdMobSessions {
             }
 
             const session = sessionFromPartition(sessionId);
-            await session.flushStorageData();
 
-            await new Promise(resolve => session.clearCache(resolve));
-            await new Promise(resolve => session.clearStorageData({}, resolve));
-            await new Promise(resolve => session.clearAuthCache({type: 'password'}, resolve));
-            await new Promise(resolve => session.clearAuthCache({type: 'clientCertificate'}, resolve));
-            await new Promise(resolve => session.clearHostResolverCache(resolve));
-            await (<any>session).destroy();
-
-            return fs.remove(path.resolve(app.getPath('userData'), `./Partitions/${sessionId}`));
+            await removeSession(session, sessionId);
         } catch (e) {
             console.error(e);
         }

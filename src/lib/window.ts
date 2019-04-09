@@ -2,6 +2,8 @@ import {BrowserWindow, BrowserWindowConstructorOptions, dialog, ipcMain, remote}
 import {getBgColor} from './theme';
 
 
+const DIALOGS_STACK: Array<BrowserWindow> = [];
+
 function getConfig (config: BrowserWindowConstructorOptions, backgroundColor: string): BrowserWindowConstructorOptions {
     return {
         width: 750,
@@ -38,6 +40,12 @@ export function openWindow (
                     window.show();
                 }
                 resolve(window);
+            },
+            focusListener = () => {
+                let dialog = DIALOGS_STACK[DIALOGS_STACK.length - 1];
+                if (dialog) {
+                    dialog.focus();
+                }
             };
 
         if (/^https?:\/\/[^\/]+/i.test(filePathOrUrl)) {
@@ -51,9 +59,51 @@ export function openWindow (
 
         window.once('close', () => {
             ipcMain.removeListener('windowControl', commandListener);
+            window.removeListener('focus', focusListener);
             onclose(window);
         });
+        window.on('focus', focusListener);
 
+    });
+}
+
+
+export function openDialogWindow<T = any> (
+    filePath: string,
+    {width, height}: { width: number, height: number },
+    afterOpen?: (window?: BrowserWindow) => void
+): Promise<T> {
+    return new Promise(async resolve => {
+        let returnValue,
+            window = await openWindow(filePath, {
+                width,
+                height,
+                minWidth: width,
+                minHeight: height,
+                // maxWidth: width,
+                // maxHeight: height,
+                resizable: false,
+                frame: true,
+                fullscreenable: false,
+                minimizable: false,
+                maximizable: false,
+                titleBarStyle: 'default',
+                center: true
+            }, () => {
+                ipcMain.removeListener('returnValue', valueListener);
+                DIALOGS_STACK.splice(DIALOGS_STACK.indexOf(window), 1);
+                resolve(returnValue);
+            }),
+            valueListener = (event, value) => {
+                if (event.sender === window.webContents) {
+                    returnValue = value;
+                }
+            };
+        DIALOGS_STACK.push(window);
+        ipcMain.on('returnValue', valueListener);
+        if (typeof afterOpen === 'function') {
+            afterOpen(window);
+        }
     });
 }
 

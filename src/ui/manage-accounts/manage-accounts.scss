@@ -1,0 +1,12 @@
+:global {
+
+  body {
+    padding-top: var(--window-padding);
+    height: 100vh;
+
+    #content {
+      height: 100%;
+    }
+  }
+
+}

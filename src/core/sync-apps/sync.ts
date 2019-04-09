@@ -3,7 +3,6 @@ import {AdmobApiService, RefreshXsrfTokenError} from 'core/admob-api/admob.api';
 import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
 import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
 import {AdType, AppodealAdUnit, AppodealApp, AppodealPlatform, Format} from 'core/appdeal-api/interfaces/appodeal-app.interface';
-import {AppodealAccount} from 'core/appdeal-api/interfaces/appodeal.account.interface';
 import {getAdUnitTemplate} from 'core/sync-apps/ad-unit-templates';
 import stringify from 'json-stable-stringify';
 import {retry} from 'lib/retry';
@@ -56,7 +55,7 @@ export class Sync {
         private adMobApi: AdmobApiService,
         private appodealApi: AppodealApiService,
         public adMobAccount: AdMobAccount,
-        private appodealAccount: AppodealAccount,
+        private appodealAccountId: string,
         private logger: Partial<Console>,
         // some uniq syncId
         public readonly id: string
@@ -76,20 +75,24 @@ export class Sync {
     async run () {
         this.logger.info(`Sync started`);
         this.terminated = false;
-        await this.appodealApi.reportSyncStart(this.id, this.adMobAccount.id);
-        for await (const value of this.doSync()) {
-            this.logger.info(value);
-            if (this.terminated) {
-                this.logger.info(`Sync Terminated`);
-                await this.finish();
-                return;
+        try {
+            for await (const value of this.doSync()) {
+                this.logger.info(value);
+                if (this.terminated) {
+                    this.logger.info(`Sync Terminated`);
+                    return;
+                }
             }
+            this.logger.info(`Sync finished completely ${this.hasErrors ? 'with ERRORS!' : ''}`);
+        } catch (e) {
+            this.hasErrors = true;
+            throw e;
+        } finally {
+            this.finish();
         }
-        this.logger.info(`Sync finished completely ${this.hasErrors ? 'with ERRORS!' : ''}`);
-        await this.finish();
     }
 
-    async finish () {
+    finish () {
         this.emit(SyncEventsTypes.Stopped);
         this.appodealApi.reportSyncEnd(this.id);
     }
@@ -117,6 +120,13 @@ export class Sync {
     }
 
     async* doSync () {
+        this.emit(SyncEventsTypes.Started);
+        this.logger.info(`Sync Params
+        uuid: ${this.id}
+        AppodealAccount: '${this.appodealAccountId}}'
+        AdmobAccount: '${this.adMobAccount.id}}': '${this.adMobAccount.email}}'
+        `);
+        await this.appodealApi.reportSyncStart(this.id, this.adMobAccount.id);
         try {
             yield* this.fetchDataToSync();
         } catch (e) {
@@ -138,13 +148,6 @@ export class Sync {
 
     async* fetchDataToSync () {
 
-
-        this.emit(SyncEventsTypes.Started);
-        this.logger.info(`Sync Params
-        uuid: ${this.id}
-        AppodealAccount: '${this.appodealAccount.id}}': '${this.appodealAccount.email}}'
-        AdmobAccount: '${this.adMobAccount.id}}': '${this.adMobAccount.email}}'
-        `);
 
         yield `refrech Admob xsrf Token`;
         try {
