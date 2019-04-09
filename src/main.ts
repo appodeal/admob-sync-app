@@ -6,6 +6,7 @@ import {AppodealSessions} from 'core/appdeal-api/appodeal-sessions.helper';
 import {AuthContext} from 'core/appdeal-api/auth-context';
 import {OnlineService} from 'core/appdeal-api/online.service';
 import {ErrorFactoryService} from 'core/error-factory/error-factory.service';
+import {AuthorizationError} from 'core/error-factory/errors/authorization.error';
 import {LogsConnector} from 'core/logs-connector';
 import {OnlineConnector} from 'core/online-connector';
 import {Store} from 'core/store';
@@ -19,8 +20,8 @@ import {Preferences} from 'lib/app-preferences';
 import {AppTray} from 'lib/app-tray';
 import {initBugTracker, Sentry} from 'lib/sentry';
 import {initThemeSwitcher} from 'lib/theme';
-import {openAppodealSignInWindow} from 'lib/ui-windows';
 import {TrayIcon} from 'lib/tray-icon';
+import {openAppodealAccountsWindow, openAppodealSignInWindow} from 'lib/ui-windows';
 import {UpdatesService} from 'lib/updates';
 
 
@@ -45,7 +46,7 @@ app.on('ready', async () => {
         ]),
         errorFactory = new ErrorFactoryService(),
         appodealApi = new AppodealApi(errorFactory, preferences.accounts.appodealAccounts),
-        onlineService = new OnlineService(appodealApi.getDefault()),
+        onlineService = new OnlineService(appodealApi),
         store = new Store(
             appodealApi,
             onlineService,
@@ -62,19 +63,55 @@ app.on('ready', async () => {
         syncScheduler = new SyncScheduler(syncService, store, onlineService),
         syncConnector = new SyncConnector(store, syncService);
 
-
-    onlineService.onceOnline()
-        .then(() => {
-            if (preferences.accounts.appodealAccounts.length === 0) {
-                openAppodealSignInWindow();
-                store.validateAppVersion();
+    appodealApi.onError.subscribe(async ({account, error}) => {
+        if (error instanceof AuthorizationError && !error.isHandled) {
+            await store.patchPreferences({
+                accounts: {
+                    appodealAccounts: store.state.preferences.accounts.appodealAccounts.map(acc => {
+                        if (acc.id === account.id) {
+                            acc.active = false;
+                        }
+                        return acc;
+                    })
+                }
+            });
+            for (let acc of store.state.preferences.accounts.appodealAccounts) {
+                if (!acc.active) {
+                    await openAppodealSignInWindow(acc);
+                }
             }
-        })
-        .catch(e => {
-            console.error('FAILED TO FETCH CURRENT USER');
-            Sentry.captureException(e);
-            console.log(e);
-        });
+        }
+    });
+
+    onlineService.once('online', () => {
+        store.validateAppVersion()
+            .then(async versionValid => {
+                if (!versionValid) {
+                    updates.availableDist.showUpdateDialog();
+                    return;
+                }
+                await store.fetchAllAppodealUsers();
+                let accounts = store.state.preferences.accounts.appodealAccounts;
+                if (accounts.length === 0) {
+                    openAppodealSignInWindow();
+                } else {
+                    let problemAccount = accounts.find(acc => !acc.active);
+                    if (problemAccount) {
+                        if (preferences.multipleAccountsSupport) {
+                            openAppodealAccountsWindow();
+                        } else {
+                            openAppodealSignInWindow(problemAccount);
+                        }
+                    }
+                }
+            })
+            .then(() => store.updateUserWhenOnline())
+            .catch(e => {
+                console.error('FAILED TO FETCH CURRENT USER');
+                Sentry.captureException(e);
+                console.log(e);
+            });
+    });
 
 
     const cleanUpOnExit = () => Promise.all([
@@ -90,8 +127,8 @@ app.on('ready', async () => {
         syncScheduler.destroy()
     ]);
 
-    onlineService.online().subscribe(v => {
-        console.warn('online', v);
+    onlineService.on('statusChange', isOnline => {
+        console.warn('online', isOnline);
     });
 
 

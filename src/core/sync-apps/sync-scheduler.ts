@@ -41,7 +41,7 @@ export class SyncScheduler {
 
     runOnStart () {
 
-        this.online.onceOnline().then(() => {
+        this.online.once('online', () => {
 
             let unsubscribe = observe(this.store.state, 'selectedAppodealAccount', () => {
                 // after app started

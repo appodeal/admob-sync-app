@@ -5,4 +5,13 @@
   > * + * {
     margin-inline-start: 10px;
   }
+
+  .singleAccountName {
+    display: inline-flex;
+    align-items: center;
+
+    img {
+      margin-inline-start: 5px;
+    }
+  }
 }

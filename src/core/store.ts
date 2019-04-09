@@ -46,9 +46,6 @@ export interface AppState {
 
 type AccountID = string;
 
-const ONE_MINUTE = 60 * 1000;
-
-
 export class Store {
 
     @observable readonly state: AppState = {
@@ -68,7 +65,7 @@ export class Store {
     private appodealAccounts: Map<string, AppodealAccount>;
 
     updatedID;
-    pingTimer;
+
 
     constructor (
         private appodealApi: AppodealApi,
@@ -87,30 +84,24 @@ export class Store {
     }
 
     private watchOnlineStatus () {
-        this.onlineService.whenOnline().subscribe(() => {
-            clearTimeout(this.pingTimer);
-            set<AppState>(this.state, 'online', true);
+        this.onlineService.on('statusChange', isOnline => {
+            set<AppState>(this.state, 'online', isOnline);
         });
-        this.onlineService.whenOffline().subscribe(() => {
-            set<AppState>(this.state, 'online', false);
-            // right now we are trying to reconnect
-            set<AppState>(this.state, 'nextReconnect', Date.now());
-            return this.pingAppodeal();
+        this.onlineService.on('nextReconnect' , (time) => {
+            set<AppState>(this.state, 'nextReconnect', time);
         });
     }
 
+    public updateUserWhenOnline() {
+        this.onlineService.on('online',() => {
+            this.fetchAllAppodealUsers();
+        });
+    }
+
+
     @action
     pingAppodeal () {
-        clearTimeout(this.pingTimer);
-
-        return this.onlineService.sendPing(false)
-            .then(
-                () => this.fetchAllAppodealUsers(),
-                () => {
-                    set<AppState>(this.state, 'nextReconnect', Date.now() + ONE_MINUTE);
-                    this.pingTimer = setTimeout(() => this.pingAppodeal(), ONE_MINUTE);
-                }
-            );
+        return this.onlineService.pingWhileOffline();
     }
 
 
@@ -310,7 +301,7 @@ export class Store {
                         updatedAccounts.push({
                             ...oldState,
                             active: !!account,
-                            email: account ? account.email : oldState.email
+                            email: account && account.email ? account.email : oldState.email
                         });
                     }
                 });
@@ -338,7 +329,7 @@ export class Store {
         // we want provide quick response to UI
         // once log-list is loaded - we will show it
         if (newAccount) {
-            setTimeout( () => this.pushLogs(newAccount));
+            setTimeout(() => this.pushLogs(newAccount));
         }
     }
 

@@ -42,7 +42,10 @@ export class AuthContext extends EventEmitter {
 
     init (accountId: string) {
         this.setAccountId(accountId);
-        this.setTokensInfo(AuthContext.getTokens(accountId));
+        let tokens = AuthContext.getTokens(accountId);
+        if (tokens) {
+            this.setTokensInfo(tokens);
+        }
         // check should we update refresh token each 1 minute
         setInterval(() => this.emitRefresh(), 60000);
         this.emitRefresh();
@@ -67,6 +70,8 @@ export class AuthContext extends EventEmitter {
     }
 
     remove () {
+        this.refreshToken = null;
+        this.accessToken = null;
         return saveJsonFile(
             AuthContext.TOKENS_FILE,
             [...AuthContext.TOKENS.entries()]

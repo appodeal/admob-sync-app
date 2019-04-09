@@ -23,12 +23,8 @@ export function AccountsComponent (
         syncProgress
     }: AccountsComponentProps
 ) {
-    let {accounts: adMobAccounts, ...appodealAccount} = selectedAppodealAccount || {
-        accounts: [],
-        email: null,
-        id: null,
-        __typename: null
-    };
+    let adMobAccounts = selectedAppodealAccount ? selectedAppodealAccount.accounts : [];
+    let appodealAccount = selectedAppodealAccount;
     return (
         <div className={style.accounts}>
             <div className={style.description}>
@@ -38,7 +34,7 @@ export function AccountsComponent (
                 />
             </div>
             {
-                !!appodealAccounts.length
+                !!appodealAccounts.length && appodealAccount
                     ? <>
                         <ul className={style.accountsList}>
                             {adMobAccounts.map(acc => {
@@ -93,7 +89,7 @@ export function AccountsComponent (
                     : <div className={classNames(style.accountsWarning)}>
                         {
                             multipleAccountsSupport
-                                ? 'Add at least one Appodeal account.'
+                                ? (appodealAccounts.length ? 'Sign in into Appodeal account.' : 'Add at least one Appodeal account.')
                                 : 'Sign in into Appodeal account.'
                         }
                     </div>

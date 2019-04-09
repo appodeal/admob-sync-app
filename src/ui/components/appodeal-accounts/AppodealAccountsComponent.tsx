@@ -57,7 +57,7 @@ export class AppodealAccounts extends React.Component<AppodealAccountsProps, App
                                onClick={() => this.selectAccount(acc)}
                     >
                         <span className={classNames(style.email)}>{acc.email}</span>
-                        <span className={classNames(style.warning)} title="Resign in required">
+                        <span className={classNames(style.warning)} title="Resign-in is required">
                         {
                             !acc.active &&
                             <svg viewBox="0 0 16 16" width="16" height="16">

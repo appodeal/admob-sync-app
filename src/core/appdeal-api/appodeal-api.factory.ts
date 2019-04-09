@@ -1,13 +1,20 @@
+import {Subscription} from 'apollo-client/util/Observable';
 import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
 import {AppodealSessions} from 'core/appdeal-api/appodeal-sessions.helper';
 import {AppodealAccount} from 'core/appdeal-api/interfaces/appodeal.account.interface';
 import {ErrorFactoryService} from 'core/error-factory/error-factory.service';
+import {AuthorizationError} from 'core/error-factory/errors/authorization.error';
+import {InternalError} from 'core/error-factory/errors/internal-error';
 import {UserAccount} from 'interfaces/common.interfaces';
+import PushStream from 'zen-push';
 
 
 export class AppodealApi {
     private readonly DEFAULT_API: AppodealApiService;
     private APIs = new Map<string, AppodealApiService>();
+    private errorSubscriptions = new Map<string, Subscription>();
+    private _onError = new PushStream<{account: UserAccount, error: Error}>();
+    onError = this._onError.observable;
 
     constructor (
         private errorFactory: ErrorFactoryService,
@@ -16,8 +23,7 @@ export class AppodealApi {
         this.DEFAULT_API = new AppodealApiService(errorFactory, AppodealSessions.DEFAULT_SESSION);
         accounts.forEach(account => {
             let api = new AppodealApiService(this.errorFactory, AppodealSessions.get(account));
-            api.init(account.id);
-            this.APIs.set(account.id, api);
+            this.saveApi(api, account);
         });
     }
 
@@ -41,8 +47,7 @@ export class AppodealApi {
                 throw err;
             });
         if (account) {
-            api.init(account.id);
-            this.APIs.set(account.id, api);
+            this.saveApi(api, account);
             sessionInfo.save(account.id);
         }
         return account;
@@ -51,9 +56,17 @@ export class AppodealApi {
     async signOut (account: UserAccount | string) {
         let accountId = account instanceof Object ? account.id : account,
             api = this.getFor(accountId);
-        await api.signOut();
+        await api.signOut().catch((error: InternalError) => {
+            if (!(error instanceof AuthorizationError)) {
+                throw error;
+            } else {
+                error.isHandled = true;
+            }
+        });
         api.destroy();
         this.APIs.delete(accountId);
+        this.errorSubscriptions.get(accountId).unsubscribe();
+        this.errorSubscriptions.delete(accountId);
         await AppodealSessions.remove(accountId);
     }
 
@@ -66,5 +79,16 @@ export class AppodealApi {
                         .then<[string, AppodealAccount]>(account => [accountId, account]);
                 })
         ));
+    }
+
+    private saveApi (api: AppodealApiService, account: UserAccount) {
+        api.init(account.id);
+        this.APIs.set(account.id, api);
+        this.errorSubscriptions.set(account.id, api.onError.subscribe(error => {
+            setTimeout(() => this._onError.next({
+                account,
+                error
+            }));
+        }));
     }
 }

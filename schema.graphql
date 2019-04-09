@@ -1,4 +1,4 @@
-# This file was generated based on ".graphqlconfig" at Fri Apr 05 14:15:07 MSK 2019. Do not edit manually.
+# This file was generated based on ".graphqlconfig". Do not edit manually.
 
 schema {
     query: Queries

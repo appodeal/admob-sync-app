@@ -16,17 +16,25 @@ interface AccountChooserProps {
 }
 
 export function AccountChooser ({appodealAccounts, selectedAccount, multipleAccountsSupport}: AccountChooserProps) {
+    selectedAccount = selectedAccount || appodealAccounts[0];
+    let accountToDisplay = selectedAccount ? appodealAccounts.find(acc => acc.id === selectedAccount.id) : null;
     return (<div className={classNames(style.accountChooser)}>
         <label>Appodeal account:</label>
         {
             !!appodealAccounts.length
-                ? (
-                    !!multipleAccountsSupport
-                        ? <select onMouseDown={e => onChooserClick(e, appodealAccounts)}>
-                            <option>{selectedAccount.email}</option>
-                        </select>
-                        : <span>{selectedAccount.email}</span>
-                )
+                ? <>
+                    {
+                        !!multipleAccountsSupport
+                            ? <select onMouseDown={e => onChooserClick(e, appodealAccounts)}>
+                                <option>{accountToDisplay.email}</option>
+                            </select>
+                            : <span className={classNames(style.singleAccountName)}>{accountToDisplay.email}</span>
+                    }
+                    {
+                        !accountToDisplay.active &&
+                        <img src={require('ui/assets/images/account-warning.svg')} alt={''} title={'Resign-in is required'}/>
+                    }
+                </>
                 : <button type="button" className={classNames('primary')} onClick={singleEvent(addAccount)}>{
                     multipleAccountsSupport
                         ? 'Add account'
@@ -38,7 +46,11 @@ export function AccountChooser ({appodealAccounts, selectedAccount, multipleAcco
             (
                 multipleAccountsSupport
                     ? <button type="button" onClick={singleEvent(manageAccounts)}>Manage accounts</button>
-                    : <button type="button" onClick={singleEvent(() => signOut(selectedAccount))}>Sign Out</button>
+                    : <>
+                        {!appodealAccounts[0].active &&
+                        <button type="button" onClick={singleEvent(() => reSignIn(appodealAccounts[0]))}>Resign in</button>}
+                        <button type="button" onClick={singleEvent(() => signOut(selectedAccount))}>Sign Out</button>
+                    </>
             )
 
         }
@@ -71,6 +83,12 @@ function selectAccount (account: AppodealAccountState) {
 
 function addAccount () {
     return sendToMain<AppodealAccount>('accounts', action(ActionTypes.addAppodealAccount));
+}
+
+function reSignIn (account: AppodealAccountState) {
+    return sendToMain<AppodealAccount>('accounts', action(ActionTypes.addAppodealAccount, {
+        appodealAccount: account
+    }));
 }
 
 function manageAccounts () {
