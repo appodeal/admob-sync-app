@@ -5,6 +5,7 @@
     "email": "info@appodeal.com"
   },
   "productName": "AdMob Sync",
+  "repository": "https://github.com/appodeal/admob-sync-app",
   "description": "Appodeal AdMob Sync application",
   "private": true,
   "version": "0.1.2",
@@ -14,7 +15,8 @@
     "electron": "electron ./build",
     "build": "webpack --progress --config=webpack/production.ts",
     "dist": "electron-builder",
-    "dist:all": "node dist.js"
+    "dist:all": "node dist.js",
+    "github:release": "node tools/release.js"
   },
   "build": {
     "appId": "com.electron.admob.desktop",
