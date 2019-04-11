@@ -177,11 +177,11 @@ export class Sync {
 
         const accountDetails = await this.appodealApi.fetchApps(this.adMobAccount.id);
         this.context.addAppodealApps(accountDetails.apps.nodes);
-        yield `Appodeal Apps page 1/'${accountDetails.apps.pageInfo.totalPages}' fetched`;
+        yield `Appodeal Apps page 1/${accountDetails.apps.pageInfo.totalPages} fetched`;
 
         if (accountDetails.apps.pageInfo.totalPages) {
             for (let pageNumber = 2; pageNumber <= accountDetails.apps.pageInfo.totalPages; pageNumber++) {
-                const page = await this.appodealApi.fetchApps(this.adMobAccount.email, pageNumber);
+                const page = await this.appodealApi.fetchApps(this.adMobAccount.id, pageNumber);
                 this.context.addAppodealApps(page.apps.nodes);
                 yield `Appodeal Apps page ${pageNumber}/${page.apps.pageInfo.totalPages} fetched`;
             }
