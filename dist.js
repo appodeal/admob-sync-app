@@ -39,6 +39,7 @@ const targets = (targets => {
 (async () => {
     let results = await builder.build({
         ...targets,
+        publish: null,
         config: buildConfig
     }).catch((err) => {
         console.error(err);

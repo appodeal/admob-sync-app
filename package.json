@@ -34,8 +34,7 @@
     ],
     "mac": {
       "target": "dmg",
-      "darkModeSupport": true,
-      "publish": ["never"]
+      "darkModeSupport": true
     },
     "dmg": {
       "artifactName": "${name}-${version}.${ext}",
@@ -64,7 +63,6 @@
       ]
     },
     "win": {
-      "publish": ["never"],
       "target": "nsis"
     },
     "nsis": {
@@ -76,8 +74,7 @@
     "linux": {
       "target": "deb",
       "category": "Utility",
-      "artifactName": "${name}-setup-${version}.${ext}",
-      "publish": ["never"]
+      "artifactName": "${name}-setup-${version}.${ext}"
     }
   },
   "symlinkName": {
