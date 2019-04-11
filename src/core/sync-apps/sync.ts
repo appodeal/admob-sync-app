@@ -238,7 +238,7 @@ export class Sync {
         }
         yield `found App in Admob Try to delete its AdUnits`;
 
-        const adUnitsToDelete = this.filterAppAdUnits(app, this.context.getAdMobAppAdUnits(adMobApp)).map(adUnit => adUnit.adUnitId);
+        const adUnitsToDelete = this.getActiveAdmobAdUnitsCreatedByApp(app, adMobApp).map(adUnit => adUnit.adUnitId);
         if (adUnitsToDelete.length) {
             await this.deleteAdMobAdUnits(adUnitsToDelete);
             yield `${adUnitsToDelete.length} adUnits deleted`;
@@ -247,7 +247,7 @@ export class Sync {
         }
 
 
-        if (!adMobApp.hidden && !this.context.getAdMobAppAdUnits(adMobApp).length) {
+        if (!adMobApp.hidden && !this.getActiveAdmobAdUnitsCreatedByApp(app, adMobApp).length) {
             yield `Hide App`;
             adMobApp = await this.hideAdMobApp(adMobApp);
             this.context.updateAdMobApp(adMobApp);
@@ -302,7 +302,7 @@ export class Sync {
             }
         }
 
-        const actualAdUnits = await this.syncAdUnits(app, adMobApp, this.context.getAdMobAppAdUnits(adMobApp));
+        const actualAdUnits = await this.syncAdUnits(app, adMobApp);
         yield `AdUnits actualized`;
 
         await this.appodealApi.reportAppSynced(app, this.id, this.adMobAccount.id, adMobApp, actualAdUnits);
@@ -310,18 +310,12 @@ export class Sync {
     }
 
 
-    async syncAdUnits (app: AppodealApp, adMobApp: AdMobApp, allAppAdUnits: AdMobAdUnit[]) {
+    async syncAdUnits (app: AppodealApp, adMobApp: AdMobApp) {
         const templatesToCreate = this.buildAdUnitsSchema(app);
         const adUnitsToDelete: AdUnitId[] = [];
         const appodealAdUnits = [];
 
-        // filter adUnits which user created manually
-        // we should work only adUnits created automatically during sync
-        // exclude archived too
-        this.filterAppAdUnits(
-            app,
-            allAppAdUnits.filter(adUnit => adUnit.archived !== true)
-        ).forEach((adMobAdUnit: AdMobAdUnit) => {
+        this.getActiveAdmobAdUnitsCreatedByApp(app, adMobApp).forEach((adMobAdUnit: AdMobAdUnit) => {
             const templateId = Sync.getAdUnitTemplateId(adMobAdUnit);
             if (templatesToCreate.has(templateId)) {
                 appodealAdUnits.push(this.convertToAppodealAdUnit(adMobAdUnit, templatesToCreate.get(templateId)));
@@ -377,6 +371,17 @@ export class Sync {
         };
     }
 
+    // filter adUnits which user created manually
+    // we should work only adUnits created automatically during sync
+    // exclude archived too
+    getActiveAdmobAdUnitsCreatedByApp (app: AppodealApp, adMobApp: AdMobApp) {
+        return this.filterAppAdUnits(
+            app,
+            // we can do nothing with archived adUnits so we should ignore them
+            this.context.getAdMobAppAdUnits(adMobApp).filter(adUnit => adUnit.archived !== true)
+        );
+    }
+
 
     filterAppAdUnits (app: AppodealApp, adUnits: AdMobAdUnit[]) {
         const pattern = new RegExp('^' + [
@@ -423,7 +428,7 @@ export class Sync {
                 }
                 return true;
             })
-            .map(({floor, template}, i, ar) => {
+            .map(({floor, template}) => {
                     return [
                         // default adUnit with no ecpm
                         {

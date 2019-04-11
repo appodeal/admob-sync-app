@@ -42,6 +42,11 @@ export class SyncContext {
         this.adMob.adUnits = this.adMob.adUnits.filter(v => !ids.includes(v.adUnitId));
     }
 
+    /**
+     * return all adunit
+     * archived & created by user manually
+     * @param adMobApp
+     */
     getAdMobAppAdUnits (adMobApp: AdMobApp): AdMobAdUnit[] {
         return this.adMob.adUnits.filter(adUnit => adUnit.appId === adMobApp.appId);
     }
