@@ -302,7 +302,7 @@ export class Sync {
             }
         }
 
-        const actualAdUnits = await this.syncAdUnits(app, adMobApp);
+        const actualAdUnits = yield* this.syncAdUnits(app, adMobApp);
         yield `AdUnits actualized`;
 
         await this.appodealApi.reportAppSynced(app, this.id, this.adMobAccount.id, adMobApp, actualAdUnits);
@@ -310,7 +310,7 @@ export class Sync {
     }
 
 
-    async syncAdUnits (app: AppodealApp, adMobApp: AdMobApp) {
+    async* syncAdUnits (app: AppodealApp, adMobApp: AdMobApp) {
         const templatesToCreate = this.buildAdUnitsSchema(app);
         const adUnitsToDelete: AdUnitId[] = [];
         const appodealAdUnits = [];
@@ -350,8 +350,8 @@ export class Sync {
             });
             if (newAdUnit) {
                 this.context.addAdMobAdUnit(newAdUnit);
-                this.logger.info(`AdUnit Created ${this.adUnitCode(newAdUnit)} ${adUnitTemplate.name}`);
                 appodealAdUnits.push(this.convertToAppodealAdUnit(newAdUnit, adUnitTemplate));
+                yield `AdUnit Created ${this.adUnitCode(newAdUnit)} ${adUnitTemplate.name}`;
             }
         }
 
@@ -359,6 +359,7 @@ export class Sync {
         if (adUnitsToDelete.length) {
             await this.deleteAdMobAdUnits(adUnitsToDelete);
             this.context.removeAdMobAdUnits(adUnitsToDelete);
+            yield `Bad AdUnits (${adUnitsToDelete}) was deleted`;
         }
 
         return appodealAdUnits;
