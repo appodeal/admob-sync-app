@@ -23,7 +23,6 @@ export abstract class Connector {
 
     destroy () {
         SUBSCRIPTIONS.get(this).unsubscribe();
-        SUBSCRIPTIONS.delete(this);
         CHANNELS.delete(this.channelName);
     }
 
