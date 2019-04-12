@@ -51,7 +51,14 @@ export class AdmobApiService {
                 'mode': 'cors'
             }
         )
-            .then(r => r.json());
+            .then(async r => {
+                try {
+                    return r.json();
+                } catch (e) {
+                    this.logger.info(await r.text());
+                    throw e;
+                }
+            });
     }
 
     async refreshXsrfToken () {
