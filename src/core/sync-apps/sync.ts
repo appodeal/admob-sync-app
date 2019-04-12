@@ -247,8 +247,9 @@ export class Sync {
         }
 
 
-        if (!adMobApp.hidden && !this.getActiveAdmobAdUnitsCreatedByApp(app, adMobApp).length) {
-            yield `Hide App`;
+        // in case app has at least one active adUnit it should no be hidden
+        if (!adMobApp.hidden && !this.context.getAdMobAppAdUnits(adMobApp).filter(adUnit => !adUnit.archived).length) {
+            yield `Hide App. All its adUnits are archived`;
             adMobApp = await this.hideAdMobApp(adMobApp);
             this.context.updateAdMobApp(adMobApp);
             yield `App Hidden`;
