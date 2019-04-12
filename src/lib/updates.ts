@@ -85,7 +85,7 @@ export class UpdatesService extends EventEmitter {
     }
 
     private async fetchDistInfo (): Promise<DistInfo> {
-        let updatesServerUrl = /*process.env.ADMOB_SYNC_UPDATE_SERVER ||*/environment.updates.updatesServerUrl,
+        let updatesServerUrl = process.env.ADMOB_SYNC_UPDATE_SERVER ||environment.updates.updatesServerUrl,
             response = await nodeFetch<{ [key: string]: DistInfo }>(`${updatesServerUrl}/dist-info.json`, {
                 headers: {
                     'cache-control': 'no-cache',
