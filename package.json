@@ -12,7 +12,7 @@
   "scripts": {
     "start": "webpack --watch --progress --config=webpack/development.ts",
     "test": "jest",
-    "electron": "electron ./build",
+    "electron": "cd build && electron .",
     "build": "webpack --progress --config=webpack/production.ts",
     "dist": "electron-builder",
     "dist:all": "node dist.js",

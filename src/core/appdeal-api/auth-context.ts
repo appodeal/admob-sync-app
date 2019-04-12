@@ -1,8 +1,8 @@
 import {ApolloLink} from 'apollo-link';
 import {setContext} from 'apollo-link-context';
+import {EventEmitter} from 'events';
 import jwt_decode from 'jwt-decode';
 import {getJsonFile, saveJsonFile} from 'lib/json-storage';
-import {EventEmitter} from 'events';
 
 
 export interface TokensInfo {
@@ -44,7 +44,10 @@ export class AuthContext extends EventEmitter {
         this.setAccountId(accountId);
         let tokens = AuthContext.getTokens(accountId);
         if (tokens) {
+            console.log(`auth tokens for ${accountId} successfully loaded`);
             this.setTokensInfo(tokens);
+        } else {
+            console.log(`NO auth tokens for ${accountId}`);
         }
         // check should we update refresh token each 1 minute
         setInterval(() => this.emitRefresh(), 60000);
@@ -70,6 +73,7 @@ export class AuthContext extends EventEmitter {
     }
 
     remove () {
+        console.log(`auth tokens for ${this.accountId} have been deleted`);
         this.refreshToken = null;
         this.accessToken = null;
         return saveJsonFile(

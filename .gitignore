@@ -7,3 +7,4 @@ config/*.json
 /release
 /dist
 tmp
+userData

@@ -23,8 +23,12 @@ import {initThemeSwitcher} from 'lib/theme';
 import {TrayIcon} from 'lib/tray-icon';
 import {openAppodealAccountsWindow, openAppodealSignInWindow} from 'lib/ui-windows';
 import {UpdatesService} from 'lib/updates';
+import * as path from 'path';
 
 
+if (environment.development) {
+    app.setPath('userData', path.join(process.cwd(), 'userData'));
+}
 if (!environment.development) {
     console.debug = () => {};
 }
