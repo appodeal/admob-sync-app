@@ -177,11 +177,11 @@ export class Sync {
 
         const accountDetails = await this.appodealApi.fetchApps(this.adMobAccount.id);
         this.context.addAppodealApps(accountDetails.apps.nodes);
-        yield `Appodeal Apps page 1/'${accountDetails.apps.pageInfo.totalPages}' fetched`;
+        yield `Appodeal Apps page 1/${accountDetails.apps.pageInfo.totalPages} fetched`;
 
         if (accountDetails.apps.pageInfo.totalPages) {
             for (let pageNumber = 2; pageNumber <= accountDetails.apps.pageInfo.totalPages; pageNumber++) {
-                const page = await this.appodealApi.fetchApps(this.adMobAccount.email, pageNumber);
+                const page = await this.appodealApi.fetchApps(this.adMobAccount.id, pageNumber);
                 this.context.addAppodealApps(page.apps.nodes);
                 yield `Appodeal Apps page ${pageNumber}/${page.apps.pageInfo.totalPages} fetched`;
             }
@@ -247,8 +247,9 @@ export class Sync {
         }
 
 
-        if (!adMobApp.hidden && !this.getActiveAdmobAdUnitsCreatedByApp(app, adMobApp).length) {
-            yield `Hide App`;
+        // in case app has at least one active adUnit it should no be hidden
+        if (!adMobApp.hidden && !this.context.getAdMobAppAdUnits(adMobApp).filter(adUnit => !adUnit.archived).length) {
+            yield `Hide App. All its adUnits are archived`;
             adMobApp = await this.hideAdMobApp(adMobApp);
             this.context.updateAdMobApp(adMobApp);
             yield `App Hidden`;

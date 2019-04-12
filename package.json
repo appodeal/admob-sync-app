@@ -8,11 +8,11 @@
   "repository": "https://github.com/appodeal/admob-sync-app",
   "description": "Appodeal AdMob Sync application",
   "private": true,
-  "version": "0.1.3",
+  "version": "0.1.4",
   "scripts": {
     "start": "webpack --watch --progress --config=webpack/development.ts",
     "test": "jest",
-    "electron": "electron ./build",
+    "electron": "cd build && electron .",
     "build": "webpack --progress --config=webpack/production.ts",
     "dist": "electron-builder",
     "dist:all": "node dist.js",
