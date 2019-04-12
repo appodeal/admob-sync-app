@@ -85,13 +85,12 @@ export class UpdatesService extends EventEmitter {
     }
 
     private async fetchDistInfo (): Promise<DistInfo> {
-        let {updatesServerUrl, login, password} = environment.updates,
+        let updatesServerUrl = process.env.ADMOB_SYNC_UPDATE_SERVER ||environment.updates.updatesServerUrl,
             response = await nodeFetch<{ [key: string]: DistInfo }>(`${updatesServerUrl}/dist-info.json`, {
                 headers: {
                     'cache-control': 'no-cache',
-                    'Authorization': `Basic ${Buffer.from(`${login}:${password}`).toString('base64')}`
                 }
-            }).then(r => r.json()),
+            }).then(r => r.json(), () => {}),
             osName = getOsName();
         this.lastCheck = new Date();
         return response && response[osName] || null;
