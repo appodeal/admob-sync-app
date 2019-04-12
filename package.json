@@ -143,7 +143,8 @@
     "webpack-cli": "^3.2.3",
     "webpack-dev-server": "^3.2.0",
     "webpack-merge": "^4.2.1",
-    "github": "~0.2.4"
+    "github": "~0.2.4",
+    "moment": "^2.22.2"
   },
   "dependencies": {
     "@sentry/electron": "^0.16.0",
