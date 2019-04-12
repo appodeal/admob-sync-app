@@ -3,21 +3,23 @@ import ApolloClient, {MutationOptions, OperationVariables, QueryOptions} from 'a
 import {ApolloLink, FetchResult, Observable} from 'apollo-link';
 import {BatchHttpLink} from 'apollo-link-batch-http';
 import {ErrorResponse, onError} from 'apollo-link-error';
-import {AuthContext} from 'core/appdeal-api/AuthContext';
+import {AuthContext, TokensInfo} from 'core/appdeal-api/auth-context';
 import {AppodealAccount} from 'core/appdeal-api/interfaces/appodeal.account.interface';
 import {AuthorizationError} from 'core/error-factory/errors/authorization.error';
-import {session} from 'electron';
+import {session, Session} from 'electron';
 import {ExtractedAdmobAccount} from 'interfaces/common.interfaces';
-import {createFetcher} from 'lib/fetch';
+import {createFetcher, Fetcher} from 'lib/fetch';
 import {AdMobApp} from 'lib/translators/interfaces/admob-app.interface';
+import PushStream from 'zen-push';
 import {ErrorFactoryService} from '../error-factory/error-factory.service';
 import {InternalError} from '../error-factory/errors/internal-error';
 import addAdMobAccountMutation from './graphql/add-admob-account.mutation.graphql';
-
 import adMobAccountQuery from './graphql/admob-account-details.graphql';
-import criticalVersionQuery from './graphql/critical-version.query.graphql';
+import minimalAppVersionQuery from './graphql/minimal-app-version.query.graphql';
 import currentUserQuery from './graphql/current-user.query.graphql';
 import endSync from './graphql/end-sync.mutation.graphql';
+
+import pingQuery from './graphql/ping.query.graphql';
 import refreshTokenMutation from './graphql/refresh-token-mutation.graphql';
 import setAdMobAccountCredentialsMutation from './graphql/set-admob-account-credentials.mutation.graphql';
 import signInMutation from './graphql/sign-in.mutation.graphql';
@@ -55,18 +57,11 @@ export interface ApiMutationOptions<T, V> extends MutationOptions<T, V> {
 
 export class AppodealApiService {
 
-    static emptyAccount: AppodealAccount = {
-        id: null,
-        email: null,
-        accounts: [],
-        __typename: 'User'
-    };
-
     private client: ApolloClient<NormalizedCacheObject>;
-    private session = session.fromPartition('persist:appodeal');
-    private fetcher = createFetcher(this.session);
+    private _onError = new PushStream<InternalError>();
 
-    public onError: (e: InternalError) => void;
+    public onError = this._onError.observable;
+    fetcher: Fetcher;
     authContext: AuthContext;
 
     private logRequest (operations, opType, variables) {
@@ -95,16 +90,17 @@ export class AppodealApiService {
             });
     };
 
-    constructor (errorFactory: ErrorFactoryService) {
+    constructor (errorFactory: ErrorFactoryService, session: Session) {
         const errorLink = onError((errorResponse: ErrorResponse) => {
             const error = errorFactory.create(errorResponse);
             this.handleError(error);
             return new Observable<FetchResult>((ob) => ob.error(error));
         });
+        this.fetcher = createFetcher(session);
 
         const defaultApolloLink = new BatchHttpLink({uri: environment.services.appodeal, fetch: this.fetcher});
 
-        this.authContext = new AuthContext(this);
+        this.authContext = new AuthContext();
 
 
         this.client = new ApolloClient({
@@ -125,71 +121,91 @@ export class AppodealApiService {
 
     private initialized = false;
 
-    async init (): Promise<any> {
+    init (accountId: string) {
         if (this.initialized) {
             return;
         }
+        this.authContext.init(accountId);
+        this.authContext.on('refresh', refreshToken => {
+            this.refreshAccessToken(refreshToken);
+        });
+        this.initialized = true;
+    }
 
-        return this.authContext.init().then(() => this.initialized = true);
+    destroy () {
+        this.authContext.removeAllListeners();
     }
 
     handleError (e: InternalError) {
-        if (this.onError && e) {
-            this.onError(e);
-        }
+        this._onError.next(e);
     }
 
-    getCriticalPluginVersion (): Promise<string> {
-        return this.query<{ criticalVersion: string }>({
-            query: criticalVersionQuery
-        }).then(result => result.criticalVersion);
+    getMinimalAppVersion (): Promise<string> {
+        return this.query<{ minimalAppVersion: string }>({
+            query: minimalAppVersionQuery
+        }).then(result => result.minimalAppVersion);
     }
 
-    signIn (email: string, password: string) {
-        return this.mutate({
+    signIn (email: string, password: string): Promise<AppodealAccount> {
+        return this.mutate<{ accessToken: string, refreshToken: string }>({
             mutation: signInMutation,
             variables: {
                 email,
                 password
             },
             dataAttribute: ['signIn']
-        }).then(this.authContext.storeSessionFromResponse)
+        })
+            .then(tokensInfo => {
+                this.authContext.setTokensInfo(tokensInfo);
+                return this.fetchCurrentUser();
+            })
+            .then(account => {
+                this.authContext.setAccountId(account.id);
+                this.authContext.save();
+                return account;
+            })
             .catch(e => {
-                this.authContext.invalidateAccessToken();
+                this.authContext.remove();
                 throw e;
             });
     }
 
     refreshAccessToken (refreshToken) {
-        return this.mutate<any>({
+        return this.mutate<TokensInfo>({
             mutation: refreshTokenMutation,
             variables: {
                 refreshToken
             },
             dataAttribute: ['refreshAccessToken']
-        }).then(this.authContext.storeSessionFromResponse);
+        })
+            .then(tokensInfo => {
+                this.authContext.setTokensInfo(tokensInfo);
+                this.authContext.save();
+                return tokensInfo;
+            });
     }
 
     signOut () {
         return this.mutate({
             mutation: signOutMutation
         }).then(res => {
-            this.authContext.invalidateAccessToken();
+            this.authContext.remove();
+            this.authContext.removeAllListeners();
             return res;
         });
     }
 
     fetchCurrentUser (): Promise<AppodealAccount> {
         return this.query<{ currentUser: AppodealAccount }>({
-            query: currentUserQuery
+            query: currentUserQuery,
         })
             .then(result => {
-                return result.currentUser || AppodealApiService.emptyAccount;
+                return result.currentUser;
             })
             .catch(err => {
                 if (err instanceof AuthorizationError) {
-                    this.authContext.invalidateAccessToken();
-                    return AppodealApiService.emptyAccount;
+                    this.authContext.remove();
+                    return null;
                 }
                 throw err;
             });
@@ -271,6 +287,13 @@ export class AppodealApiService {
             }
         })
             .then(({addAdmobAccount}) => addAdmobAccount);
+    }
+
+    ping () {
+        return this.query<'pong'>({
+            query: pingQuery,
+            dataAttribute: 'ping'
+        });
     }
 
 }

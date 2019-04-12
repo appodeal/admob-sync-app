@@ -1,4 +1,3 @@
-
 import {SyncEvent, SyncEventsTypes} from 'core/sync-apps/sync.events';
 import * as Observable from 'zen-observable';
 

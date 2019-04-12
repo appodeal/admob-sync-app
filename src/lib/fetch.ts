@@ -58,6 +58,9 @@ export function nodeFetch<T extends any> (
             }
         }
 
+        request.on('login', () => {
+            reject(new Error('Unauthorized'));
+        });
         request.once('error', error => {
             request.removeAllListeners();
             reject(error);

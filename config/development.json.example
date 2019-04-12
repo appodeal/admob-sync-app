@@ -10,6 +10,11 @@
     "basicAuth": {
       "login": "",
       "password": ""
+    },
+    "multipleAccountsSupport": false,
+    "updates": {
+      "releaseNotesUrl": "https://wiki.appodeal.com",
+      "updatesServerUrl": "https://amsa-updates.appodeal.com"
     }
   }
 }

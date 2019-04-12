@@ -1,16 +1,17 @@
 import * as Sentry from '@sentry/electron';
 import {AdMobSessions} from 'core/admob-api/admob-sessions.helper';
 import {AdmobApiService} from 'core/admob-api/admob.api';
-import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
+import {AppodealApi} from 'core/appdeal-api/appodeal-api.factory';
 import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
+import {OnlineService} from 'core/appdeal-api/online.service';
 import {Store} from 'core/store';
 import {Sync} from 'core/sync-apps/sync';
 import {SyncHistory} from 'core/sync-apps/sync-history';
+import {SyncNotifications} from 'core/sync-apps/sync-notifications';
 import {SyncErrorEvent, SyncEventsTypes} from 'core/sync-apps/sync.events';
 import {createFetcher} from 'lib/fetch';
 import {createSyncLogger, getLogContent, LoggerInstance, rotateSyncLogs} from 'lib/sync-logs/logger';
 import uuid from 'uuid';
-import getSession = AdMobSessions.getSession;
 
 
 type FinishPromise = Promise<any>;
@@ -19,7 +20,7 @@ export class SyncService {
     private activeSyncs = new Map<Sync, FinishPromise>();
 
 
-    constructor (private store: Store, private appodealApi: AppodealApiService) {
+    constructor (private store: Store, private appodealApi: AppodealApi, private onlineService: OnlineService) {
 
     }
 
@@ -32,68 +33,90 @@ export class SyncService {
     }
 
 
-    public async runSync (admobAccount: AdMobAccount) {
+    public async runSync (appodealAccountId: string, admobAccount: AdMobAccount) {
+        return new Promise(async (resolve, reject) => {
+            if (this.onlineService.isOffline()) {
+                console.log('[Sync Service] Can not run sync. No Internet Connection');
+                return reject(new Error('Can not run sync. No Internet Connection'));
+            }
 
-        if (!this.canRun(admobAccount)) {
-            // only one sync per account can be run
-            console.warn(`only one sync per account can be run. Admob Account ${admobAccount.id} has running sync in progress.`);
-            return;
-        }
+            if (!this.canRun(admobAccount)) {
+                // only one sync per account can be run
+                console.warn(`[Sync Service] only one sync per account can be run. Admob Account ${admobAccount.id} has running sync in progress.`);
+                return reject(new Error(`Admob Account ${admobAccount.id} has running sync in progress.`));
+            }
 
-        const admobSession = await getSession(admobAccount);
+            if (!await this.store.validateAppVersion()) {
+                console.log('[Sync Service] Can not run sync. App version is OutDated!');
+                return reject(new Error('Can not run sync. App version is OutDated!'));
+            }
 
-        if (!admobSession) {
-            await SyncHistory.setAuthorizationRequired(admobAccount);
-            console.warn(`[Sync Service] [${admobAccount.id} ${admobAccount.email}] can not run sync. User has to Sign In in account first.`);
-            return;
-        }
+            const admobSession = await AdMobSessions.getSession(admobAccount);
 
-        const id = uuid.v4();
-        const logger = await createSyncLogger(admobAccount, id);
+            if (!admobSession) {
+                await SyncHistory.setAuthorizationRequired(admobAccount);
+                console.warn(`[Sync Service] [${admobAccount.id} ${admobAccount.email}] can not run sync. User has to Sign In in account first.`);
+                return reject(new Error(`Can not run sync for ${admobAccount.email}. User has to Sign In in account first.`));
+            }
 
-        const adMobApi = new AdmobApiService(await createFetcher(admobSession), logger);
+            const id = uuid.v4();
+            const logger = await createSyncLogger(admobAccount, id);
 
-        const sync = new Sync(
-            adMobApi,
-            this.appodealApi,
-            admobAccount,
-            this.store.state.appodealAccount,
-            logger,
-            id
-        );
+            const adMobApi = new AdmobApiService(await createFetcher(admobSession), logger);
 
-        const waitToFinish = [];
-        const subs = [];
-        subs.push(
-            sync.events.on(SyncEventsTypes.UserActionsRequired)
-                .subscribe(() => { waitToFinish.push(SyncHistory.setAuthorizationRequired(admobAccount, true));}),
-            sync.events.on(SyncEventsTypes.CalculatingProgress)
-                .subscribe(() => { waitToFinish.push(SyncHistory.setAuthorizationRequired(admobAccount, false));}),
-            sync.events.on()
-                .subscribe(event => this.store.updateSyncProgress(admobAccount, event)),
-            sync.events.on(SyncEventsTypes.Error)
-                .subscribe((event: SyncErrorEvent) => {
-                    this.reportError(sync, event.error);
-                })
-        );
+            const sync = new Sync(
+                adMobApi,
+                this.appodealApi.getFor(appodealAccountId),
+                admobAccount,
+                appodealAccountId,
+                logger,
+                id
+            );
+
+            const waitToFinish = [];
+            const subs = [];
+            subs.push(
+                sync.events.on(SyncEventsTypes.UserActionsRequired)
+                    .subscribe(() => { waitToFinish.push(SyncHistory.setAuthorizationRequired(admobAccount, true));}),
+                sync.events.on(SyncEventsTypes.CalculatingProgress)
+                    .subscribe(() => { waitToFinish.push(SyncHistory.setAuthorizationRequired(admobAccount, false));}),
+                sync.events.on()
+                    .subscribe(event => this.store.updateSyncProgress(admobAccount, event)),
+                sync.events.on(SyncEventsTypes.Error)
+                    .subscribe((event: SyncErrorEvent) => {
+                        this.reportError(sync, event.error);
+                    })
+            );
+
+            const syncNotifications = new SyncNotifications(sync, this.store);
 
 
-        this.activeSyncs.set(sync, this.processSync(sync, logger).then(async () => {
-            subs.forEach(sub => sub.unsubscribe());
-            await Promise.all(waitToFinish);
-            this.activeSyncs.delete(sync);
-            await this.store.updateAdMobAccountInfo(admobAccount);
-        }));
+            this.activeSyncs.set(
+                sync,
+                this.processSync(sync, logger, appodealAccountId)
+                    .then(() => resolve(), err => reject(err))
+                    .then(async () => {
+                        syncNotifications.destroy();
+                        subs.forEach(sub => sub.unsubscribe());
+                        await Promise.all(waitToFinish);
+                        this.activeSyncs.delete(sync);
+                        await this.store.updateAdMobAccountInfo(admobAccount);
+                    })
+            );
+        });
     }
 
-    private async processSync (sync: Sync, logger: LoggerInstance) {
+    private async processSync (sync: Sync, logger: LoggerInstance, appodealAccountId: string) {
+        let error;
         try {
             await sync.run();
         } catch (e) {
+            sync.stop('uncaught error during sync');
             // uncaught error during sync.
             sync.hasErrors = true;
             logger.error(e);
             this.reportError(sync, e);
+            error = e;
         } finally {
             if (sync.hasErrors) {
                 logger.info('Admob AdUnits and Apps');
@@ -101,14 +124,17 @@ export class SyncService {
             }
             await logger.closeAsync();
         }
-        await this.afterSync(sync);
+        await this.afterSync(sync, appodealAccountId);
+        if (error) {
+            throw error;
+        }
     }
 
-    private async afterSync (sync: Sync) {
+    private async afterSync (sync: Sync, appodealAccountId: string) {
         try {
             if (sync.hasErrors) {
                 console.log(`Sync ${sync.id} finished with errors. Report Log to Appodeal.`);
-                await this.submitLog(sync.adMobAccount, sync.id);
+                await this.submitLog(sync.adMobAccount, sync.id, appodealAccountId);
             }
             await rotateSyncLogs(sync.adMobAccount);
         } catch (e) {
@@ -126,9 +152,9 @@ export class SyncService {
     }
 
 
-    private async submitLog (admobAccount: AdMobAccount, syncId: string) {
+    private async submitLog (admobAccount: AdMobAccount, syncId: string, appodealAccountId: string) {
         const rawLog = await getLogContent(admobAccount, syncId);
-        return this.appodealApi.submitLog(admobAccount.id, syncId, rawLog);
+        return this.appodealApi.getFor(appodealAccountId).submitLog(admobAccount.id, syncId, rawLog);
     }
 
     public async destroy () {

@@ -1,5 +1,5 @@
 export enum SyncEventsTypes {
-    Started,
+    Started = 1,
     CalculatingProgress,
     ReportProgress,
     UserActionsRequired,

@@ -23,7 +23,7 @@ export declare type ServerError = Error & {
     statusCode: number;
 };
 
-const isNetworkError = (err) => err && err.statusCode !== undefined;
+const isNetworkError = (err) => err && err.statusCode !== undefined || err.message === 'net::ERR_INTERNET_DISCONNECTED';
 const isApolloResponseError = (err) => err
     && err.hasOwnProperty('operation')
     && (err.hasOwnProperty('graphQLErrors') || err.hasOwnProperty('networkError'));
@@ -119,7 +119,6 @@ export class ErrorFactoryService {
             extensions: error.operation.extensions
         };
         fingerPrint.push(extra.graphQLRequest.operationName);
-        extra.graphQLContext = error.operation.getContext();
         if (error.graphQLErrors) {
             extra.graphQLErrors = error.graphQLErrors;
             error.graphQLErrors
@@ -135,12 +134,12 @@ export class ErrorFactoryService {
 
 
     /**
-     *
-     * @param {HttpErrorResponse} httpError
+     * @param {ServerError} httpError
+     * @param {string} [operationName]
      * @return {NoConnectionError|InternalServerError|UnavailableEndpointError|AuthorizationError}
      */
     createNetworkError (httpError: ServerError, operationName?: string) {
-        if (httpError.statusCode === 0) {
+        if (httpError.statusCode === 0 || httpError.message === 'net::ERR_INTERNET_DISCONNECTED') {
             return new NoConnectionError(httpError);
         }
 
@@ -161,7 +160,6 @@ export class ErrorFactoryService {
     }
 
     /**
-     *
      * @param originalError
      * @return {InternalError}
      */

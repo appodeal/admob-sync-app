@@ -1,14 +1,15 @@
-import {AdmobApiService} from 'core/admob-api/admob.api';
+import {captureMessage} from '@sentry/core';
+import {AdmobApiService, RefreshXsrfTokenError} from 'core/admob-api/admob.api';
 import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
 import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
 import {AdType, AppodealAdUnit, AppodealApp, AppodealPlatform, Format} from 'core/appdeal-api/interfaces/appodeal-app.interface';
-import {AppodealAccount} from 'core/appdeal-api/interfaces/appodeal.account.interface';
+import {getAdUnitTemplate} from 'core/sync-apps/ad-unit-templates';
 import stringify from 'json-stable-stringify';
 import {retry} from 'lib/retry';
 import {AppTranslator} from 'lib/translators/admob-app.translator';
 import {AdMobPlatform} from 'lib/translators/admob.constants';
 import {AdUnitTranslator} from 'lib/translators/admop-ad-unit.translator';
-import {AdMobAdFormat, AdMobAdUnit, CpmFloorMode, CpmFloorSettings} from 'lib/translators/interfaces/admob-ad-unit.interface';
+import {AdMobAdUnit, CpmFloorMode, CpmFloorSettings} from 'lib/translators/interfaces/admob-ad-unit.interface';
 import {AdMobApp} from 'lib/translators/interfaces/admob-app.interface';
 import {getTranslator} from 'lib/translators/translator.helpers';
 import uuid from 'uuid';
@@ -45,11 +46,16 @@ export class Sync {
 
     public context = new SyncContext();
 
+    /**
+     * if user have no permissions to create native adunits we should not try do it many times.
+     */
+    private skipNativeAdUnits = false;
+
     constructor (
         private adMobApi: AdmobApiService,
         private appodealApi: AppodealApiService,
         public adMobAccount: AdMobAccount,
-        private appodealAccount: AppodealAccount,
+        private appodealAccountId: string,
         private logger: Partial<Console>,
         // some uniq syncId
         public readonly id: string
@@ -69,20 +75,24 @@ export class Sync {
     async run () {
         this.logger.info(`Sync started`);
         this.terminated = false;
-        await this.appodealApi.reportSyncStart(this.id, this.adMobAccount.id);
-        for await (const value of this.doSync()) {
-            this.logger.info(value);
-            if (this.terminated) {
-                this.logger.info(`Sync Terminated`);
-                await this.finish();
-                return;
+        try {
+            for await (const value of this.doSync()) {
+                this.logger.info(value);
+                if (this.terminated) {
+                    this.logger.info(`Sync Terminated`);
+                    return;
+                }
             }
+            this.logger.info(`Sync finished completely ${this.hasErrors ? 'with ERRORS!' : ''}`);
+        } catch (e) {
+            this.hasErrors = true;
+            throw e;
+        } finally {
+            this.finish();
         }
-        this.logger.info(`Sync finished completely ${this.hasErrors ? 'with ERRORS!' : ''}`);
-        await this.finish();
     }
 
-    async finish () {
+    finish () {
         this.emit(SyncEventsTypes.Stopped);
         this.appodealApi.reportSyncEnd(this.id);
     }
@@ -110,6 +120,13 @@ export class Sync {
     }
 
     async* doSync () {
+        this.emit(SyncEventsTypes.Started);
+        this.logger.info(`Sync Params
+        uuid: ${this.id}
+        AppodealAccount: '${this.appodealAccountId}}'
+        AdmobAccount: '${this.adMobAccount.id}}': '${this.adMobAccount.email}}'
+        `);
+        await this.appodealApi.reportSyncStart(this.id, this.adMobAccount.id);
         try {
             yield* this.fetchDataToSync();
         } catch (e) {
@@ -132,18 +149,17 @@ export class Sync {
     async* fetchDataToSync () {
 
 
-        this.emit(SyncEventsTypes.Started);
-        this.logger.info(`Sync Params
-        uuid: ${this.id}
-        AppodealAccount: '${this.appodealAccount.id}}': '${this.appodealAccount.email}}'
-        AdmobAccount: '${this.adMobAccount.id}}': '${this.adMobAccount.email}}'
-        `);
-
         yield `refrech Admob xsrf Token`;
         try {
-            await retry(() => this.adMobApi.refreshXsrfToken(), 3, 1000);
+            await retry(async () => this.adMobApi.refreshXsrfToken(), 3, 1000);
         } catch (e) {
-            this.emitError(e);
+            if (e instanceof RefreshXsrfTokenError) {
+                // this error is not supposed to be emitted and handler further
+                this.hasErrors = true;
+                this.logger.error(e);
+            } else {
+                this.emitError(e);
+            }
             this.emit(SyncEventsTypes.UserActionsRequired);
             this.terminated = true;
             yield 'Terminated as User Actions is Required';
@@ -161,11 +177,11 @@ export class Sync {
 
         const accountDetails = await this.appodealApi.fetchApps(this.adMobAccount.id);
         this.context.addAppodealApps(accountDetails.apps.nodes);
-        yield `Appodeal Apps page 1/'${accountDetails.apps.pageInfo.totalPages}' fetched`;
+        yield `Appodeal Apps page 1/${accountDetails.apps.pageInfo.totalPages} fetched`;
 
         if (accountDetails.apps.pageInfo.totalPages) {
             for (let pageNumber = 2; pageNumber <= accountDetails.apps.pageInfo.totalPages; pageNumber++) {
-                const page = await this.appodealApi.fetchApps(this.adMobAccount.email, pageNumber);
+                const page = await this.appodealApi.fetchApps(this.adMobAccount.id, pageNumber);
                 this.context.addAppodealApps(page.apps.nodes);
                 yield `Appodeal Apps page ${pageNumber}/${page.apps.pageInfo.totalPages} fetched`;
             }
@@ -222,17 +238,18 @@ export class Sync {
         }
         yield `found App in Admob Try to delete its AdUnits`;
 
-        const adUnitsToDelete = this.filterAppAdUnits(app, this.context.getAdMobAppAdUnits(adMobApp)).map(adUnit => adUnit.adUnitId);
+        const adUnitsToDelete = this.getActiveAdmobAdUnitsCreatedByApp(app, adMobApp).map(adUnit => adUnit.adUnitId);
         if (adUnitsToDelete.length) {
             await this.deleteAdMobAdUnits(adUnitsToDelete);
-            yield '${adUnitsToDelete.length} adUnits deleted';
+            yield `${adUnitsToDelete.length} adUnits deleted`;
         } else {
             yield `No AdUnits to delete`;
         }
 
 
-        if (!adMobApp.hidden && !this.context.getAdMobAppAdUnits(adMobApp).length) {
-            yield `Hide App`;
+        // in case app has at least one active adUnit it should no be hidden
+        if (!adMobApp.hidden && !this.context.getAdMobAppAdUnits(adMobApp).filter(adUnit => !adUnit.archived).length) {
+            yield `Hide App. All its adUnits are archived`;
             adMobApp = await this.hideAdMobApp(adMobApp);
             this.context.updateAdMobApp(adMobApp);
             yield `App Hidden`;
@@ -286,7 +303,7 @@ export class Sync {
             }
         }
 
-        const actualAdUnits = await this.syncAdUnits(app, adMobApp, this.context.getAdMobAppAdUnits(adMobApp));
+        const actualAdUnits = yield* this.syncAdUnits(app, adMobApp);
         yield `AdUnits actualized`;
 
         await this.appodealApi.reportAppSynced(app, this.id, this.adMobAccount.id, adMobApp, actualAdUnits);
@@ -294,18 +311,12 @@ export class Sync {
     }
 
 
-    async syncAdUnits (app: AppodealApp, adMobApp: AdMobApp, allAppAdUnits: AdMobAdUnit[]) {
+    async* syncAdUnits (app: AppodealApp, adMobApp: AdMobApp) {
         const templatesToCreate = this.buildAdUnitsSchema(app);
         const adUnitsToDelete: AdUnitId[] = [];
         const appodealAdUnits = [];
 
-        // filter adUnits which user created manually
-        // we should work only adUnits created automatically during sync
-        // exclude archived too
-        this.filterAppAdUnits(
-            app,
-            allAppAdUnits.filter(adUnit => adUnit.archived !== true)
-        ).forEach((adMobAdUnit: AdMobAdUnit) => {
+        this.getActiveAdmobAdUnitsCreatedByApp(app, adMobApp).forEach((adMobAdUnit: AdMobAdUnit) => {
             const templateId = Sync.getAdUnitTemplateId(adMobAdUnit);
             if (templatesToCreate.has(templateId)) {
                 appodealAdUnits.push(this.convertToAppodealAdUnit(adMobAdUnit, templatesToCreate.get(templateId)));
@@ -317,17 +328,39 @@ export class Sync {
 
         this.logger.info(`AdUnits to create ${templatesToCreate.size}. AdUnit to Delete ${adUnitsToDelete.length}. Unchanged AdUnits ${appodealAdUnits.length}`);
 
+
         for (const adUnitTemplate of templatesToCreate.values()) {
-            const newAdUnit = await this.createAdMobAdUnit({...adUnitTemplate, appId: adMobApp.appId});
-            this.context.addAdMobAdUnit(newAdUnit);
-            this.logger.info(`AdUnit Created ${this.adUnitCode(newAdUnit)} ${adUnitTemplate.name}`);
-            appodealAdUnits.push(this.convertToAppodealAdUnit(newAdUnit, adUnitTemplate));
+            if (this.skipNativeAdUnits) {
+                this.logger.info(`Creating Native AdUnit is skipped. ${adUnitTemplate.name}`);
+                continue;
+            }
+
+            const newAdUnit = await this.createAdMobAdUnit({...adUnitTemplate, appId: adMobApp.appId}).catch(e => {
+                this.logger.info(`Failed to create AdUnit`);
+                this.logger.info(e);
+                if (adUnitTemplate.__metadata.adType === AdType.NATIVE) {
+                    this.skipNativeAdUnits = true;
+                    this.logger.info(`Error while creating Native AdUnit. Skip creating Native AdUnits.`);
+                    this.logger.info(`Creating Native AdUnit is skipped. ${adUnitTemplate.name}`);
+                    // user may be forbidden to create native adunits but have native adunit at appodeal.
+                    // we should emit error & continue sync other adunits
+                    this.emitError(e);
+                    return null;
+                }
+                throw e;
+            });
+            if (newAdUnit) {
+                this.context.addAdMobAdUnit(newAdUnit);
+                appodealAdUnits.push(this.convertToAppodealAdUnit(newAdUnit, adUnitTemplate));
+                yield `AdUnit Created ${this.adUnitCode(newAdUnit)} ${adUnitTemplate.name}`;
+            }
         }
 
         // delete bad AdUnits
         if (adUnitsToDelete.length) {
             await this.deleteAdMobAdUnits(adUnitsToDelete);
             this.context.removeAdMobAdUnits(adUnitsToDelete);
+            yield `Bad AdUnits (${adUnitsToDelete}) was deleted`;
         }
 
         return appodealAdUnits;
@@ -338,6 +371,17 @@ export class Sync {
             code: this.adUnitCode(adMobAdUnit),
             ...template.__metadata
         };
+    }
+
+    // filter adUnits which user created manually
+    // we should work only adUnits created automatically during sync
+    // exclude archived too
+    getActiveAdmobAdUnitsCreatedByApp (app: AppodealApp, adMobApp: AdMobApp) {
+        return this.filterAppAdUnits(
+            app,
+            // we can do nothing with archived adUnits so we should ignore them
+            this.context.getAdMobAppAdUnits(adMobApp).filter(adUnit => adUnit.archived !== true)
+        );
     }
 
 
@@ -377,46 +421,16 @@ export class Sync {
      */
     buildAdUnitsSchema (app: AppodealApp): Map<AdUnitTemplateId, AdUnitTemplate> {
 
-        const defaultAUnitTemplate: Partial<AdMobAdUnit> = {
-            adFormat: AdMobAdFormat.FullScreen,
-            // Image + text + video gif like with no sound
-            adType: [0, 1, 2],
-            googleOptimizedRefreshRate: false,
-            cpmFloorSettings: {
-                floorMode: CpmFloorMode.Disabled
-            }
-        };
-
-        const bannerAUnitTemplate: Partial<AdMobAdUnit> = {
-            ...defaultAUnitTemplate,
-            adFormat: AdMobAdFormat.NotFullScreen
-        };
-
-        const rewardedVideoAUnitTemplate: Partial<AdMobAdUnit> = {
-            ...defaultAUnitTemplate,
-            enableRewardsAds: true,
-            // rewarded videos + interactive
-            adType: [1, 2],
-            rewardsSettings: {unitAmount: '1', unitType: 'reward', overrideMediationAdSourceRewardSettings: true}
-        };
-
-        const templates = app.ecpmFloors
-            .map(floor => {
-                switch (floor.adType) {
-                    // Mrec & banner have same template
-                case AdType.BANNER:
-                case AdType.MREC:
-                    return bannerAUnitTemplate;
-                case AdType.REWARDED_VIDEO:
-                    return rewardedVideoAUnitTemplate;
-                default:
-                    return defaultAUnitTemplate;
-                }
-            });
-
         return app.ecpmFloors
-            .map((floor, index) => {
-                    const template = templates[index];
+            .map(floor => ({floor, template: getAdUnitTemplate(floor.adType)}))
+            .filter(({floor, template}) => {
+                if (!template) {
+                    captureMessage(`Unsupported Ad Type ${floor.adType}`);
+                    return false;
+                }
+                return true;
+            })
+            .map(({floor, template}) => {
                     return [
                         // default adUnit with no ecpm
                         {

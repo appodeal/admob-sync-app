@@ -2,7 +2,7 @@ import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface'
 import {Sync} from 'core/sync-apps/sync';
 import {ExtractedAdmobAccount} from 'interfaces/common.interfaces';
 import {getJsonFile, saveJsonFile} from 'lib/json-storage';
-import * as path from 'path';
+import path from 'path';
 
 
 export interface SyncHistoryInfo {

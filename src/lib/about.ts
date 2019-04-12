@@ -18,6 +18,10 @@ function getAboutDetails () {
     ].join('\n');
 }
 
+export function getAppVersion () {
+    return packageInfo.version;
+}
+
 export function showAboutDialog () {
     dialog.showMessageBox({
         type: 'info',

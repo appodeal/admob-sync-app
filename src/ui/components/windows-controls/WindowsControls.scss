@@ -1,6 +1,6 @@
 .windowsControls {
   --color: #fff;
-  --bg-color: transparent;
+  --bg-color: rgba(255, 255, 255, 0);
   --color-hover: var(--color);
   --bg-color-hover: rgba(255, 255, 255, 0.3);
 
@@ -13,6 +13,7 @@
   flex-flow: row nowrap;
 
   button {
+    -webkit-app-region: no-drag;
     font-family: 'Segoe UI', sans-serif;
     width: 45px;
     height: 30px;

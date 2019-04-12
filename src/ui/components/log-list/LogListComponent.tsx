@@ -1,6 +1,7 @@
 import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
 import {action, ActionTypes, LogAction} from 'lib/actions';
-import {sendToMain} from 'lib/common';
+import {singleEvent} from 'lib/dom';
+import {sendToMain} from 'lib/messages';
 import {LogFileInfo} from 'lib/sync-logs/logger';
 import React from 'react';
 
@@ -10,6 +11,7 @@ import style from './LogList.scss';
 interface LogListComponentProps {
     admobAccount: AdMobAccount;
     logs: LogFileInfo[];
+    appodealAccountId: string;
 }
 
 export class LogListComponent extends React.Component<LogListComponentProps> {
@@ -21,7 +23,7 @@ export class LogListComponent extends React.Component<LogListComponentProps> {
     }
 
     openLog (log: LogFileInfo) {
-        sendToMain('logs', {
+        return sendToMain('logs', {
             type: ActionTypes.openLogFile,
             payload: {
                 account: this.props.admobAccount,
@@ -31,9 +33,10 @@ export class LogListComponent extends React.Component<LogListComponentProps> {
     }
 
     submitLogToAppodeal (log: LogFileInfo) {
-        sendToMain('logs', action(ActionTypes.submitLogToAppodeal, {
+        return sendToMain('logs', action(ActionTypes.submitLogToAppodeal, {
             account: this.props.admobAccount,
-            log
+            log,
+            appodealAccountId: this.props.appodealAccountId
         })).then(() => {
             alert(`Log has been  sent to Appodeal. You can mention '${log.uuid}' in support ticket.`);
         }).catch((e) => {
@@ -45,12 +48,15 @@ export class LogListComponent extends React.Component<LogListComponentProps> {
     render (): React.ReactNode {
         return <div className={style.list}>
             {this.props.logs.map(
-                log => <div className={style.line} key={log.fileName}>
+                log => <div className={style.line} key={log.uuid}>
                     <div className={style.time}>{LogListComponent.formatDate(log.ctime)}</div>
                     <div className={style.name}>{log.fileName}</div>
                     <div className={style.actions}>
-                        <button onClick={() => this.openLog(log)} className={style['open-button']}>View Log</button>
-                        <button onClick={() => this.submitLogToAppodeal(log)} className={style['submit-button']}>Submit</button>
+                        <button onClick={singleEvent(() => this.openLog(log))} className={style['open-button']}>View Log</button>
+                        <button onClick={singleEvent(() => this.submitLogToAppodeal(log))}
+                                className={style['submit-button']}
+                        >Submit
+                        </button>
                     </div>
                 </div>
             )}

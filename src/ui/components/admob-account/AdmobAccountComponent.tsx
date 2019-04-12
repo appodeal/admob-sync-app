@@ -3,9 +3,10 @@ import {SyncProgress} from 'core/store';
 import {SyncHistoryInfo} from 'core/sync-apps/sync-history';
 import {SyncEventsTypes} from 'core/sync-apps/sync.events';
 import {action, ActionTypes} from 'lib/actions';
-import {messageDialog, sendToMain} from 'lib/common';
 import {getFormElement, singleEvent} from 'lib/dom';
+import {sendToMain} from 'lib/messages';
 import {LogFileInfo} from 'lib/sync-logs/logger';
+import {messageDialog} from 'lib/window';
 import React, {Component} from 'react';
 import {AccountStatusComponent} from 'ui/components/account-status/AccountStatusComponent';
 import {LogListComponent} from 'ui/components/log-list/LogListComponent';
@@ -14,6 +15,7 @@ import style from './AdmobAccount.scss';
 
 
 interface AdmobAccountComponentProps {
+    appodealAccountId: string;
     account: AdMobAccount;
     syncProgress: SyncProgress;
     historyInfo: SyncHistoryInfo;
@@ -38,7 +40,7 @@ export class AdmobAccountComponent extends Component<AdmobAccountComponentProps,
     }
 
     get signedIn () {
-        return !this.props.historyInfo.admobAuthorizationRequired;
+        return !!this.props.historyInfo && !this.props.historyInfo.admobAuthorizationRequired;
     }
 
     componentWillReceiveProps (nextProps: Readonly<AdmobAccountComponentProps>) {
@@ -70,15 +72,24 @@ export class AdmobAccountComponent extends Component<AdmobAccountComponentProps,
     }
 
     private runSync () {
-        return sendToMain('sync', action(ActionTypes.runSync, this.props.account));
+        return sendToMain('sync', action(ActionTypes.runSync, {
+            appodealAccountId: this.props.appodealAccountId,
+            adMobAccount: this.props.account
+        }))
+            .catch(err => messageDialog(err.message));
     }
 
     private openAdMob () {
-        return sendToMain('accounts', action(ActionTypes.openAdmobPage, this.props.account));
+        return sendToMain('accounts', action(ActionTypes.openAdmobPage, {
+            adMobAccount: this.props.account
+        }));
     }
 
     private signInAdMob () {
-        return sendToMain('accounts', action(ActionTypes.appodealReSignIn, this.props.account)).catch(e => alert(e.message));
+        return sendToMain('accounts', action(ActionTypes.adMobReSignIn, {
+            appodealAccountId: this.props.appodealAccountId,
+            adMobAccount: this.props.account
+        })).catch(e => alert(e.message));
     }
 
     private setupDone (event: Event) {
@@ -88,9 +99,12 @@ export class AdmobAccountComponent extends Component<AdmobAccountComponentProps,
             clientSecret = getFormElement(form, 'clientSecret').value.trim(),
             accountId = this.props.account.id;
         return sendToMain('accounts', action(ActionTypes.adMobSetCredentials, {
-            clientId,
-            clientSecret,
-            accountId
+            appodealAccountId: this.props.appodealAccountId,
+            credentialsInfo: {
+                clientId,
+                clientSecret,
+                accountId
+            }
         }))
             .then(() => this.displaySetupForm(this.props.account.isReadyForReports))
             .catch(error => messageDialog(error.message));
@@ -132,6 +146,13 @@ export class AdmobAccountComponent extends Component<AdmobAccountComponentProps,
             </div>}
             <div>
                 {this.signedIn && <>
+                    {
+                        //  make public when open admob safe browsing admob is implemented
+                        environment.development &&
+                        <div style={{marginBottom: '10px'}}>
+                            <button type="button" onClick={singleEvent(this.openAdMob, this)}>Open Admob (For developers only)</button>
+                        </div>
+                    }
                     <button type="button"
                             onClick={singleEvent(this.runSync, this)}
                             className={'primary'}
@@ -139,10 +160,7 @@ export class AdmobAccountComponent extends Component<AdmobAccountComponentProps,
                     >
                         Run Sync
                     </button>
-                    {
-                        //  uncomment when open admob is implemented
-                        //   <button type="button" onClick={singleEvent(this.openAdMob, this)}>Open Admob</button>
-                    }
+
                     {!this.isSetupFormVisible(account) &&
                     <button type="button" onClick={() => this.displaySetupForm(true)}>Set credentials</button>}
                 </>}
@@ -160,7 +178,7 @@ export class AdmobAccountComponent extends Component<AdmobAccountComponentProps,
                 <ProgressBar value={this.props.syncProgress.percent} status={this.getProgressBarStatus(this.props.syncProgress)}/>
             </div>
             }
-            <LogListComponent logs={logs || []} admobAccount={account}/>
+            <LogListComponent logs={logs || []} admobAccount={account} appodealAccountId={this.props.appodealAccountId}/>
         </>;
     }
 }

@@ -1,5 +1,5 @@
 import {Action} from 'lib/actions';
-import {onActionFromRenderer} from 'lib/common';
+import {onActionFromRenderer} from 'lib/messages';
 
 
 const CHANNELS = new Map<string, Connector>();
@@ -23,7 +23,6 @@ export abstract class Connector {
 
     destroy () {
         SUBSCRIPTIONS.get(this).unsubscribe();
-        SUBSCRIPTIONS.delete(this);
         CHANNELS.delete(this.channelName);
     }
 

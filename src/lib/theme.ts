@@ -1,4 +1,5 @@
 import {systemPreferences, ipcMain} from 'electron';
+import {isMacOS} from 'lib/platform';
 
 
 export enum AppAppearance {
@@ -38,7 +39,7 @@ function execThemeListeners (isDark) {
 }
 
 export function isDark () {
-    if (process.platform === 'darwin') {
+    if (isMacOS()) {
         return systemPreferences.isDarkMode();
     } else {
         return true;
@@ -54,7 +55,7 @@ export function getBgColor (): string {
 }
 
 export function initThemeSwitcher () {
-    if (process.platform === 'darwin') {
+    if (isMacOS()) {
         systemPreferences.setAppLevelAppearance(getCurrentTheme());
         onThemeChanges(appearance => {
             systemPreferences.setAppLevelAppearance(appearance);
