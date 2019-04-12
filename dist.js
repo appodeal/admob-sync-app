@@ -115,15 +115,15 @@ const targets = (targets => {
             fs.writeFile(path.resolve(distFolder, './dist-info.json'), JSON.stringify(distInfo, null, 2)),
             // works only on UNIX systems
             fs.symlink(
-                path.resolve(distFolder, `./${distInfo.mac.fileName}`),
+                `./${distInfo.mac.fileName}`,
                 path.resolve(distFolder, `./${resolveSymlinkName('mac')}`)
             ),
             fs.symlink(
-                path.resolve(distFolder, `./${distInfo.win.fileName}`),
+                `./${distInfo.win.fileName}`,
                 path.resolve(distFolder, `./${resolveSymlinkName('win')}`)
             ),
             fs.symlink(
-                path.resolve(distFolder, `./${distInfo.linux.fileName}`),
+                `./${distInfo.linux.fileName}`,
                 path.resolve(distFolder, `./${resolveSymlinkName('linux')}`)
             )
         ]);

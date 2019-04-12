@@ -78,9 +78,9 @@
     }
   },
   "symlinkName": {
-    "win": "${os}-latest",
-    "mac": "${os}-latest",
-    "linux": "${os}-latest"
+    "win": "${name}-setup-latest.${ext}",
+    "mac": "${name}-latest.${ext}",
+    "linux": "${name}-setup-latest.${ext}"
   },
   "jest": {
     "clearMocks": true,

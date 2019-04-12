@@ -17,4 +17,5 @@ RUN npm run dist:all
 
 # -- Release ---
 FROM nginx:1.15.9
+COPY --from=builder /app/nginxc.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder /app/dist/*.* /usr/share/nginx/html/
