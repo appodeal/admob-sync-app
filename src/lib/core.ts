@@ -67,3 +67,17 @@ export function objectIterator<T> (obj: T): ObjectIterator<T> {
 export function isObject (obj: any) {
     return obj && typeof obj === 'object' && obj.constructor === Object;
 }
+
+export function getMapItem<K, V> (map: Map<K, V>, index: number): V {
+    if (index < 0 || index > map.size || !Number.isInteger(index)) {
+        return undefined;
+    }
+    let i = 0;
+    for (let value of map.values()) {
+        if (i === index) {
+            return value;
+        }
+        i++
+    }
+    return undefined;
+}

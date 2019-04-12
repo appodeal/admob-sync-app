@@ -10,7 +10,9 @@
     "multipleAccountsSupport": false,
     "updates": {
       "releaseNotesUrl": "https://wiki.appodeal.com",
-      "updatesServerUrl": "http://localhost:8083"
+      "updatesServerUrl": "https://amsa-updates.appodeal.com",
+      "login": "",
+      "password": ""
     }
   }
 }

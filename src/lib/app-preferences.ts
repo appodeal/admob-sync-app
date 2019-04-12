@@ -52,6 +52,8 @@ export namespace Preferences {
             preferences = deepAssign({}, DEFAULT_PREFERENCES, preferences);
         }
         preferences.multipleAccountsSupport = environment.multipleAccountsSupport;
+        preferences.updates.currentVersion = getAppVersion();
+        save(preferences);
         return preferences;
     }
 

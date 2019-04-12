@@ -6,6 +6,7 @@ import {nodeFetch} from 'lib/fetch';
 import {getOsName} from 'lib/platform';
 import {messageDialog} from 'lib/window';
 import Timeout = NodeJS.Timeout;
+const semver = require('semver');
 
 
 export interface DistInfo {
@@ -84,9 +85,11 @@ export class UpdatesService extends EventEmitter {
     }
 
     private async fetchDistInfo (): Promise<DistInfo> {
-        let response = await nodeFetch<{ [key: string]: DistInfo }>(`${environment.updates.updatesServerUrl}/dist-info.json`, {
+        let {updatesServerUrl, login, password} = environment.updates,
+            response = await nodeFetch<{ [key: string]: DistInfo }>(`${updatesServerUrl}/dist-info.json`, {
                 headers: {
-                    'cache-control': 'no-cache'
+                    'cache-control': 'no-cache',
+                    'Authorization': `Basic ${Buffer.from(`${login}:${password}`).toString('base64')}`
                 }
             }).then(r => r.json()),
             osName = getOsName();
@@ -97,7 +100,7 @@ export class UpdatesService extends EventEmitter {
     async check (): Promise<boolean> {
         let distInfo = await this.fetchDistInfo(),
             currentVersion = getAppVersion();
-        if (distInfo && currentVersion !== distInfo.version) {
+        if (distInfo && semver.gt(distInfo.version, currentVersion)) {
             this.availableDist = new Dist(distInfo);
             return true;
         }

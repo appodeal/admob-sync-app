@@ -1,36 +1,57 @@
 import {AppodealAccount} from 'core/appdeal-api/interfaces/appodeal.account.interface';
 import {BrowserWindow} from 'electron';
 import {AppodealAccountState} from 'interfaces/common.interfaces';
+import {getMapItem} from 'lib/core';
 import {openDialogWindow, openWindow} from 'lib/window';
 
 
 const OPENED_WINDOWS = new Map<string, BrowserWindow | Promise<BrowserWindow>>();
 
 export async function openSettingsWindow () {
-    return openOrFocus('settings', () => {
-        return openWindow('./settings.html', {
+    return openOrFocus('settings', async () => {
+        let window = await openWindow('./settings.html', {
             fullscreenable: false
+        }, () => window.removeAllListeners());
+        window.on('focus', async event => {
+            let topWindow = getMapItem(OPENED_WINDOWS, OPENED_WINDOWS.size - 1);
+            if (topWindow) {
+                event.preventDefault();
+            }
+            if (topWindow instanceof Promise) {
+                topWindow = await topWindow;
+            }
+            if (topWindow) {
+                topWindow.focus();
+            }
         });
+        return window;
     });
 }
 
 
 export function openAppodealSignInWindow (account: AppodealAccountState = null): Promise<AppodealAccount> {
     return new Promise((resolve, reject) => {
-        openOrFocus('sign-in', () => new Promise(res => {
-            openDialogWindow<AppodealAccount>('./sign-in.html', {width: 450, height: 270}, window => {
-                window.webContents.send('existingAccount', JSON.stringify(account));
-                res(window);
-            }).then(resolve, reject);
+        openOrFocus('sign-in', () => new Promise(async res => {
+            openDialogWindow<AppodealAccount>(
+                './sign-in.html',
+                {width: 450, height: 270, parent: await OPENED_WINDOWS.get('settings')},
+                window => {
+                    window.webContents.send('existingAccount', JSON.stringify(account));
+                    res(window);
+                }
+            ).then(resolve, reject);
         }));
     });
 }
 
 export function openAppodealAccountsWindow (): Promise<void> {
     return new Promise((resolve, reject) => {
-        openOrFocus('accounts', () => new Promise(res => {
-            openDialogWindow('./manage-accounts.html', {width: 450, height: 350}, res)
-                .then(resolve, reject);
+        openOrFocus('accounts', () => new Promise(async res => {
+            openDialogWindow(
+                './manage-accounts.html',
+                {width: 450, height: 350, parent: await OPENED_WINDOWS.get('settings')},
+                res
+            ).then(resolve, reject);
         }));
     });
 
@@ -57,7 +78,10 @@ async function openOrFocus (windowName: string, openFunction: () => BrowserWindo
             window = openResult;
         }
         OPENED_WINDOWS.set(windowName, window);
-        window.once('close', () => OPENED_WINDOWS.delete(windowName));
+        window.on('closed', () => {
+            OPENED_WINDOWS.delete(windowName);
+            window.removeAllListeners('close');
+        });
         return window;
     }
 }
