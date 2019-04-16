@@ -17,7 +17,7 @@ type AccountsComponentProps = AppState;
 export function AccountsComponent (
     {
         selectedAppodealAccount,
-        selectedAccount: {account: selectedAccount, logs},
+        selectedAccount: {account: selectedAccount},
         preferences: {accounts: {appodealAccounts}, multipleAccountsSupport},
         syncHistory,
         syncProgress
@@ -77,7 +77,6 @@ export function AccountsComponent (
                                                                      appodealAccountId={appodealAccount.id}
                                                                      historyInfo={syncHistory[selectedAccount.id]}
                                                                      syncProgress={syncProgress[selectedAccount.id]}
-                                                                     logs={logs}
                                             />
                                             : <div className={classNames(style.noSelectedAccount)}>Choose account</div>
                                     )

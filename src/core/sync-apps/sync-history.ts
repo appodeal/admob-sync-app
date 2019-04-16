@@ -1,5 +1,6 @@
 import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
 import {Sync} from 'core/sync-apps/sync';
+import {SyncInfo} from 'core/sync-apps/sync-stats';
 import {ExtractedAdmobAccount} from 'interfaces/common.interfaces';
 import {getJsonFile, saveJsonFile} from 'lib/json-storage';
 import path from 'path';
@@ -8,7 +9,8 @@ import path from 'path';
 export interface SyncHistoryInfo {
     lastSync: number
     lastSuccessfulSync: number;
-    admobAuthorizationRequired: boolean
+    admobAuthorizationRequired: boolean,
+    syncs: SyncInfo[];
 }
 
 
@@ -26,10 +28,12 @@ export class SyncHistory {
     private static async loadHistory (adMobAccount: AdmobAccount): Promise<SyncHistoryInfo> {
         if (!SyncHistory.cache.has(adMobAccount.id)) {
             const data = <SyncHistoryInfo>await getJsonFile(SyncHistory.fileName(adMobAccount));
+            data.syncs = data.syncs || [];
             SyncHistory.cache.set(adMobAccount.id, data || {
                 lastSync: null,
                 lastSuccessfulSync: null,
-                admobAuthorizationRequired: true
+                admobAuthorizationRequired: true,
+                syncs: []
             });
         }
 
@@ -46,12 +50,18 @@ export class SyncHistory {
         await SyncHistory.saveHistory(adMobAccount);
     }
 
-    public static async logSyncEnd (sync: Sync) {
+    public static async saveSyncStats (sync: Sync) {
         const history = await SyncHistory.loadHistory(sync.adMobAccount);
         const time = Date.now();
         history.lastSync = time;
         if (!sync.hasErrors) {
             history.lastSuccessfulSync = time;
+        }
+        const statIndex = history.syncs.findIndex(stats => stats.id === sync.id);
+        if (statIndex === -1) {
+            history.syncs.unshift(sync.stats.toPlainObject());
+        } else {
+            history.syncs[statIndex] = sync.stats.toPlainObject();
         }
         await SyncHistory.saveHistory(sync.adMobAccount);
     }

@@ -14,6 +14,11 @@ import {createSyncLogger, getLogContent, LoggerInstance, rotateSyncLogs} from 'l
 import uuid from 'uuid';
 
 
+export enum SyncRunner {
+    User = 1,
+    SyncScheduler = 2
+}
+
 type FinishPromise = Promise<any>;
 
 export class SyncService {
@@ -33,7 +38,7 @@ export class SyncService {
     }
 
 
-    public async runSync (appodealAccountId: string, admobAccount: AdMobAccount) {
+    public async runSync (appodealAccountId: string, admobAccount: AdMobAccount, runner: SyncRunner) {
         return new Promise(async (resolve, reject) => {
             if (this.onlineService.isOffline()) {
                 console.log('[Sync Service] Can not run sync. No Internet Connection');
@@ -70,7 +75,8 @@ export class SyncService {
                 admobAccount,
                 appodealAccountId,
                 logger,
-                id
+                id,
+                runner
             );
 
             const waitToFinish = [];
@@ -143,7 +149,7 @@ export class SyncService {
             console.error(e);
         }
         try {
-            await SyncHistory.logSyncEnd(sync);
+            await SyncHistory.saveSyncStats(sync);
         } catch (e) {
             console.error('Failed to save sync history');
             this.reportError(sync, e);

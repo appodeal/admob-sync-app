@@ -4,9 +4,9 @@ import {getBgColor} from './theme';
 
 function getConfig (config: BrowserWindowConstructorOptions, backgroundColor: string): BrowserWindowConstructorOptions {
     return {
-        width: 750,
+        width: 800,
         height: 550,
-        minWidth: 750,
+        minWidth: 800,
         minHeight: 550,
         frame: false,
         titleBarStyle: 'hiddenInset',

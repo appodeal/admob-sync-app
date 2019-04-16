@@ -5,7 +5,6 @@ import {SyncEventsTypes} from 'core/sync-apps/sync.events';
 import {action, ActionTypes} from 'lib/actions';
 import {getFormElement, singleEvent} from 'lib/dom';
 import {sendToMain} from 'lib/messages';
-import {LogFileInfo} from 'lib/sync-logs/logger';
 import {messageDialog} from 'lib/window';
 import React, {Component} from 'react';
 import {AccountStatusComponent} from 'ui/components/account-status/AccountStatusComponent';
@@ -19,7 +18,6 @@ interface AdmobAccountComponentProps {
     account: AdMobAccount;
     syncProgress: SyncProgress;
     historyInfo: SyncHistoryInfo;
-    logs: Array<LogFileInfo>;
 }
 
 interface AdmobAccountComponentState {
@@ -128,7 +126,7 @@ export class AdmobAccountComponent extends Component<AdmobAccountComponentProps,
     }
 
     render () {
-        let {account, logs} = this.props;
+        let {account} = this.props;
         return <>
             {this.isSetupFormVisible(account) && <div className={style.setupRequired} onInput={() => this.onFormInput()}>
                 <h1>Setup required</h1>
@@ -178,7 +176,10 @@ export class AdmobAccountComponent extends Component<AdmobAccountComponentProps,
                 <ProgressBar value={this.props.syncProgress.percent} status={this.getProgressBarStatus(this.props.syncProgress)}/>
             </div>
             }
-            <LogListComponent logs={logs || []} admobAccount={account} appodealAccountId={this.props.appodealAccountId}/>
+            <LogListComponent historyInfo={this.props.historyInfo}
+                              admobAccount={account}
+                              appodealAccountId={this.props.appodealAccountId}
+            />
         </>;
     }
 }
