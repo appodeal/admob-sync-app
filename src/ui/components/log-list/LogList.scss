@@ -27,6 +27,10 @@
   align-items: center;
   display: flex;
 
+  &:hover {
+    background-color: #464646;
+  }
+
   .iconsGroup {
     min-width: 80px;
     justify-content: space-between;
