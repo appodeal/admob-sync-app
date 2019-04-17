@@ -203,7 +203,9 @@ export class Store {
 
     @action
     async pushLogs (account: AdMobAccount) {
-        return this.updateAdMobAccountInfo(account);
+        if (account) {
+            return this.updateAdMobAccountInfo(account);
+        }
     }
 
     @action
@@ -310,7 +312,7 @@ export class Store {
     }
 
     @action
-    selectAdMobAccount (newAccount: AdMobAccount) {
+    selectAdMobAccount (newAccount: AdMobAccount | null) {
         set<AppState>(this.state, 'selectedAccount', {
             account: newAccount
         });
