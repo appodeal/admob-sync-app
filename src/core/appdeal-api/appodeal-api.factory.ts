@@ -47,8 +47,11 @@ export class AppodealApi {
                 throw err;
             });
         if (account) {
+            this.destroyApi(account.id);
             this.saveApi(api, account);
             sessionInfo.save(account.id);
+        } else {
+            api.destroy();
         }
         return account;
     }
@@ -63,10 +66,7 @@ export class AppodealApi {
                 error.isHandled = true;
             }
         });
-        api.destroy();
-        this.APIs.delete(accountId);
-        this.errorSubscriptions.get(accountId).unsubscribe();
-        this.errorSubscriptions.delete(accountId);
+        this.destroyApi(accountId);
         await AppodealSessions.remove(accountId);
     }
 
@@ -79,6 +79,17 @@ export class AppodealApi {
                         .then<[string, AppodealAccount]>(account => [accountId, account]);
                 })
         ));
+    }
+
+    private destroyApi (accountId: string) {
+        if (this.APIs.has(accountId)) {
+            this.APIs.get(accountId).destroy();
+            this.APIs.delete(accountId);
+        }
+        if (this.errorSubscriptions.has(accountId)) {
+            this.errorSubscriptions.get(accountId).unsubscribe();
+            this.errorSubscriptions.delete(accountId);
+        }
     }
 
     private saveApi (api: AppodealApiService, account: UserAccount) {

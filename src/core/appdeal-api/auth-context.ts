@@ -39,6 +39,7 @@ export class AuthContext extends EventEmitter {
     private accessToken: string = null;
     private refreshToken: string = null;
     private accountId: string = null;
+    private refreshInterval = null;
 
     init (accountId: string) {
         this.setAccountId(accountId);
@@ -50,7 +51,7 @@ export class AuthContext extends EventEmitter {
             console.log(`NO auth tokens for ${accountId}`);
         }
         // check should we update refresh token each 1 minute
-        setInterval(() => this.emitRefresh(), 60000);
+        this.refreshInterval = setInterval(() => this.emitRefresh(), 60000);
         this.emitRefresh();
     }
 
@@ -109,5 +110,10 @@ export class AuthContext extends EventEmitter {
                 }
             };
         });
+    }
+
+    destroy () {
+        clearInterval(this.refreshInterval);
+        this.removeAllListeners();
     }
 }
