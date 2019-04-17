@@ -231,6 +231,7 @@ export class Store {
                 percent: (pEvent.synced + pEvent.failed) / pEvent.total * 100,
                 lastEvent: event.type
             };
+            this.pushLogs(account);
             return this.fireSyncUpdated();
         case SyncEventsTypes.Stopped:
             delete this.state.syncProgress[event.accountId];

@@ -165,6 +165,7 @@
     "raven-js": "^3.27.0",
     "react": "^16.8.3",
     "react-dom": "^16.8.3",
+    "react-tiny-accordion": "^2.0.4",
     "semver": "^6.0.0",
     "uuid": "^3.3.2",
     "winston": "^3.2.1",

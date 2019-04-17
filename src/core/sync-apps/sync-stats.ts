@@ -59,7 +59,7 @@ export class SyncStats {
         if (this.affectedApps.created.some(v => v.id === app.id)) {
             return;
         }
-        this.affectedApps.updated = this.affectedApps.updated.filter(v => v.id !== app.id);
+        this.affectedApps.updated.push(app);
     }
 
     appDeleted (app: AppodealApp) {

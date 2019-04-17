@@ -6,6 +6,7 @@ import {ActionTypes, LogAction} from 'lib/actions';
 import {classNames, singleEvent} from 'lib/dom';
 import {sendToMain} from 'lib/messages';
 import React from 'react';
+import Accordion from 'react-tiny-accordion';
 import {TextToClipboard} from 'ui/components/text-to-clipboard/TextToClipboardComponent';
 import style from './LogList.scss';
 
@@ -98,10 +99,11 @@ export class LogListComponent extends React.Component<LogListComponentProps> {
     }
 
     render (): React.ReactNode {
-        return <div className={style.list}>
+
+        return <Accordion className={style.list}>
             {this.props.historyInfo.syncs.map(
                 syncInfo =>
-                    <div className={style['line-wrapper']} key={syncInfo.id}>
+                    <div key={syncInfo.id} data-header={
                         <div className={style.line}>
                             <div className={style.iconsGroup}>
                                 <div className={style.icon}>
@@ -126,14 +128,13 @@ export class LogListComponent extends React.Component<LogListComponentProps> {
                                 </button>
                             </div>
                         </div>
-                        {this.affectedAppsCount(syncInfo) && <div>
-                            {this.appList('Apps created', syncInfo.affectedApps.created)}
-                            {this.appList('Apps updated', syncInfo.affectedApps.updated)}
-                            {this.appList('Apps deleted', syncInfo.affectedApps.deleted)}
-                        </div>
-                        }
+                    }
+                    >
+                        {this.appList('Apps created', syncInfo.affectedApps.created)}
+                        {this.appList('Apps updated', syncInfo.affectedApps.updated)}
+                        {this.appList('Apps deleted', syncInfo.affectedApps.deleted)}
                     </div>
             )}
-        </div>;
+        </Accordion>;
     }
-};
+}
