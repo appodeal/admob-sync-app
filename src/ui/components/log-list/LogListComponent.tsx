@@ -7,6 +7,7 @@ import {classNames, singleEvent} from 'lib/dom';
 import {sendToMain} from 'lib/messages';
 import React from 'react';
 import Accordion from 'react-tiny-accordion';
+import Tooltip from 'react-tooltip-lite';
 import {TextToClipboard} from 'ui/components/text-to-clipboard/TextToClipboardComponent';
 import style from './LogList.scss';
 
@@ -53,29 +54,28 @@ export class LogListComponent extends React.Component<LogListComponentProps> {
 
     statusIcon (syncInfo: SyncInfo) {
         if (!syncInfo.endTs) {
-            return <img className={style.syncing}
-                        src={require('../../assets/images/tray/win-syncing/syncing-1.svg')}
-                        title={'Syncing...'}
-            />;
+            return <Tooltip content="Syncing...">
+                <img className={style.syncing} src={require('../../assets/images/tray/win-syncing/syncing-1.svg')}/>
+            </Tooltip>;
         }
 
         if (syncInfo.terminated) {
-            return <img src={require('../../assets/images/sync-status/times-round.svg')} title={'Sync was terminated'}/>;
+            return <Tooltip content="Sync was terminated"><img src={require('../../assets/images/sync-status/times-round.svg')}/></Tooltip>;
         }
 
         if (syncInfo.hasErrors) {
-            return <img src={require('../../assets/images/sync-status/warning-round.svg')} title={'Synced with errors'}/>;
+            return <Tooltip content="Synced with errors"><img src={require('../../assets/images/sync-status/warning-round.svg')}/></Tooltip>;
         }
 
-        return <img src={require('../../assets/images/sync-status/check-round.svg')}/>;
+        return <Tooltip content="Synced OK"><img src={require('../../assets/images/sync-status/check-round.svg')}/></Tooltip>;
     }
 
     runnerIcon (syncInfo: SyncInfo) {
         switch (syncInfo.runner) {
         case SyncRunner.SyncScheduler:
-            return <img src={require('../../assets/images/sync-status/clock.svg')} title={'Run by schedule'}/>;
+            return <Tooltip content="Run by schedule"><img src={require('../../assets/images/sync-status/clock.svg')}/></Tooltip>;
         case SyncRunner.User:
-            return <img src={require('../../assets/images/sync-status/user.svg')} title={'Run by user'}/>;
+            return <Tooltip content="Run by user"><img src={require('../../assets/images/sync-status/user.svg')}/></Tooltip>;
         default:
             return '';
         }
@@ -112,9 +112,14 @@ export class LogListComponent extends React.Component<LogListComponentProps> {
                                 <div className={style.icon}>
                                     {this.runnerIcon(syncInfo)}
                                 </div>
-                                <div className={classNames(style.icon, style.count)} title={'Apps Affected'}>
-                                    {this.affectedAppsCount(syncInfo)}
-                                </div>
+                                {this.affectedAppsCount(syncInfo)
+                                    ? <Tooltip content={(<div>Affected apps count<br/> Click to see affected apps</div>)}>
+                                        <div className={classNames(style.icon, style.count)}>
+                                            {this.affectedAppsCount(syncInfo)}
+                                        </div>
+                                    </Tooltip>
+                                    : <div className={classNames(style.icon, style.count)}></div>
+                                }
                             </div>
                             <div className={style.time}>{LogListComponent.formatDate(syncInfo.startTs)}</div>
                             <div className={style.name}>{syncInfo.id}</div>
