@@ -1,7 +1,7 @@
 import {OnlineService} from 'core/appdeal-api/online.service';
 import {Store} from 'core/store';
 import {SyncHistory} from 'core/sync-apps/sync-history';
-import {SyncService} from 'core/sync-apps/sync.service';
+import {SyncRunner, SyncService} from 'core/sync-apps/sync.service';
 import {timeConversion} from 'lib/time';
 import {observe} from 'mobx';
 
@@ -52,7 +52,7 @@ export class SyncScheduler {
                     unsubscribe = null;
                     this.store.state.selectedAppodealAccount.accounts.forEach(adMobAccount => {
                         this.log(`App started. Run sync for Admob Account [${adMobAccount.id} ${adMobAccount.email}]`);
-                        this.syncService.runSync(this.store.state.selectedAppodealAccount.id, adMobAccount)
+                        this.syncService.runSync(this.store.state.selectedAppodealAccount.id, adMobAccount, SyncRunner.SyncScheduler)
                             .catch(err => {
 
                             });
@@ -75,7 +75,7 @@ export class SyncScheduler {
                     if (!lastSync) {
 
                         this.log(`Admob Account [${adMobAccount.id} ${adMobAccount.email}] has never synced. Run sync.`);
-                        return this.syncService.runSync(this.store.state.selectedAppodealAccount.id, adMobAccount)
+                        return this.syncService.runSync(this.store.state.selectedAppodealAccount.id, adMobAccount, SyncRunner.SyncScheduler)
                             .catch(err => {
 
                             });
@@ -86,7 +86,7 @@ export class SyncScheduler {
                             timeConversion(scienceLastSync)
                             }. Run sync.`
                         );
-                        return this.syncService.runSync(this.store.state.selectedAppodealAccount.id, adMobAccount)
+                        return this.syncService.runSync(this.store.state.selectedAppodealAccount.id, adMobAccount, SyncRunner.SyncScheduler)
                             .catch(err => {
 
                             });
