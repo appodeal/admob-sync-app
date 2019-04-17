@@ -49,7 +49,7 @@ export function getLogsDirectory (adMobAccount: AdMobAccount) {
 
 }
 
-function logFilePathName (adMobAccount: AdMobAccount, syncId: string) {
+export function logFilePathName (adMobAccount: AdMobAccount, syncId: string) {
     return path.join(getLogsDirectory(adMobAccount), `${syncId}.log`);
 }
 
@@ -123,7 +123,7 @@ export async function getLogsList (adMobAccount: AdMobAccount): Promise<LogFileI
 
 }
 
-export async function rotateSyncLogs (adMobAccount: AdMobAccount, maxCount = 20) {
+export async function rotateSyncLogs (adMobAccount: AdMobAccount, maxCount = 100) {
 
     try {
         const path = getLogsDirectory(adMobAccount);
@@ -136,7 +136,7 @@ export async function rotateSyncLogs (adMobAccount: AdMobAccount, maxCount = 20)
 }
 
 
-async function rotateLogs (dir: string, maxCount = 20) {
+async function rotateLogs (dir: string, maxCount = 100) {
     if (!fs.existsSync(dir)) {
         console.debug('logs dir not found');
         return;
@@ -151,5 +151,4 @@ async function rotateLogs (dir: string, maxCount = 20) {
         .slice(maxCount)
         .map(f => fs.unlink(path.join(dir, f.fileName)))
     );
-
 }

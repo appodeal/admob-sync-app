@@ -1,5 +1,4 @@
 import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
-import {LogFileInfo} from 'lib/sync-logs/logger';
 
 
 export enum ActionTypes {
@@ -37,7 +36,7 @@ export interface LogAction extends Action {
     type: ActionTypes.openLogFile | ActionTypes.submitLogToAppodeal,
     payload: {
         account: AdMobAccount,
-        log: LogFileInfo,
+        syncId: string,
         appodealAccountId: string
     }
 }

@@ -4,6 +4,9 @@ import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
 import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
 import {AdType, AppodealAdUnit, AppodealApp, AppodealPlatform, Format} from 'core/appdeal-api/interfaces/appodeal-app.interface';
 import {getAdUnitTemplate} from 'core/sync-apps/ad-unit-templates';
+import {SyncHistory} from 'core/sync-apps/sync-history';
+import {SyncStats} from 'core/sync-apps/sync-stats';
+import {SyncRunner} from 'core/sync-apps/sync.service';
 import stringify from 'json-stable-stringify';
 import {retry} from 'lib/retry';
 import {AppTranslator} from 'lib/translators/admob-app.translator';
@@ -44,6 +47,9 @@ export class Sync {
     public hasErrors = false;
     private terminated = true;
 
+
+    public readonly stats = new SyncStats(this);
+
     public context = new SyncContext();
 
     /**
@@ -58,7 +64,8 @@ export class Sync {
         private appodealAccountId: string,
         private logger: Partial<Console>,
         // some uniq syncId
-        public readonly id: string
+        public readonly id: string,
+        public readonly runner: SyncRunner
     ) {
         this.id = id || uuid.v4();
     }
@@ -69,13 +76,16 @@ export class Sync {
             return;
         }
         this.terminated = true;
+        this.stats.terminated = true;
         this.logger.info(`Stopping Sync Reason: ${reason}`);
     }
 
     async run () {
         this.logger.info(`Sync started`);
         this.terminated = false;
+        this.stats.start();
         try {
+            await SyncHistory.saveSyncStats(this);
             for await (const value of this.doSync()) {
                 this.logger.info(value);
                 if (this.terminated) {
@@ -93,6 +103,7 @@ export class Sync {
     }
 
     finish () {
+        this.stats.end();
         this.emit(SyncEventsTypes.Stopped);
         this.appodealApi.reportSyncEnd(this.id);
     }
@@ -123,8 +134,11 @@ export class Sync {
         this.emit(SyncEventsTypes.Started);
         this.logger.info(`Sync Params
         uuid: ${this.id}
-        AppodealAccount: '${this.appodealAccountId}}'
-        AdmobAccount: '${this.adMobAccount.id}}': '${this.adMobAccount.email}}'
+        AppodealAccount: 
+            id: ${this.appodealAccountId}
+        AdmobAccount: 
+            id: ${this.adMobAccount.id}
+            email: ${this.adMobAccount.email}
         `);
         await this.appodealApi.reportSyncStart(this.id, this.adMobAccount.id);
         try {
@@ -161,7 +175,7 @@ export class Sync {
                 this.emitError(e);
             }
             this.emit(SyncEventsTypes.UserActionsRequired);
-            this.terminated = true;
+            await this.stop('Terminated as User Actions is Required');
             yield 'Terminated as User Actions is Required';
             return;
         }
@@ -209,6 +223,7 @@ export class Sync {
                 yield* this.syncApp(app);
                 synced++;
             } catch (e) {
+                this.stats.errorWhileSync(app);
                 failed++;
                 this.logger.error(e);
                 this.emitError(e);
@@ -241,6 +256,7 @@ export class Sync {
         const adUnitsToDelete = this.getActiveAdmobAdUnitsCreatedByApp(app, adMobApp).map(adUnit => adUnit.adUnitId);
         if (adUnitsToDelete.length) {
             await this.deleteAdMobAdUnits(adUnitsToDelete);
+            this.stats.appDeleted(app);
             yield `${adUnitsToDelete.length} adUnits deleted`;
         } else {
             yield `No AdUnits to delete`;
@@ -252,6 +268,7 @@ export class Sync {
             yield `Hide App. All its adUnits are archived`;
             adMobApp = await this.hideAdMobApp(adMobApp);
             this.context.updateAdMobApp(adMobApp);
+            this.stats.appDeleted(app);
             yield `App Hidden`;
         }
 
@@ -275,12 +292,14 @@ export class Sync {
             this.logger.info(`Unable to find App. Try to create new`);
             adMobApp = await this.createAdMobApp(app);
             this.context.addAdMobApp(adMobApp);
+            this.stats.appCreated(app);
             yield `App created`;
         }
 
         if (adMobApp.hidden) {
             adMobApp = await this.showAdMobApp(adMobApp);
             this.context.updateAdMobApp(adMobApp);
+            this.stats.appUpdated(app);
             yield `Hidden App has been shown`;
         }
 
@@ -351,6 +370,7 @@ export class Sync {
             });
             if (newAdUnit) {
                 this.context.addAdMobAdUnit(newAdUnit);
+                this.stats.appUpdated(app);
                 appodealAdUnits.push(this.convertToAppodealAdUnit(newAdUnit, adUnitTemplate));
                 yield `AdUnit Created ${this.adUnitCode(newAdUnit)} ${adUnitTemplate.name}`;
             }
@@ -581,7 +601,7 @@ export class Sync {
         const publishedApp = searchAppResponse.find(publishedApp => publishedApp.applicationStoreId === app.bundleId);
         if (publishedApp) {
             this.logger.info(`App found in store`);
-
+            this.stats.appUpdated(app);
             adMobApp = {...adMobApp, ...publishedApp};
             return await this.adMobApi.postRaw('AppService', 'Update', <UpdateAppRequest>{
                 1: getTranslator(AppTranslator).encode(adMobApp),

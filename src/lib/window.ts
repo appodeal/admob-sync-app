@@ -4,9 +4,9 @@ import {getBgColor} from './theme';
 
 function getConfig (config: BrowserWindowConstructorOptions, backgroundColor: string): BrowserWindowConstructorOptions {
     return {
-        width: 750,
+        width: 800,
         height: 550,
-        minWidth: 750,
+        minWidth: 800,
         minHeight: 550,
         frame: false,
         titleBarStyle: 'hiddenInset',
@@ -69,8 +69,6 @@ export function openDialogWindow<T = any> (
                 height,
                 minWidth: width,
                 minHeight: height,
-                // maxWidth: width,
-                // maxHeight: height,
                 resizable: false,
                 frame: true,
                 fullscreenable: false,
@@ -94,35 +92,6 @@ export function openDialogWindow<T = any> (
             afterOpen(window);
         }
     });
-}
-
-export function createScript (fn: (...args: Array<any>) => void, ...args) {
-    return `(async function (...args) {
-    let safeJsonParse = json => {
-        let result;
-        try {
-            result = JSON.parse(json);
-        } catch (e) {
-            result = json;
-        }
-        return result; 
-    };
-    return (${fn.toString()})(...args.map(arg => {
-        if (typeof arg === 'function') {
-            return arg;
-        } else {
-            return safeJsonParse(arg);
-        }
-    }));
-    })(${args.map(arg => {
-        if (typeof arg === 'function') {
-            return arg.toString();
-        } else if (typeof arg === 'string') {
-            return `'${arg}'`;
-        } else {
-            return `'${JSON.stringify(arg)}'`;
-        }
-    }).join(', ')})`;
 }
 
 export function waitForNavigation (window: BrowserWindow, urlFragment: RegExp = null): Promise<void> {

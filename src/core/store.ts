@@ -14,7 +14,6 @@ import {ActionTypes} from 'lib/actions';
 import {AppPreferences, Preferences} from 'lib/app-preferences';
 import {deepAssign} from 'lib/core';
 import {onActionFromRenderer} from 'lib/messages';
-import {getLogsList, LogFileInfo} from 'lib/sync-logs/logger';
 import {openSettingsWindow} from 'lib/ui-windows';
 import {confirmDialog, messageDialog, openWindow, waitForNavigation} from 'lib/window';
 import {action, observable, observe, set} from 'mobx';
@@ -33,7 +32,6 @@ export interface SyncProgress {
 export interface AppState {
     selectedAccount: {
         account: AdMobAccount;
-        logs: LogFileInfo[];
     }
     selectedAppodealAccount: AppodealAccount;
     syncHistory: Record<AccountID, SyncHistoryInfo>;
@@ -50,8 +48,7 @@ export class Store {
 
     @observable readonly state: AppState = {
         selectedAccount: {
-            account: null,
-            logs: []
+            account: null
         },
         selectedAppodealAccount: null,
         syncHistory: {},
@@ -87,13 +84,13 @@ export class Store {
         this.onlineService.on('statusChange', isOnline => {
             set<AppState>(this.state, 'online', isOnline);
         });
-        this.onlineService.on('nextReconnect' , (time) => {
+        this.onlineService.on('nextReconnect', (time) => {
             set<AppState>(this.state, 'nextReconnect', time);
         });
     }
 
-    public updateUserWhenOnline() {
-        this.onlineService.on('online',() => {
+    public updateUserWhenOnline () {
+        this.onlineService.on('online', () => {
             this.fetchAllAppodealUsers();
         });
     }
@@ -205,14 +202,9 @@ export class Store {
     }
 
     @action
-    async pushLogs (account: AdMobAccount, logs?: Array<LogFileInfo>) {
-        logs = Array.isArray(logs) ? logs : await this.loadSelectedAdMobAccountLogs(account);
-        let selectedAccount = this.state.selectedAccount.account;
-        if (account && selectedAccount && account.id === selectedAccount.id) {
-            set(this.state, 'selectedAccount', {
-                logs,
-                account
-            });
+    async pushLogs (account: AdMobAccount) {
+        if (account) {
+            return this.updateAdMobAccountInfo(account);
         }
     }
 
@@ -241,6 +233,7 @@ export class Store {
                 percent: (pEvent.synced + pEvent.failed) / pEvent.total * 100,
                 lastEvent: event.type
             };
+            this.pushLogs(account);
             return this.fireSyncUpdated();
         case SyncEventsTypes.Stopped:
             delete this.state.syncProgress[event.accountId];
@@ -319,28 +312,14 @@ export class Store {
     }
 
     @action
-    selectAdMobAccount (newAccount: AdMobAccount) {
-        let {account} = this.state.selectedAccount;
+    selectAdMobAccount (newAccount: AdMobAccount | null) {
         set<AppState>(this.state, 'selectedAccount', {
-            account: newAccount,
-            logs: account && newAccount && account.id === newAccount.id ? this.state.selectedAccount.logs : []
+            account: newAccount
         });
         // we dont need to wait while logs are loading
         // we want provide quick response to UI
         // once log-list is loaded - we will show it
-        if (newAccount) {
-            setTimeout(() => this.pushLogs(newAccount));
-        }
-    }
-
-    loadSelectedAdMobAccountLogs (account: AdMobAccount): Promise<LogFileInfo[]> {
-        if (!account) {
-            return Promise.resolve([]);
-        }
-        return getLogsList(account).catch(e => {
-            console.error(e);
-            return [];
-        });
+        setTimeout(() => this.pushLogs(newAccount));
     }
 
     @action

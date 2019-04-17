@@ -2,12 +2,9 @@ import {AppodealApi} from 'core/appdeal-api/appodeal-api.factory';
 import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
 import {Connector} from 'core/connector';
 import {Store} from 'core/store';
+import {shell} from 'electron';
 import {ActionTypes, LogAction} from 'lib/actions';
-import {getLogContent, getLogsDirectory, LogFileInfo} from 'lib/sync-logs/logger';
-
-
-const shell = require('electron').shell;
-const path = require('path');
+import {getLogContent, logFilePathName} from 'lib/sync-logs/logger';
 
 
 export class LogsConnector extends Connector {
@@ -18,25 +15,25 @@ export class LogsConnector extends Connector {
     async onAction ({type, payload}: LogAction) {
         switch (type) {
         case ActionTypes.openLogFile:
-            this.openLog(payload.account, payload.log);
+            this.openLog(payload.account, payload.syncId);
             return payload;
         case ActionTypes.submitLogToAppodeal:
-            return this.submitLog(payload.account, payload.log, payload.appodealAccountId);
+            return this.submitLog(payload.account, payload.syncId, payload.appodealAccountId);
         }
 
     }
 
-    openLog (account: AdMobAccount, log: LogFileInfo) {
-        console.info('openLog', log);
+    openLog (account: AdMobAccount, syncId: string) {
+        console.info('openLog', syncId);
         try {
-            shell.openItem(path.join(getLogsDirectory(account), log.fileName));
+            shell.openItem(logFilePathName(account, syncId));
         } catch (e) {
             console.error(e);
         }
     }
 
-    async submitLog (account: AdMobAccount, log: LogFileInfo, appodealAccountId: string) {
-        const rawLog = await getLogContent(account, log.uuid);
-        return this.appodealApi.getFor(appodealAccountId).submitLog(account.id, log.uuid, rawLog);
+    async submitLog (account: AdMobAccount, syncId: string, appodealAccountId: string) {
+        const rawLog = await getLogContent(account, syncId);
+        return this.appodealApi.getFor(appodealAccountId).submitLog(account.id, syncId, rawLog);
     }
 }
