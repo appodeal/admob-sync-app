@@ -1,4 +1,5 @@
 import {Menu} from 'electron';
+import {showAboutDialog} from 'lib/about';
 import {isMacOS} from 'lib/platform';
 
 
@@ -17,7 +18,7 @@ class AppMenu {
             {
                 label: 'Application',
                 submenu: [
-                    {label: 'About Application', role: 'about:'},
+                    {label: 'About Application', click: () => showAboutDialog()},
                     {type: 'separator'},
                     {label: 'Quit', accelerator: 'Command+Q', role: 'quit'}
                 ]

@@ -6,7 +6,7 @@ import {ErrorResponse, onError} from 'apollo-link-error';
 import {AuthContext, TokensInfo} from 'core/appdeal-api/auth-context';
 import {AppodealAccount} from 'core/appdeal-api/interfaces/appodeal.account.interface';
 import {AuthorizationError} from 'core/error-factory/errors/authorization.error';
-import {session, Session} from 'electron';
+import {Session} from 'electron';
 import {ExtractedAdmobAccount} from 'interfaces/common.interfaces';
 import {createFetcher, Fetcher} from 'lib/fetch';
 import {AdMobApp} from 'lib/translators/interfaces/admob-app.interface';
@@ -15,9 +15,9 @@ import {ErrorFactoryService} from '../error-factory/error-factory.service';
 import {InternalError} from '../error-factory/errors/internal-error';
 import addAdMobAccountMutation from './graphql/add-admob-account.mutation.graphql';
 import adMobAccountQuery from './graphql/admob-account-details.graphql';
-import minimalAppVersionQuery from './graphql/minimal-app-version.query.graphql';
 import currentUserQuery from './graphql/current-user.query.graphql';
 import endSync from './graphql/end-sync.mutation.graphql';
+import minimalAppVersionQuery from './graphql/minimal-app-version.query.graphql';
 
 import pingQuery from './graphql/ping.query.graphql';
 import refreshTokenMutation from './graphql/refresh-token-mutation.graphql';
@@ -133,7 +133,7 @@ export class AppodealApiService {
     }
 
     destroy () {
-        this.authContext.removeAllListeners();
+        this.authContext.destroy();
     }
 
     handleError (e: InternalError) {
@@ -197,7 +197,7 @@ export class AppodealApiService {
 
     fetchCurrentUser (): Promise<AppodealAccount> {
         return this.query<{ currentUser: AppodealAccount }>({
-            query: currentUserQuery,
+            query: currentUserQuery
         })
             .then(result => {
                 return result.currentUser;

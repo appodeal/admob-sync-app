@@ -134,8 +134,11 @@ export class Sync {
         this.emit(SyncEventsTypes.Started);
         this.logger.info(`Sync Params
         uuid: ${this.id}
-        AppodealAccount: '${this.appodealAccountId}}'
-        AdmobAccount: '${this.adMobAccount.id}}': '${this.adMobAccount.email}}'
+        AppodealAccount: 
+            id: ${this.appodealAccountId}
+        AdmobAccount: 
+            id: ${this.adMobAccount.id}
+            email: ${this.adMobAccount.email}
         `);
         await this.appodealApi.reportSyncStart(this.id, this.adMobAccount.id);
         try {
