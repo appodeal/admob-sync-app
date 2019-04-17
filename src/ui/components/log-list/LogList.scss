@@ -5,17 +5,17 @@
   overflow-y: auto;
   overflow-x: hidden;
 
+  > div {
+    display: block;
+    background-color: #212225;
+
+    &:nth-child(2n) {
+      background-color: #2B2C2F;
+    }
+  }
+
   &:not(:empty) {
     margin-block-start: 10px;
-  }
-}
-
-.line-wrapper {
-  display: block;
-  background-color: #212225;
-
-  &:nth-child(2n) {
-    background-color: #2B2C2F;
   }
 }
 
@@ -26,6 +26,10 @@
   justify-content: space-between;
   align-items: center;
   display: flex;
+
+  &:hover {
+    background-color: #464646;
+  }
 
   .iconsGroup {
     min-width: 80px;
