@@ -256,6 +256,7 @@ export class Sync {
         const adUnitsToDelete = this.getActiveAdmobAdUnitsCreatedByApp(app, adMobApp).map(adUnit => adUnit.adUnitId);
         if (adUnitsToDelete.length) {
             await this.deleteAdMobAdUnits(adUnitsToDelete);
+            this.context.removeAdMobAdUnits(adUnitsToDelete);
             this.stats.appDeleted(app);
             yield `${adUnitsToDelete.length} adUnits deleted`;
         } else {

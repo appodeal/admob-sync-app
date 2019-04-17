@@ -27,10 +27,10 @@ export interface SyncInfo {
 export class SyncStats {
 
     public readonly affectedApps = {
-        created: [],
-        updated: [],
-        deleted: [],
-        withErrors: []
+        created: new Map<string, AppInfo>(),
+        updated: new Map<string, AppInfo>(),
+        deleted: new Map<string, AppInfo>(),
+        withErrors: new Map<string, AppInfo>()
     };
 
     public id: string;
@@ -52,22 +52,22 @@ export class SyncStats {
     }
 
     appCreated (app: AppodealApp) {
-        this.affectedApps.created.push(app);
+        this.affectedApps.created.set(app.id, app);
     }
 
     appUpdated (app: AppodealApp) {
-        if (this.affectedApps.created.some(v => v.id === app.id)) {
+        if (this.affectedApps.created.has(app.id)) {
             return;
         }
-        this.affectedApps.updated.push(app);
+        this.affectedApps.updated.set(app.id, app);
     }
 
     appDeleted (app: AppodealApp) {
-        this.affectedApps.deleted.push(app);
+        this.affectedApps.deleted.set(app.id, app);
     }
 
     errorWhileSync (app: AppodealApp) {
-        this.affectedApps.withErrors.push(app);
+        this.affectedApps.withErrors.set(app.id, app);
     }
 
     toPlainObject (): SyncInfo {
@@ -75,7 +75,12 @@ export class SyncStats {
             id: this.sync.id,
             runner: this.sync.runner,
             hasErrors: this.sync.hasErrors,
-            affectedApps: this.affectedApps,
+            affectedApps: {
+                created: [...this.affectedApps.created.values()],
+                updated: [...this.affectedApps.updated.values()],
+                deleted: [...this.affectedApps.deleted.values()],
+                withErrors: [...this.affectedApps.withErrors.values()]
+            },
             startTs: this.startTs,
             endTs: this.endTs,
             terminated: this.terminated,
