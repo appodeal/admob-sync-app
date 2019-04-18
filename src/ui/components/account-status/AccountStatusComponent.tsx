@@ -28,7 +28,7 @@ export class AccountStatusComponent extends React.Component<Props> {
                 return 'Calculating progress';
             }
             default:
-                return `Syncing ${this.props.syncProgress.completedApps}/${this.props.syncProgress.totalApps} apps...`;
+                return `Syncing ${this.props.syncProgress.completedApps + this.props.syncProgress.failedApps + 1}/${this.props.syncProgress.totalApps} apps...`;
             }
         }
 
