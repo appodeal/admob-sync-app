@@ -79,6 +79,8 @@ export class SyncService {
                 runner
             );
 
+            logger.info(`Sync started by ${runner === SyncRunner.User ? 'User' : 'Schedule'}`);
+
             const waitToFinish = [];
             const subs = [];
             subs.push(
