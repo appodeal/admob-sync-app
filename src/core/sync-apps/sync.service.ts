@@ -163,7 +163,7 @@ export class SyncService {
         return this.appodealApi.getFor(appodealAccountId).submitLog(admobAccount.id, syncId, rawLog);
     }
 
-    public async destroy () {
+    public destroy () {
         return Promise.all(
             [...this.activeSyncs.entries()].map(
                 ([sync, finishPromise]: [Sync, Promise<any>]) =>
@@ -173,7 +173,7 @@ export class SyncService {
                             console.error(`Failed to stop Sync correcly ${sync.id}`);
                             console.error(e);
                         })
-            ));
+            )).then(() => {});
     }
 
     reportError (sync: Sync, error) {

@@ -97,7 +97,7 @@ export class SyncScheduler {
         }, MINUTE_MS);
     }
 
-    destroy () {
+    async destroy () {
         clearInterval(this.intervalID);
     }
 
