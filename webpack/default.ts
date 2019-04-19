@@ -11,7 +11,7 @@ import about from './entries/about';
 
 export const SRC_PATH = path.resolve(__dirname, '../src');
 export const BUILD_PATH = path.resolve(__dirname, '../build');
-export const PACKAGE = require(path.join(__dirname, '../packageInfo.json'));
+export const PACKAGE = require(path.join(__dirname, '../package.json'));
 
 export const entries = [main, settings, signIn, accounts, about].map(entry => (env: webpack.Configuration): webpack.Configuration => {
     return merge(entry(env), {
