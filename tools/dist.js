@@ -55,7 +55,7 @@ const targets = (targets => {
                 };
                 return info;
             }, {}),
-            distFolder = path.resolve(__dirname, buildConfig.directories.output),
+            distFolder = path.resolve(__dirname, '..', buildConfig.directories.output),
             distFiles = new Set(Object.values(distInfo).map(info => info.fileName)),
             allDistFiles = (await fs.readdir(distFolder)).map(fileName => path.resolve(distFolder, fileName));
         await Promise.all(
@@ -130,7 +130,10 @@ const targets = (targets => {
     }
 
 
-})();
+})().catch(e => {
+    console.error(e);
+    process.exit(1)
+});
 
 function objectFromEntries (entries) {
     return entries.reduce((obj, [key, value]) => {
