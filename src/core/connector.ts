@@ -21,7 +21,7 @@ export abstract class Connector {
         SUBSCRIPTIONS.set(this, {unsubscribe});
     }
 
-    destroy () {
+    async destroy () {
         SUBSCRIPTIONS.get(this).unsubscribe();
         CHANNELS.delete(this.channelName);
     }

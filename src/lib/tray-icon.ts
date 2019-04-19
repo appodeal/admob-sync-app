@@ -61,7 +61,7 @@ export class TrayIcon {
         return this.update(Icons.Default, () => this.appTray.setDefaultIcon());
     }
 
-    destroy () {
+    async destroy () {
         clearTimeout(this.updateID);
         if (this.sub) {
             this.sub();

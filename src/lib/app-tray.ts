@@ -1,8 +1,7 @@
 import {UpdatesConnector} from 'core/updates-connector';
 import {Menu, Tray} from 'electron';
-import {showAboutDialog} from 'lib/about';
 import {getDefaultTrayIcon, getSyncingTrayIcon, getWarningTrayIcon} from 'lib/icon';
-import {openSettingsWindow} from 'lib/ui-windows';
+import {openAboutWindow, openSettingsWindow} from 'lib/ui-windows';
 
 
 export class AppTray {
@@ -15,7 +14,7 @@ export class AppTray {
         this.tray = new Tray(getDefaultTrayIcon());
         this.tray.setContextMenu(Menu.buildFromTemplate([
             {type: 'normal', label: 'Settings', click: () => openSettingsWindow()},
-            {type: 'normal', label: 'About', click: () => showAboutDialog()},
+            {type: 'normal', label: 'About', click: () => openAboutWindow()},
             {type: 'normal', label: 'Check for updates', click: () => this.updatesConnector.checkForUpdates(false, 'modal')},
             {type: 'separator'},
             {type: 'normal', label: 'Quit', role: 'quit'}
@@ -54,7 +53,7 @@ export class AppTray {
     }
 
 
-    destroy () {
+    async destroy () {
         // unsubscribe
     }
 

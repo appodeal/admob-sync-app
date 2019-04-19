@@ -72,7 +72,7 @@ export class UpdatesConnector extends Connector {
         }))
     }
 
-    destroy () {
+    async destroy () {
         super.destroy();
         this.removeCheckListener();
     }

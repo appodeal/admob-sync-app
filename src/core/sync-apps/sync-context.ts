@@ -10,13 +10,19 @@ import {AdMobApp} from 'lib/translators/interfaces/admob-app.interface';
  */
 export class SyncContext {
 
-    adMob: {
+    private adMob: {
         apps: AdMobApp[];
         adUnits: AdMobAdUnit[]
     };
     private appodealApps: AppodealApp[] = [];
 
     constructor () {}
+
+    getAdmobState () {
+        return this.adMob;
+    }
+
+    // apps
 
     loadAdMob (adMob: {
         apps: AdMobApp[];
@@ -38,18 +44,21 @@ export class SyncContext {
         this.adMob.adUnits.push(adMobAdUnit);
     }
 
+    getActiveAdmobApps () {
+        return this.adMob.apps.filter(app => !app.archived);
+    }
+
+    // ad units
+
     removeAdMobAdUnits (ids: string[]) {
         this.adMob.adUnits = this.adMob.adUnits.filter(v => !ids.includes(v.adUnitId));
     }
 
-    /**
-     * return all adunit
-     * archived & created by user manually
-     * @param adMobApp
-     */
-    getAdMobAppAdUnits (adMobApp: AdMobApp): AdMobAdUnit[] {
-        return this.adMob.adUnits.filter(adUnit => adUnit.appId === adMobApp.appId);
+    getAdMobAppActiveAdUnits (adMobApp: AdMobApp): AdMobAdUnit[] {
+        return this.adMob.adUnits.filter(adUnit => adUnit.appId === adMobApp.appId && !adUnit.archived);
     }
+
+    // appodeal
 
     getAppodealAppsCount () {
         return this.appodealApps.length;

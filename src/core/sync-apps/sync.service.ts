@@ -79,9 +79,14 @@ export class SyncService {
                 runner
             );
 
+            logger.info(`Sync started by ${runner === SyncRunner.User ? 'User' : 'Schedule'}`);
+
             const waitToFinish = [];
             const subs = [];
             subs.push(
+                sync.events.on(SyncEventsTypes.Started).subscribe(() => SyncHistory.saveSyncStats(sync)),
+                sync.events.on(SyncEventsTypes.ReportProgress).subscribe(() => SyncHistory.saveSyncStats(sync)),
+                sync.events.on(SyncEventsTypes.Stopped).subscribe(() => SyncHistory.saveSyncStats(sync)),
                 sync.events.on(SyncEventsTypes.UserActionsRequired)
                     .subscribe(() => { waitToFinish.push(SyncHistory.setAuthorizationRequired(admobAccount, true));}),
                 sync.events.on(SyncEventsTypes.CalculatingProgress)
@@ -124,10 +129,10 @@ export class SyncService {
             this.reportError(sync, e);
             error = e;
         } finally {
-            if (sync.hasErrors) {
-                logger.info('Admob AdUnits and Apps');
-                logger.info(JSON.stringify(sync.context.adMob));
-            }
+            logger.info('stats');
+            logger.info(sync.stats.toPlainObject());
+            logger.info('Admob AdUnits and Apps');
+            logger.info(JSON.stringify(sync.context.getAdmobState()));
             await logger.closeAsync();
         }
         await this.afterSync(sync, appodealAccountId);
@@ -163,7 +168,7 @@ export class SyncService {
         return this.appodealApi.getFor(appodealAccountId).submitLog(admobAccount.id, syncId, rawLog);
     }
 
-    public async destroy () {
+    public destroy () {
         return Promise.all(
             [...this.activeSyncs.entries()].map(
                 ([sync, finishPromise]: [Sync, Promise<any>]) =>
@@ -173,7 +178,7 @@ export class SyncService {
                             console.error(`Failed to stop Sync correcly ${sync.id}`);
                             console.error(e);
                         })
-            ));
+            )).then(() => {});
     }
 
     reportError (sync: Sync, error) {

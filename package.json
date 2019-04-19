@@ -8,15 +8,19 @@
   "repository": "https://github.com/appodeal/admob-sync-app",
   "description": "Appodeal AdMob Sync application",
   "private": true,
-  "version": "0.1.7",
+  "version": "0.1.8",
   "scripts": {
     "start": "webpack --watch --progress --config=webpack/development.ts",
     "test": "jest",
     "electron": "cd build && electron .",
     "build": "webpack --progress --config=webpack/production.ts",
     "dist": "electron-builder",
-    "dist:all": "node dist.js",
-    "github:release": "node tools/release.js"
+    "dist:all": "node tools/dist.js",
+    "release:github": "node tools/release.js",
+    "release:sentry": "sentry-cli releases new $(npm run -s package:version) && sentry-cli releases files $(npm run -s package:version) upload-sourcemaps build/*.{map,js} && sentry-cli releases finalize $(npm run -s package:version)",
+    "release:deploy": "sentry-cli releases deploys $(npm run -s package:version) new",
+    "package:version": "node tools/utils.js --version",
+    "package:hash": "node tools/utils.js --hash"
   },
   "build": {
     "appId": "com.electron.admob.desktop",
@@ -122,6 +126,7 @@
     "@types/uuid": "^3.4.4",
     "@types/winston": "^2.4.4",
     "@types/zen-push": "^0.1.0",
+    "args": "^5.0.1",
     "clean-webpack-plugin": "^1.0.1",
     "copy-webpack-plugin": "^5.0.0",
     "css-loader": "^2.1.0",
@@ -144,7 +149,8 @@
     "webpack": "^4.29.5",
     "webpack-cli": "^3.2.3",
     "webpack-dev-server": "^3.2.0",
-    "webpack-merge": "^4.2.1"
+    "webpack-merge": "^4.2.1",
+    "@sentry/cli": "^1.41.1"
   },
   "dependencies": {
     "@sentry/electron": "^0.16.0",
