@@ -4,7 +4,6 @@ import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
 import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
 import {AdType, AppodealAdUnit, AppodealApp, AppodealPlatform, Format} from 'core/appdeal-api/interfaces/appodeal-app.interface';
 import {getAdUnitTemplate} from 'core/sync-apps/ad-unit-templates';
-import {SyncHistory} from 'core/sync-apps/sync-history';
 import {SyncStats} from 'core/sync-apps/sync-stats';
 import {SyncRunner} from 'core/sync-apps/sync.service';
 import stringify from 'json-stable-stringify';
@@ -83,9 +82,7 @@ export class Sync {
     async run () {
         this.logger.info(`Sync started`);
         this.terminated = false;
-        this.stats.start();
         try {
-            await SyncHistory.saveSyncStats(this);
             for await (const value of this.doSync()) {
                 this.logger.info(value);
                 if (this.terminated) {
@@ -131,6 +128,7 @@ export class Sync {
     }
 
     async* doSync () {
+        this.stats.start();
         this.emit(SyncEventsTypes.Started);
         this.logger.info(`Sync Params
         uuid: ${this.id}
@@ -265,7 +263,7 @@ export class Sync {
 
 
         // in case app has at least one active adUnit it should no be hidden
-        if (!adMobApp.hidden && !this.context.getAdMobAppAdUnits(adMobApp).filter(adUnit => !adUnit.archived).length) {
+        if (!adMobApp.hidden && !this.context.getAdMobAppActiveAdUnits(adMobApp).length) {
             yield `Hide App. All its adUnits are archived`;
             adMobApp = await this.hideAdMobApp(adMobApp);
             this.context.updateAdMobApp(adMobApp);
@@ -278,7 +276,7 @@ export class Sync {
     async* syncApp (app: AppodealApp) {
         yield `Start Sync App [${app.id}] ${app.name}`;
 
-        let adMobApp = this.findAdMobApp(app, this.context.adMob.apps);
+        let adMobApp = this.findAdMobApp(app, this.context.getActiveAdmobApps());
         if (adMobApp) {
             this.logger.info(`Appodeal App [${app.id}] ${app.name} -> AdMobApp [${adMobApp.appId}] ${adMobApp.name}`);
         }
@@ -396,13 +394,8 @@ export class Sync {
 
     // filter adUnits which user created manually
     // we should work only adUnits created automatically during sync
-    // exclude archived too
     getActiveAdmobAdUnitsCreatedByApp (app: AppodealApp, adMobApp: AdMobApp) {
-        return this.filterAppAdUnits(
-            app,
-            // we can do nothing with archived adUnits so we should ignore them
-            this.context.getAdMobAppAdUnits(adMobApp).filter(adUnit => adUnit.archived !== true)
-        );
+        return this.filterAppAdUnits(app, this.context.getAdMobAppActiveAdUnits(adMobApp));
     }
 
 

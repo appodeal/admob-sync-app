@@ -84,6 +84,9 @@ export class SyncService {
             const waitToFinish = [];
             const subs = [];
             subs.push(
+                sync.events.on(SyncEventsTypes.Started).subscribe(() => SyncHistory.saveSyncStats(sync)),
+                sync.events.on(SyncEventsTypes.ReportProgress).subscribe(() => SyncHistory.saveSyncStats(sync)),
+                sync.events.on(SyncEventsTypes.Stopped).subscribe(() => SyncHistory.saveSyncStats(sync)),
                 sync.events.on(SyncEventsTypes.UserActionsRequired)
                     .subscribe(() => { waitToFinish.push(SyncHistory.setAuthorizationRequired(admobAccount, true));}),
                 sync.events.on(SyncEventsTypes.CalculatingProgress)
@@ -126,8 +129,10 @@ export class SyncService {
             this.reportError(sync, e);
             error = e;
         } finally {
+            logger.info('stats');
+            logger.info(sync.stats.toPlainObject());
             logger.info('Admob AdUnits and Apps');
-            logger.info(JSON.stringify(sync.context.adMob));
+            logger.info(JSON.stringify(sync.context.getAdmobState()));
             await logger.closeAsync();
         }
         await this.afterSync(sync, appodealAccountId);
