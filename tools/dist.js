@@ -1,7 +1,7 @@
 'use strict';
 
 const builder = require('electron-builder/out/index');
-const packageInfo = require('./package.json');
+const packageInfo = require('../package.json');
 const buildConfig = packageInfo.build;
 const path = require('path');
 const fs = require('fs-extra');

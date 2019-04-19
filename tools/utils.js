@@ -10,7 +10,7 @@ args
 const flags = args.parse(process.argv);
 
 function getPackage () {
-    return JSON.parse(fs.readFileSync('./package.json').toString());
+    return JSON.parse(fs.readFileSync('../package.json').toString());
 }
 
 function getVersion () {
