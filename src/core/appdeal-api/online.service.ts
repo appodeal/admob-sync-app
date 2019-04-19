@@ -83,7 +83,7 @@ export class OnlineService extends EventEmitter {
         return !this._isOnline;
     }
 
-    destroy () {
+    async destroy () {
         this.removeAllListeners();
     }
 

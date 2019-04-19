@@ -1,3 +1,5 @@
+import {AboutConnector} from "core/about-connector";
+
 require('source-map-support').install();
 import {AccountsConnector} from 'core/accounts-connector';
 import {AdMobSessions} from 'core/admob-api/admob-sessions.helper';
@@ -62,6 +64,7 @@ app.on('ready', async () => {
         tray = new AppTray(updatesConnector),
         trayIcon = new TrayIcon(store, tray),
         accountsConnector = new AccountsConnector(store),
+        aboutConnector = new AboutConnector(),
         logsConnector = new LogsConnector(store, appodealApi),
         onlineConnector = new OnlineConnector(store),
         syncScheduler = new SyncScheduler(syncService, store, onlineService),
@@ -123,6 +126,7 @@ app.on('ready', async () => {
         tray.destroy(),
         onlineConnector.destroy(),
         accountsConnector.destroy(),
+        aboutConnector.destroy(),
         syncConnector.destroy(),
         logsConnector.destroy(),
         syncService.destroy(),

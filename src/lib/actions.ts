@@ -22,7 +22,9 @@ export enum ActionTypes {
     viewReleaseNotes = 'viewReleaseNotes',
     updatesCheckPeriod = 'updatesCheckPeriod',
     addAppodealAccount = 'addAppodealAccount',
-    manageAppodealAccounts = 'manageAppodealAccounts'
+    manageAppodealAccounts = 'manageAppodealAccounts',
+    packageInfo = 'packageInfo',
+    openPrivacyPolicy = 'openPrivacyPolicy'
 }
 
 

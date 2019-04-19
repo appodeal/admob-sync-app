@@ -33,6 +33,15 @@ export async function openSettingsWindow () {
     });
 }
 
+export function openAboutWindow () {
+    return openOrFocus('about', () => openWindow('./about.html', {
+        frame: true,
+        width: 450,
+        titleBarStyle: 'default',
+        height: 270,
+        parent: null
+    }))
+}
 
 export function openAppodealSignInWindow (account: AppodealAccountState = null): Promise<AppodealAccount> {
     return new Promise((resolve, reject) => {
@@ -77,7 +86,6 @@ export function openAppodealAccountsWindow (): Promise<void> {
     });
 
 }
-
 
 async function openOrFocus (windowName: string, openFunction: () => BrowserWindow | Promise<BrowserWindow>): Promise<BrowserWindow> {
     if (OPENED_WINDOWS.has(windowName)) {

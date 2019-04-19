@@ -16,8 +16,4 @@ export class OnlineConnector extends Connector {
             return this.store.pingAppodeal();
         }
     }
-
-    destroy () {
-        super.destroy();
-    }
 }

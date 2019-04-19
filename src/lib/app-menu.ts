@@ -1,6 +1,6 @@
 import {Menu} from 'electron';
-import {showAboutDialog} from 'lib/about';
 import {isMacOS} from 'lib/platform';
+import {openAboutWindow} from "lib/ui-windows";
 
 
 let INSTANCE: AppMenu = null;
@@ -18,7 +18,7 @@ class AppMenu {
             {
                 label: 'Application',
                 submenu: [
-                    {label: 'About Application', click: () => showAboutDialog()},
+                    {label: 'About Application', click: () => openAboutWindow()},
                     {type: 'separator'},
                     {label: 'Quit', accelerator: 'Command+Q', role: 'quit'}
                 ]
