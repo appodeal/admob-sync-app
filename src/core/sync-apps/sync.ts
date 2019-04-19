@@ -297,7 +297,7 @@ export class Sync {
             yield `App created`;
         }
 
-        if (adMobApp.hidden) {
+        if (adMobApp.hidden && adMobApp.applicationPackageName) {
             adMobApp = await this.showAdMobApp(adMobApp);
             this.context.updateAdMobApp(adMobApp);
             this.stats.appUpdated(app);
@@ -514,10 +514,36 @@ export class Sync {
         ]);
     }
 
+    validateAdmobApp (app: AppodealApp, adMobApp: AdMobApp) {
+        if (!adMobApp) {
+            return null;
+        }
+
+        const adMobPlatform = Sync.toAdMobPlatform(app);
+
+        if (adMobApp.hidden) {
+            this.logger.info('[FindAdMobApp] App become hidden');
+            return null;
+        }
+
+        if (adMobApp.platform !== adMobPlatform) {
+            this.logger.info(`[FindAdMobApp] Wrong Platform ! Actual Platform [${adMobPlatform}] ${app.platform}. Admob App Platform [${adMobApp.platform}]`);
+            return null;
+        }
+
+        if (adMobApp.applicationPackageName && app.bundleId && adMobApp.applicationPackageName !== app.bundleId) {
+            this.logger.info(`[FindAdMobApp] Wrong bundle ID. Appodeal bundleId '${app.bundleId}'. Admob applicationPackageName '${adMobApp.applicationPackageName}' `);
+            return null;
+        }
+        return adMobApp;
+    }
 
     findAdMobApp (app: AppodealApp, apps: AdMobApp[]): AdMobApp {
         const adMobPlatform = Sync.toAdMobPlatform(app);
-        let adMobApp = apps.find(adMobApp => adMobApp.applicationStoreId === app.bundleId && adMobApp.platform === adMobPlatform);
+
+        let adMobApp = app.platform !== AppodealPlatform.AMAZON && app.bundleId
+            ? apps.find(adMobApp => adMobApp.platform === adMobPlatform && adMobApp.applicationPackageName === app.bundleId)
+            : null;
 
         if (adMobApp) {
             this.logger.info('[FindAdMobApp] Found by bundle ID');
@@ -526,6 +552,8 @@ export class Sync {
 
         if (app.admobAppId) {
             adMobApp = apps.find(adMobApp => adMobApp.appId === app.admobAppId);
+            adMobApp = this.validateAdmobApp(app, adMobApp);
+
             if (adMobApp) {
                 this.logger.info('[FindAdMobApp] Found by adMobAppId');
                 return adMobApp;
@@ -535,7 +563,7 @@ export class Sync {
         }
 
         const namePattern = new RegExp(`^Appodeal/${app.id}/.*$`);
-        adMobApp = apps.find(adMobApp => namePattern.test(adMobApp.name));
+        adMobApp = apps.find(adMobApp => !adMobApp.hidden && adMobApp.platform === adMobPlatform && namePattern.test(adMobApp.name));
         if (adMobApp) {
             this.logger.info('[FindAdMobApp] Found by NAME pattern');
             return adMobApp;
@@ -560,7 +588,7 @@ export class Sync {
 
     async showAdMobApp (adMobApp: AdMobApp): Promise<AdMobApp> {
         return this.adMobApi.postRaw('AppService', 'BulkUpdateVisibility', {1: [adMobApp.appId], 2: true})
-            .then(() => ({...adMobApp, hidden: true}));
+            .then(() => ({...adMobApp, hidden: false}));
     }
 
     async hideAdMobApp (adMobApp: AdMobApp): Promise<AdMobApp> {

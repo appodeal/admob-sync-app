@@ -79,6 +79,8 @@ export class SyncService {
                 runner
             );
 
+            logger.info(`Sync started by ${runner === SyncRunner.User ? 'User' : 'Schedule'}`);
+
             const waitToFinish = [];
             const subs = [];
             subs.push(
@@ -124,10 +126,8 @@ export class SyncService {
             this.reportError(sync, e);
             error = e;
         } finally {
-            if (sync.hasErrors) {
-                logger.info('Admob AdUnits and Apps');
-                logger.info(JSON.stringify(sync.context.adMob));
-            }
+            logger.info('Admob AdUnits and Apps');
+            logger.info(JSON.stringify(sync.context.adMob));
             await logger.closeAsync();
         }
         await this.afterSync(sync, appodealAccountId);
