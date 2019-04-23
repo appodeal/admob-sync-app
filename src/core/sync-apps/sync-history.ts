@@ -28,12 +28,13 @@ export class SyncHistory {
     private static async loadHistory (adMobAccount: AdmobAccount): Promise<SyncHistoryInfo> {
         if (!SyncHistory.cache.has(adMobAccount.id)) {
             const data = <SyncHistoryInfo>await getJsonFile(SyncHistory.fileName(adMobAccount));
-            data.syncs = data.syncs || [];
-            SyncHistory.cache.set(adMobAccount.id, data || {
+
+            SyncHistory.cache.set(adMobAccount.id, {
                 lastSync: null,
                 lastSuccessfulSync: null,
                 admobAuthorizationRequired: true,
-                syncs: []
+                syncs: [],
+                ...(data || {})
             });
         }
 
