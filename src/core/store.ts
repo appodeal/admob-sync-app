@@ -247,7 +247,12 @@ export class Store {
     appodealSignIn (email: string, password: string): Promise<AppodealAccount> {
         return this.appodealApi.signIn(email, password)
             .then(account => this.addAppodealAccount(account))
-            .then(account => this.selectAppodealAccount(account));
+            .then(account => this.selectAppodealAccount(account))
+            .then((account) => {
+                openSettingsWindow();
+                return account;
+            });
+
     }
 
     @action
