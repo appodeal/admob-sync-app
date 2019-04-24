@@ -5,21 +5,23 @@ import {AppodealAccount} from 'core/appdeal-api/interfaces/appodeal.account.inte
 import {ErrorFactoryService} from 'core/error-factory/error-factory.service';
 import {AuthorizationError} from 'core/error-factory/errors/authorization.error';
 import {InternalError} from 'core/error-factory/errors/internal-error';
+import EventEmitter from 'events';
 import {UserAccount} from 'interfaces/common.interfaces';
 import PushStream from 'zen-push';
 
 
-export class AppodealApi {
+export class AppodealApi extends EventEmitter {
     private readonly DEFAULT_API: AppodealApiService;
     private APIs = new Map<string, AppodealApiService>();
     private errorSubscriptions = new Map<string, Subscription>();
-    private _onError = new PushStream<{account: UserAccount, error: Error}>();
+    private _onError = new PushStream<{ account: UserAccount, error: Error }>();
     onError = this._onError.observable;
 
     constructor (
         private errorFactory: ErrorFactoryService,
         accounts: Array<UserAccount>
     ) {
+        super();
         this.DEFAULT_API = new AppodealApiService(errorFactory, AppodealSessions.DEFAULT_SESSION);
         accounts.forEach(account => {
             let api = new AppodealApiService(this.errorFactory, AppodealSessions.get(account));
@@ -50,6 +52,7 @@ export class AppodealApi {
             this.destroyApi(account.id);
             this.saveApi(api, account);
             sessionInfo.save(account.id);
+            this.emit('signIn', account)
         } else {
             api.destroy();
         }
@@ -68,6 +71,7 @@ export class AppodealApi {
         });
         this.destroyApi(accountId);
         await AppodealSessions.remove(accountId);
+        this.emit('signOut', account)
     }
 
     async fetchAllAccounts (): Promise<Map<string, AppodealAccount>> {

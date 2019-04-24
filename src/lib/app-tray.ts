@@ -1,24 +1,27 @@
 import {UpdatesConnector} from 'core/updates-connector';
 import {Menu, Tray} from 'electron';
 import {getDefaultTrayIcon, getSyncingTrayIcon, getWarningTrayIcon} from 'lib/icon';
-import {openAboutWindow, openSettingsWindow} from 'lib/ui-windows';
+import {openAboutWindow, openAppodealSignInWindow, openSettingsWindow} from 'lib/ui-windows';
 
 
 export class AppTray {
     private readonly tray: Tray;
     private warningIconInterval;
+    private menu: Menu;
 
 
-    constructor (private updatesConnector?: UpdatesConnector) {
-
+    constructor (private updatesConnector: UpdatesConnector) {
         this.tray = new Tray(getDefaultTrayIcon());
-        this.tray.setContextMenu(Menu.buildFromTemplate([
+        this.menu = Menu.buildFromTemplate([
+            {type: 'normal', label: 'Sign in', click: () => openAppodealSignInWindow(), id: 'sign-in', visible: false},
+            {type: 'separator', id: 'sign-in-sep', visible: false},
             {type: 'normal', label: 'Settings', click: () => openSettingsWindow()},
             {type: 'normal', label: 'About', click: () => openAboutWindow()},
             {type: 'normal', label: 'Check for updates', click: () => this.updatesConnector.checkForUpdates(false, 'modal')},
             {type: 'separator'},
             {type: 'normal', label: 'Quit', role: 'quit'}
-        ]));
+        ]);
+        this.tray.setContextMenu(this.menu);
         this.tray.on('click', () => this.tray.popUpContextMenu());
     }
 
@@ -50,6 +53,16 @@ export class AppTray {
         clearInterval(this.warningIconInterval);
         this.tray.setImage(getDefaultTrayIcon());
         console.log('setDefaultIcon');
+    }
+
+    showSignIn () {
+        this.menu.getMenuItemById('sign-in').visible = true;
+        this.menu.getMenuItemById('sign-in-sep').visible = true;
+    }
+
+    hideSignIn () {
+        this.menu.getMenuItemById('sign-in').visible = false;
+        this.menu.getMenuItemById('sign-in-sep').visible = false;
     }
 
 
