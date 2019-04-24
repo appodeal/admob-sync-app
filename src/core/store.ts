@@ -272,6 +272,7 @@ export class Store {
                         appodealAccounts: updatedAccounts
                     }
                 });
+                set<AppState>(this.state, 'selectedAppodealAccount', null);
                 return updatedAccounts[accountIndex] || updatedAccounts[accountIndex - 1] || null;
             })
             .then(accState => this.selectAppodealAccount(accState ? this.appodealAccounts.get(accState.id) : null));
