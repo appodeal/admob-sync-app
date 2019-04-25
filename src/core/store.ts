@@ -247,7 +247,12 @@ export class Store {
     appodealSignIn (email: string, password: string): Promise<AppodealAccount> {
         return this.appodealApi.signIn(email, password)
             .then(account => this.addAppodealAccount(account))
-            .then(account => this.selectAppodealAccount(account));
+            .then(account => this.selectAppodealAccount(account))
+            .then((account) => {
+                openSettingsWindow();
+                return account;
+            });
+
     }
 
     @action
@@ -267,6 +272,7 @@ export class Store {
                         appodealAccounts: updatedAccounts
                     }
                 });
+                set<AppState>(this.state, 'selectedAppodealAccount', null);
                 return updatedAccounts[accountIndex] || updatedAccounts[accountIndex - 1] || null;
             })
             .then(accState => this.selectAppodealAccount(accState ? this.appodealAccounts.get(accState.id) : null));

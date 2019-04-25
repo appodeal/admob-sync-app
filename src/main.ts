@@ -1,6 +1,6 @@
-import {AboutConnector} from "core/about-connector";
-
 require('source-map-support').install();
+
+import {AboutConnector} from 'core/about-connector';
 import {AccountsConnector} from 'core/accounts-connector';
 import {AdMobSessions} from 'core/admob-api/admob-sessions.helper';
 import {AppodealApi} from 'core/appdeal-api/appodeal-api.factory';
@@ -44,6 +44,7 @@ if (app.dock) {
 app.on('window-all-closed', () => {});
 app.on('ready', async () => {
 
+    // APP INITIALIZERS
     let [preferences] = await Promise.all([
             Preferences.load(),
             AppodealSessions.init(),
@@ -61,15 +62,16 @@ app.on('ready', async () => {
         updates = new UpdatesService(preferences.updates.lastCheck),
         updatesConnector = new UpdatesConnector(store, updates),
         syncService = new SyncService(store, appodealApi, onlineService),
+        accountsConnector = new AccountsConnector(store),
         tray = new AppTray(updatesConnector),
         trayIcon = new TrayIcon(store, tray),
-        accountsConnector = new AccountsConnector(store),
         aboutConnector = new AboutConnector(),
         logsConnector = new LogsConnector(store, appodealApi),
         onlineConnector = new OnlineConnector(store),
         syncScheduler = new SyncScheduler(syncService, store, onlineService),
         syncConnector = new SyncConnector(store, syncService);
 
+    // EVENTS
     appodealApi.onError.subscribe(async ({account, error}) => {
         if (error instanceof AuthorizationError && !error.isHandled) {
             await store.patchPreferences({
@@ -90,6 +92,9 @@ app.on('ready', async () => {
         }
     });
 
+    appodealApi.on('signIn', () => tray.hideSignIn());
+    appodealApi.on('signOut', () => tray.showSignIn());
+
     onlineService.once('online', () => {
         store.validateAppVersion()
             .then(async versionValid => {
@@ -100,6 +105,7 @@ app.on('ready', async () => {
                 await store.fetchAllAppodealUsers();
                 let accounts = store.state.preferences.accounts.appodealAccounts;
                 if (accounts.length === 0) {
+                    tray.showSignIn();
                     openAppodealSignInWindow();
                 } else {
                     let problemAccount = accounts.find(acc => !acc.active);

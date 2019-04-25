@@ -160,7 +160,7 @@ export class AdmobAccountComponent extends Component<AdmobAccountComponentProps,
                     </button>
 
                     {!this.isSetupFormVisible(account) &&
-                    <button type="button" onClick={() => this.displaySetupForm(true)}>Set credentials</button>}
+                    <button type="button" onClick={() => this.displaySetupForm(true)}>Update credentials</button>}
                 </>}
                 {!this.signedIn && <>
                     <button onClick={singleEvent(this.signInAdMob, this)}
