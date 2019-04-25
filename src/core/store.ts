@@ -312,7 +312,10 @@ export class Store {
                 this.appodealAccounts = accounts;
                 if (!this.state.selectedAppodealAccount) {
                     this.selectAppodealAccount(updatedAccounts[0] || null);
+                } else {
+                    this.selectAppodealAccount(this.state.selectedAppodealAccount);
                 }
+
                 return accounts;
             });
     }
