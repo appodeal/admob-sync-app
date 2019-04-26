@@ -33,6 +33,14 @@ export async function openSettingsWindow () {
     });
 }
 
+export function openClearDataWindow () {
+    return openDialogWindow('./clear-data.html', {
+        width: 350,
+        height: 220,
+        parent: null
+    });
+}
+
 export function openAboutWindow () {
     return openOrFocus('about', () => openWindow('./about.html', {
         frame: true,
@@ -40,7 +48,7 @@ export function openAboutWindow () {
         titleBarStyle: 'default',
         height: 270,
         parent: null
-    }))
+    }));
 }
 
 export function openAppodealSignInWindow (account: AppodealAccountState = null): Promise<AppodealAccount> {

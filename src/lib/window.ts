@@ -115,18 +115,14 @@ export function waitForNavigation (window: BrowserWindow, urlFragment: RegExp = 
     });
 }
 
-export function confirmDialog (message) {
+export function confirmDialog (message): Promise<boolean> {
     return new Promise<boolean>(resolve => {
         const OKButton = 0;
 
         const dialogOptions = {type: 'question', buttons: ['OK', 'Cancel'], message};
 
         (dialog || remote.dialog).showMessageBox(dialogOptions, i => {
-            if (i === OKButton) {
-
-                return resolve(true);
-            }
-            return resolve(false);
+            return resolve(i === OKButton);
         });
     });
 }

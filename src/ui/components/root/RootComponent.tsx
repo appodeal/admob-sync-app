@@ -19,7 +19,7 @@ interface RootComponentState {
 export class RootComponent extends React.Component<RootComponentProps, RootComponentState> {
     private tabs = [
         {id: 'accounts', label: 'Accounts', isDisabled: () => this.props.store.outdatedVersion},
-        {id: 'updates', label: 'Updates', isDisabled: () => false},
+        {id: 'updates', label: 'Settings', isDisabled: () => false},
         {id: 'development', label: 'Development', isDisabled: () => false}
     ];
 

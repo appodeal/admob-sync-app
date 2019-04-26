@@ -12,6 +12,8 @@ export enum ActionTypes {
     runSync = 'RunSync',
     openAdmobPage = 'openAdmobPage',
     selectAccount = 'selectAdmobAccount',
+    showDeleteAllAccountsDataDialog = 'showDeleteAllAccountsDataDialog',
+    deleteAllAccountsData = 'deleteLocalData',
     selectAppodealAccount = 'selectAppodealAccount',
     openLogFile = 'openLogFile',
     submitLogToAppodeal = 'submitLogToAppodeal',

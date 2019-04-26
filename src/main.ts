@@ -26,6 +26,7 @@ import {TrayIcon} from 'lib/tray-icon';
 import {openAppodealAccountsWindow, openAppodealSignInWindow} from 'lib/ui-windows';
 import {UpdatesService} from 'lib/updates';
 import * as path from 'path';
+import {DeleteDataConnector} from './core/delete-data-connector';
 
 
 if (environment.development) {
@@ -69,7 +70,8 @@ app.on('ready', async () => {
         logsConnector = new LogsConnector(store, appodealApi),
         onlineConnector = new OnlineConnector(store),
         syncScheduler = new SyncScheduler(syncService, store, onlineService),
-        syncConnector = new SyncConnector(store, syncService);
+        syncConnector = new SyncConnector(store, syncService),
+        deleteDataConnector = new DeleteDataConnector(store, syncService);
 
     // EVENTS
     appodealApi.onError.subscribe(async ({account, error}) => {
@@ -138,7 +140,8 @@ app.on('ready', async () => {
         syncService.destroy(),
         updatesConnector.destroy(),
         onlineService.destroy(),
-        syncScheduler.destroy()
+        syncScheduler.destroy(),
+        deleteDataConnector.destroy()
     ]);
 
     onlineService.on('statusChange', isOnline => {
