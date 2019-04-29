@@ -1,3 +1,5 @@
 # -- Release ---
 FROM nginx:1.15.9
-COPY ./*.* /usr/share/nginx/html/
+COPY dist/*.* /usr/share/nginx/html/
+COPY download-page/*.* /usr/share/nginx/html/
+COPY nginx.conf /etc/nginx/conf.d/default.conf
