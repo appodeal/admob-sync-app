@@ -1,8 +1,9 @@
 import {AppodealAccount} from 'core/appdeal-api/interfaces/appodeal.account.interface';
-import {app, BrowserWindow} from 'electron';
+import {BrowserWindow} from 'electron';
 import {AppodealAccountState} from 'interfaces/common.interfaces';
 import {getMapItem} from 'lib/core';
 import {openDialogWindow, openWindow} from 'lib/window';
+import {hideDock, showDock} from './dock';
 
 
 const OPENED_WINDOWS = new Map<string, BrowserWindow | Promise<BrowserWindow>>();
@@ -13,10 +14,10 @@ export async function openSettingsWindow () {
             fullscreenable: false,
             skipTaskbar: false
         }, () => {
-            app.dock.hide();
+            hideDock();
             window.removeAllListeners();
         });
-        app.dock.show();
+        showDock();
         window.on('focus', async event => {
             let topWindow = getMapItem(OPENED_WINDOWS, OPENED_WINDOWS.size - 1);
             if (topWindow) {
@@ -40,7 +41,7 @@ export function openAboutWindow () {
         titleBarStyle: 'default',
         height: 270,
         parent: null
-    }))
+    }));
 }
 
 export function openAppodealSignInWindow (account: AppodealAccountState = null): Promise<AppodealAccount> {
@@ -51,10 +52,10 @@ export function openAppodealSignInWindow (account: AppodealAccountState = null):
                 {width: 450, height: 270, parent: await OPENED_WINDOWS.get('settings')},
                 window => {
                     let parent = window.getParentWindow();
-                    app.dock.show();
+                    showDock();
                     window.once('closed', () => {
                         if (!parent) {
-                            app.dock.hide();
+                            hideDock();
                         }
                     });
                     window.webContents.send('existingAccount', JSON.stringify(account));
@@ -73,10 +74,10 @@ export function openAppodealAccountsWindow (): Promise<void> {
                 {width: 450, height: 350, parent: await OPENED_WINDOWS.get('settings')},
                 window => {
                     let parent = window.getParentWindow();
-                    app.dock.show();
+                    showDock();
                     window.once('closed', () => {
                         if (!parent) {
-                            app.dock.hide();
+                            hideDock();
                         }
                     });
                     res(window);
