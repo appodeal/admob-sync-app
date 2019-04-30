@@ -27,6 +27,7 @@ import {openAppodealAccountsWindow, openAppodealSignInWindow} from 'lib/ui-windo
 import {UpdatesService} from 'lib/updates';
 import * as path from 'path';
 import {DeleteDataConnector} from './core/delete-data-connector';
+import {hideDock} from './lib/dock';
 
 
 if (environment.development) {
@@ -39,9 +40,7 @@ initBugTracker(environment.sentry);
 
 initThemeSwitcher();
 
-if (app.dock) {
-    app.dock.hide();
-}
+hideDock();
 app.on('window-all-closed', () => {});
 app.on('ready', async () => {
 
