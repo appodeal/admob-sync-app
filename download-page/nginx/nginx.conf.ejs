@@ -16,16 +16,16 @@ server {
         }
 
         if ($http_user_agent ~ Windows ) {
-            add_header Content-Disposition 'attachment; filename="admob-sync-app-setup-latest.exe"';
-            rewrite ^(.*) /admob-sync-app-setup-setup-latest.exe break;
+            add_header Content-Disposition 'attachment; filename="<%= dist.win.fileName %>"';
+            rewrite ^(.*) /<%= dist.win.fileName %> break;
         }
         if ($http_user_agent ~ "Mac OS" ) {
-            add_header Content-Disposition 'attachment; filename="admob-sync-app-latest.dmg"';
-            rewrite ^(.*) /admob-sync-app-latest.dmg break;
+            add_header Content-Disposition 'attachment; filename="<%= dist.mac.fileName %>"';
+            rewrite ^(.*) /<%= dist.mac.fileName %> break;
         }
         if ($http_user_agent ~ Linux ) {
-            add_header Content-Disposition 'attachment; filename="admob-sync-app-setup-latest.deb"';
-            rewrite ^(.*) /admob-sync-app-setup-latest.deb break;
+            add_header Content-Disposition 'attachment; filename="<%= dist.linux.fileName %>"';
+            rewrite ^(.*) /<%= dist.linux.fileName %> break;
         }
 
         rewrite ^(.*) /index.html last;
