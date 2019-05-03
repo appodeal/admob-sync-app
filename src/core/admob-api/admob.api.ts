@@ -31,7 +31,7 @@ export class AdmobApiService {
     }
 
 
-    setXrfToken (xsrfToken) {
+    private setXrfToken (xsrfToken) {
         this.xsrfToken = xsrfToken;
     }
 

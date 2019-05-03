@@ -7,7 +7,7 @@ import {getAdUnitTemplate} from 'core/sync-apps/ad-unit-templates';
 import {SyncStats} from 'core/sync-apps/sync-stats';
 import {SyncRunner} from 'core/sync-apps/sync.service';
 import stringify from 'json-stable-stringify';
-import {retry} from 'lib/retry';
+import {retryProxy} from 'lib/retry';
 import {AppTranslator} from 'lib/translators/admob-app.translator';
 import {AdMobPlatform} from 'lib/translators/admob.constants';
 import {AdUnitTranslator} from 'lib/translators/admop-ad-unit.translator';
@@ -15,6 +15,7 @@ import {AdMobAdUnit, CpmFloorMode, CpmFloorSettings} from 'lib/translators/inter
 import {AdMobApp} from 'lib/translators/interfaces/admob-app.interface';
 import {getTranslator} from 'lib/translators/translator.helpers';
 import uuid from 'uuid';
+import {UnavailableEndpointError} from '../error-factory/errors/network/unavailable-endpoint-error';
 import {SyncContext} from './sync-context';
 import {SyncEventEmitter} from './sync-event.emitter';
 import {SyncErrorEvent, SyncEvent, SyncEventsTypes, SyncReportProgressEvent} from './sync.events';
@@ -67,6 +68,7 @@ export class Sync {
         public readonly runner: SyncRunner
     ) {
         this.id = id || uuid.v4();
+        this.beforeRun();
     }
 
     async stop (reason: string) {
@@ -77,6 +79,23 @@ export class Sync {
         this.terminated = true;
         this.stats.terminated = true;
         this.logger.info(`Stopping Sync Reason: ${reason}`);
+    }
+
+    beforeRun () {
+
+        const retryCondition = e =>
+            e.message.substring(0, 'net::ERR'.length) === 'net::ERR'
+            || e instanceof UnavailableEndpointError
+            || e.stats === 502;
+
+        const terminateIfConnectionLost = e => {
+            if (retryCondition(e)) {
+                this.stop('Seems to be disconnected. ' + (e && e.message ? e.message : JSON.stringify(e)));
+            }
+        };
+
+        this.adMobApi = retryProxy(this.adMobApi, retryCondition, 3, 5000, terminateIfConnectionLost);
+        this.appodealApi = retryProxy(this.appodealApi, retryCondition, 3, 5000, terminateIfConnectionLost);
     }
 
     async run () {
@@ -163,7 +182,7 @@ export class Sync {
 
         yield `refrech Admob xsrf Token`;
         try {
-            await retry(async () => this.adMobApi.refreshXsrfToken(), 3, 1000);
+            await this.adMobApi.refreshXsrfToken();
         } catch (e) {
             if (e instanceof RefreshXsrfTokenError) {
                 // this error is not supposed to be emitted and handler further
