@@ -88,44 +88,46 @@ export class AdmobAccountComponent extends Component<AdmobAccountComponentProps,
                                setupState={setupState}
                                appodealAccountId={this.props.appodealAccountId}
             />
-            <div>
-                {this.signedIn && <>
-                    {
-                        //  make public when open admob safe browsing admob is implemented
-                        environment.development &&
-                        <div style={{marginBottom: '10px'}}>
-                            <button type="button" onClick={singleEvent(this.openAdMob, this)}>Open Admob (For developers only)</button>
-                        </div>
-                    }
-                    <button type="button"
-                            onClick={singleEvent(this.runSync, this)}
-                            className={'primary'}
-                            disabled={!!this.props.syncProgress || this.props.historyInfo.admobAuthorizationRequired}
-                    >
-                        Run Sync
-                    </button>
+            {account.isReadyForReports && <>
+                <div>
+                    {this.signedIn && <>
+                        {
+                            //  make public when open admob safe browsing admob is implemented
+                            environment.development &&
+                            <div style={{marginBottom: '10px'}}>
+                                <button type="button" onClick={singleEvent(this.openAdMob, this)}>Open Admob (For developers only)</button>
+                            </div>
+                        }
+                        <button type="button"
+                                onClick={singleEvent(this.runSync, this)}
+                                className={'primary'}
+                                disabled={!!this.props.syncProgress || this.props.historyInfo.admobAuthorizationRequired}
+                        >
+                            Run Sync
+                        </button>
 
-                    {!this.isSetupFormVisible() &&
-                    <button type="button" onClick={() => this.displaySetupForm()}>Update credentials</button>}
-                </>}
-                {!this.signedIn && <>
-                    <button onClick={singleEvent(this.signInAdMob, this)}
-                            className={'primary'}
-                    >Sign In
-                    </button>
-                </>}
-            </div>
+                        {!this.isSetupFormVisible() &&
+                        <button type="button" onClick={() => this.displaySetupForm()}>Update credentials</button>}
+                    </>}
+                    {!this.signedIn && <>
+                        <button onClick={singleEvent(this.signInAdMob, this)}
+                                className={'primary'}
+                        >Sign In
+                        </button>
+                    </>}
+                </div>
 
-            {!!this.props.syncProgress &&
-            <div className={style.syncProgress}>
-                <AccountStatusComponent syncProgress={this.props.syncProgress} historyInfo={this.props.historyInfo}/>
-                <ProgressBar value={this.props.syncProgress.percent} status={this.getProgressBarStatus(this.props.syncProgress)}/>
-            </div>
-            }
-            <LogListComponent historyInfo={this.props.historyInfo}
-                              admobAccount={account}
-                              appodealAccountId={this.props.appodealAccountId}
-            />
+                {!!this.props.syncProgress &&
+                <div className={style.syncProgress}>
+                    <AccountStatusComponent syncProgress={this.props.syncProgress} historyInfo={this.props.historyInfo}/>
+                    <ProgressBar value={this.props.syncProgress.percent} status={this.getProgressBarStatus(this.props.syncProgress)}/>
+                </div>
+                }
+                <LogListComponent historyInfo={this.props.historyInfo}
+                                  admobAccount={account}
+                                  appodealAccountId={this.props.appodealAccountId}
+                />
+            </>}
         </>;
     }
 }
