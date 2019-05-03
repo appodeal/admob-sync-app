@@ -24,6 +24,7 @@ export enum ActionTypes {
     addAppodealAccount = 'addAppodealAccount',
     manageAppodealAccounts = 'manageAppodealAccounts',
     packageInfo = 'packageInfo',
+    openElectronLicence = 'openElectronLicence',
     openPrivacyPolicy = 'openPrivacyPolicy'
 }
 
