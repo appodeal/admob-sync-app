@@ -29,6 +29,17 @@ export interface SyncProgress {
     lastEvent: SyncEventsTypes.ReportProgress | SyncEventsTypes.CalculatingProgress | SyncEventsTypes.Started | SyncEventsTypes.Stopped;
 }
 
+
+export interface SetupProgress {
+    percent: number;
+    state: 'idle' | 'progress' | 'error'
+}
+
+export interface AccountSetupState {
+    mode: 'auto' | 'manual';
+    visible: boolean;
+}
+
 export interface AppState {
     selectedAccount: {
         account: AdMobAccount;
@@ -36,6 +47,8 @@ export interface AppState {
     selectedAppodealAccount: AppodealAccount;
     syncHistory: Record<AccountID, SyncHistoryInfo>;
     syncProgress: Record<AccountID, SyncProgress | undefined>;
+    setupProgress: Record<AccountID, SetupProgress>;
+    accountSetup: Record<AccountID, AccountSetupState>;
     preferences: AppPreferences;
     online: boolean;
     outdatedVersion: boolean;
@@ -53,6 +66,8 @@ export class Store {
         selectedAppodealAccount: null,
         syncHistory: {},
         syncProgress: {},
+        setupProgress: {},
+        accountSetup: {},
         preferences: null,
         online: false,
         outdatedVersion: false,
@@ -463,6 +478,61 @@ Do you what to add new Account (${resultAccount.email})?`
     async patchPreferences (patch: Partial<{ [P in keyof AppPreferences]: Partial<AppPreferences[P]> }>) {
         set<AppState>(this.state, 'preferences', deepAssign({...this.state.preferences}, patch));
         await Preferences.save(this.state.preferences);
+    }
+
+
+    @action
+    startAccountSetup (accountId: string) {
+        set<AppState>(this.state, 'setupProgress', {
+            ...this.state.setupProgress,
+            [accountId]: <SetupProgress>{
+                state: 'idle',
+                percent: 0
+            }
+        });
+    }
+
+    @action
+    setAccountSetupProgress (accountId: string, percent: number) {
+        set<AppState>(this.state, 'setupProgress', {
+            ...this.state.setupProgress,
+            [accountId]: {
+                state: 'progress',
+                percent
+            }
+        });
+    }
+
+    @action
+    errorAccountSetup (accountId: string) {
+        set<AppState>(this.state, 'setupProgress', {
+            ...this.state.setupProgress,
+            [accountId]: {
+                state: 'error',
+                percent: 0
+            }
+        });
+    }
+
+    @action
+    removeAccountSetup (accountId: string) {
+        let newProgress = {
+            ...this.state.setupProgress
+        };
+        delete newProgress[accountId];
+        set<AppState>(this.state, 'setupProgress', newProgress);
+    }
+
+
+    @action
+    setupState (accountId: string, {visible, mode}: AccountSetupState) {
+        set<AppState>(this.state, 'accountSetup', {
+            ...this.state.accountSetup,
+            [accountId]: {
+                visible,
+                mode
+            }
+        });
     }
 
 }

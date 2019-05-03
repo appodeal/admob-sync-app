@@ -20,7 +20,9 @@ export function AccountsComponent (
         selectedAccount: {account: selectedAccount},
         preferences: {accounts: {appodealAccounts}, multipleAccountsSupport},
         syncHistory,
-        syncProgress
+        syncProgress,
+        setupProgress,
+        accountSetup
     }: AccountsComponentProps
 ) {
     let adMobAccounts = selectedAppodealAccount ? selectedAppodealAccount.accounts : [];
@@ -77,6 +79,11 @@ export function AccountsComponent (
                                                                      appodealAccountId={appodealAccount.id}
                                                                      historyInfo={syncHistory[selectedAccount.id]}
                                                                      syncProgress={syncProgress[selectedAccount.id]}
+                                                                     setupProgress={setupProgress[selectedAccount.id]}
+                                                                     setupState={accountSetup[selectedAccount.id] || {
+                                                                         mode: null,
+                                                                         visible: !selectedAccount.isReadyForReports
+                                                                     }}
                                             />
                                             : <div className={classNames(style.noSelectedAccount)}>Choose account</div>
                                     )

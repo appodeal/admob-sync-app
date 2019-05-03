@@ -1,0 +1,66 @@
+.setupRequired {
+  --warn-color: #e4a228;
+
+  color: #fff;
+  border: 1px solid var(--warn-color);
+  border-radius: 5px;
+  overflow: hidden;
+  margin-block-end: 10px;
+  flex:  0 0 auto;
+
+  h1 {
+    margin: 0;
+    font-size: 1.1em;
+    font-weight: 500;
+    line-height: 1;
+    padding: 0 14px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    background: url('data:image/svg+xml;utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30"><path fill="rgba(0,0,0,.2)" d="M0,0h7l-7,7v-7z M23,0h7v7l-23,23h-7v-7l23,-23z M23,30h7v-7l-7,7z" /></svg>') top center repeat-x, var(--warn-color);
+    background-size: 43px 43px;
+    position: relative;
+    -webkit-text-stroke: 1.5px #000;
+
+    &::after {
+      content: 'Setup required';
+      position: absolute;
+      height: 100%;
+      top: 0;
+      left: 14px;
+      display: flex;
+      align-items: center;
+      -webkit-text-stroke: 0 transparent;
+    }
+
+    button {
+      margin-left: auto;
+      -webkit-text-stroke: 0 transparent;
+    }
+  }
+
+  section {
+    padding: 14px;
+  }
+
+  p {
+    margin: 0 0 14px;
+  }
+
+  form {
+    margin-block-start: 14px;
+    grid-gap: 14px 10px;
+  }
+
+  a {
+    color: #009dff;
+  }
+
+  .errorMessage {
+    color: var(--warn-color);
+  }
+
+  .setupOptions + * {
+    margin-top: 14px;
+  }
+}

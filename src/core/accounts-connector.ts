@@ -6,6 +6,8 @@ import {openAppodealAccountsWindow, openAppodealSignInWindow} from 'lib/ui-windo
 
 
 export class AccountsConnector extends Connector {
+    private setups = new Map<string, AccountSetup>();
+
 
     constructor (private store: Store) {
         super('accounts');
@@ -24,7 +26,10 @@ export class AccountsConnector extends Connector {
         case ActionTypes.selectAccount:
             return this.store.selectAdMobAccount(payload.adMobAccount);
         case ActionTypes.adMobSetCredentials:
-            return this.store.setAdMobCredentials(payload.appodealAccountId, payload.credentialsInfo);
+            return this.store.setAdMobCredentials(payload.appodealAccountId, payload.credentialsInfo)
+                .then(() => {
+                    this.store.setupState(payload.credentialsInfo.accountId, {visible: false, mode: null});
+                });
         case ActionTypes.adMobSetupTutorial:
             return AdMobSessions.openSetupTutorial();
         case ActionTypes.openAdmobPage:
@@ -37,6 +42,40 @@ export class AccountsConnector extends Connector {
             return this.store.selectAppodealAccount(payload.account);
         default:
             return;
+        }
+    }
+
+    private setupAccount (appodealAccountId: string, adMobAccount: AdMobAccount) {
+        let setup = new AccountSetup(adMobAccount);
+        this.setups.set(adMobAccount.id, setup);
+        setup
+            .on('progress', progress => this.store.setAccountSetupProgress(adMobAccount.id, progress.percent))
+            .once('start', () => this.store.startAccountSetup(adMobAccount.id))
+            .once('finish', ({clientId, clientSecret}) => {
+                this.setups.delete(adMobAccount.id);
+                this.store.setAdMobCredentials(appodealAccountId, {
+                    clientId,
+                    clientSecret,
+                    accountId: adMobAccount.id
+                }).finally(() => {
+                    this.store.removeAccountSetup(adMobAccount.id);
+                    this.store.setupState(adMobAccount.id, {visible: false, mode: null});
+                });
+            })
+            .once('cancel', () => {
+                this.setups.delete(adMobAccount.id);
+                this.store.removeAccountSetup(adMobAccount.id);
+            })
+            .once('error', () => {
+                this.store.errorAccountSetup(adMobAccount.id);
+            })
+            .start();
+    }
+
+    async destroy (): Promise<void> {
+        await super.destroy();
+        for (let setup of this.setups.values()) {
+            await setup.stop();
         }
     }
 }
