@@ -1,4 +1,6 @@
+import {AccountSetup} from 'core/admob-api/account-setup.helper';
 import {AdMobSessions} from 'core/admob-api/admob-sessions.helper';
+import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
 import {Connector} from 'core/connector';
 import {Store} from 'core/store';
 import {Action, ActionTypes} from 'lib/actions';
@@ -32,6 +34,18 @@ export class AccountsConnector extends Connector {
                 });
         case ActionTypes.adMobSetupTutorial:
             return AdMobSessions.openSetupTutorial();
+        case ActionTypes.adMobSetupAccount:
+            return this.setupAccount(payload.appodealAccountId, payload.adMobAccount);
+        case ActionTypes.adMobSetupState:
+            return this.store.setupState(payload.adMobAccount.id, payload.state);
+        case ActionTypes.adMobCancelSetup:
+            let setup = this.setups.get(payload.adMobAccount.id);
+            if (setup) {
+                await setup.stop();
+                this.setups.delete(payload.adMobAccount.id);
+                this.store.removeAccountSetup(payload.adMobAccount.id);
+            }
+            return this.store.setupState(payload.adMobAccount.id, {visible: false, mode: null});
         case ActionTypes.openAdmobPage:
             return AdMobSessions.openAdmob(payload.adMobAccount);
         case ActionTypes.manageAppodealAccounts:

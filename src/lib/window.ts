@@ -1,4 +1,5 @@
-import {BrowserWindow, BrowserWindowConstructorOptions, dialog, ipcMain, remote} from 'electron';
+import {BrowserWindow, BrowserWindowConstructorOptions, dialog, ipcMain, remote, Session} from 'electron';
+import {Debug} from 'lib/debug';
 import {getBgColor} from './theme';
 
 
@@ -40,11 +41,8 @@ export function openWindow (
                 resolve(window);
             };
 
-        if (/^https?:\/\/[^\/]+/i.test(filePathOrUrl)) {
-            window.loadURL(filePathOrUrl);
-        } else {
-            window.loadFile(filePathOrUrl);
-        }
+        loadInWindow(filePathOrUrl, window);
+
         window.webContents.once('dom-ready', readyListener);
 
         ipcMain.on('windowControl', commandListener);
@@ -54,6 +52,35 @@ export function openWindow (
             onclose(window);
         });
     });
+}
+
+export function openDebugWindow (filePathOrUrl: string, session: Session): Promise<{ window: BrowserWindow, debug: Debug }> {
+    return new Promise(resolve => {
+        let window = new BrowserWindow({
+            show: false,
+            maximizable: true,
+            webPreferences: {
+                session
+            }
+        });
+        window.maximize();
+        loadInWindow(filePathOrUrl, window);
+        window.webContents.once('dom-ready', () => {
+            window.webContents.debugger.attach('1.3');
+            resolve({
+                window,
+                debug: new Debug(window.webContents.debugger)
+            });
+        });
+    });
+}
+
+function loadInWindow (path: string, window: BrowserWindow) {
+    if (/^https?:\/\/[^\/]+/i.test(path)) {
+        window.loadURL(path);
+    } else {
+        window.loadFile(path);
+    }
 }
 
 
