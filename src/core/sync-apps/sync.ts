@@ -15,6 +15,7 @@ import {AdMobAdUnit, CpmFloorMode, CpmFloorSettings} from 'lib/translators/inter
 import {AdMobApp} from 'lib/translators/interfaces/admob-app.interface';
 import {getTranslator} from 'lib/translators/translator.helpers';
 import uuid from 'uuid';
+import {NoConnectionError} from '../error-factory/errors/network/no-connection-error';
 import {UnavailableEndpointError} from '../error-factory/errors/network/unavailable-endpoint-error';
 import {SyncContext} from './sync-context';
 import {SyncEventEmitter} from './sync-event.emitter';
@@ -85,8 +86,8 @@ export class Sync {
 
         const retryCondition = e =>
             e.message.substring(0, 'net::ERR'.length) === 'net::ERR'
-            || e instanceof UnavailableEndpointError
-            || e.stats === 502;
+            || e instanceof NoConnectionError
+            || e instanceof UnavailableEndpointError;
 
         const terminateIfConnectionLost = e => {
             if (retryCondition(e)) {
