@@ -177,6 +177,7 @@ export class AdmobAccountComponent extends Component<AdmobAccountComponentProps,
             </div>
             }
             <LogListComponent historyInfo={this.props.historyInfo}
+                              activeSyncId={this.props.syncProgress ? this.props.syncProgress.id : null}
                               admobAccount={account}
                               appodealAccountId={this.props.appodealAccountId}
             />
