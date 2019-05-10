@@ -3,6 +3,7 @@ import {AdMobSessions} from 'core/admob-api/admob-sessions.helper';
 import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
 import {Connector} from 'core/connector';
 import {Store} from 'core/store';
+import {UserAccount} from 'interfaces/common.interfaces';
 import {Action, ActionTypes} from 'lib/actions';
 import {openAppodealAccountsWindow, openAppodealSignInWindow} from 'lib/ui-windows';
 
@@ -24,7 +25,12 @@ export class AccountsConnector extends Connector {
         case ActionTypes.appodealSignOut:
             return this.store.appodealSignOut(payload.appodealAccountId);
         case ActionTypes.adMobAddAccount:
-            return this.store.addAdMobAccount(payload.appodealAccountId);
+            let result = await this.store.addAdMobAccount(payload.appodealAccountId);
+            let accountForSelection = result.newAccount || result.existingAccount;
+            if (accountForSelection) {
+                await this.store.selectAdMobAccount(accountForSelection);
+            }
+            return result;
         case ActionTypes.selectAccount:
             return this.store.selectAdMobAccount(payload.adMobAccount);
         case ActionTypes.adMobSetCredentials:

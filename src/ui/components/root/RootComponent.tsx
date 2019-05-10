@@ -19,8 +19,7 @@ interface RootComponentState {
 export class RootComponent extends React.Component<RootComponentProps, RootComponentState> {
     private tabs = [
         {id: 'accounts', label: 'Accounts', isDisabled: () => this.props.store.outdatedVersion},
-        {id: 'updates', label: 'Updates', isDisabled: () => false},
-        {id: 'development', label: 'Development', isDisabled: () => false}
+        {id: 'updates', label: 'Updates', isDisabled: () => false}
     ];
 
     constructor (props) {
@@ -28,6 +27,10 @@ export class RootComponent extends React.Component<RootComponentProps, RootCompo
         this.state = {
             tab: this.tabs[0].id
         };
+
+        if (environment.development) {
+            this.tabs.push( {id: 'development', label: 'Development', isDisabled: () => false})
+        }
     }
 
     componentWillMount (): void {

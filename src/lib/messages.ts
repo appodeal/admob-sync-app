@@ -1,4 +1,4 @@
-import {ipcMain, ipcRenderer, remote} from 'electron';
+import {ipcMain, ipcRenderer} from 'electron';
 import {Action} from 'lib/actions';
 import uuid from 'uuid';
 
@@ -36,11 +36,7 @@ export function sendToMain<T> (channel: string, action: Action): Promise<T> {
 
 
 export function onMessageFromMain<T = any> (channel: string, callback: (message: T) => void) {
-    ipcRenderer.on(channel, (event, message) => {
-        if (event.sender !== remote.getCurrentWindow().webContents) {
-            callback(message);
-        }
-    });
+    ipcRenderer.on(channel, (event, message) => callback(message));
 }
 
 

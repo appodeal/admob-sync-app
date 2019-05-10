@@ -56,6 +56,11 @@ export class SyncService {
                 return reject(new Error('Can not run sync. App version is OutDated!'));
             }
 
+            if (!admobAccount.isReadyForReports) {
+                console.log('[Sync Service] Can not run sync. AdMob account is not ready. Setup is required!');
+                return reject(new Error('Can not run sync. AdMob account is not ready. Setup is required!'));
+            }
+
             const admobSession = await AdMobSessions.getSession(admobAccount);
 
             if (!admobSession || (await SyncHistory.getHistory(admobAccount)).admobAuthorizationRequired) {

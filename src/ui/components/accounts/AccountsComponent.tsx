@@ -14,6 +14,13 @@ import style from './Accounts.scss';
 
 type AccountsComponentProps = AppState;
 
+const emailCollator = new Intl.Collator('en', {
+    numeric: true,
+    usage: 'sort',
+    sensitivity: 'base',
+    ignorePunctuation: true
+});
+
 export function AccountsComponent (
     {
         selectedAppodealAccount,
@@ -25,7 +32,8 @@ export function AccountsComponent (
         accountSetup
     }: AccountsComponentProps
 ) {
-    let adMobAccounts = selectedAppodealAccount ? selectedAppodealAccount.accounts : [];
+    let adMobAccounts = (selectedAppodealAccount ? selectedAppodealAccount.accounts : [])
+        .sort((a, b) => emailCollator.compare(a.email, b.email));
     let appodealAccount = selectedAppodealAccount;
     return (
         <div className={style.accounts}>

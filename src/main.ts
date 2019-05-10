@@ -9,6 +9,7 @@ import {AuthContext} from 'core/appdeal-api/auth-context';
 import {OnlineService} from 'core/appdeal-api/online.service';
 import {ErrorFactoryService} from 'core/error-factory/error-factory.service';
 import {AuthorizationError} from 'core/error-factory/errors/authorization.error';
+import {InternalError} from 'core/error-factory/errors/internal-error';
 import {LogsConnector} from 'core/logs-connector';
 import {OnlineConnector} from 'core/online-connector';
 import {Store} from 'core/store';
@@ -20,14 +21,13 @@ import {app} from 'electron';
 import {createAppMenu} from 'lib/app-menu';
 import {Preferences} from 'lib/app-preferences';
 import {AppTray} from 'lib/app-tray';
+import {hideDock} from 'lib/dock';
 import {initBugTracker, Sentry} from 'lib/sentry';
 import {initThemeSwitcher} from 'lib/theme';
 import {TrayIcon} from 'lib/tray-icon';
 import {openAppodealAccountsWindow, openAppodealSignInWindow} from 'lib/ui-windows';
 import {UpdatesService} from 'lib/updates';
-import * as path from 'path';
-import {InternalError} from './core/error-factory/errors/internal-error';
-import {hideDock} from './lib/dock';
+import path from 'path';
 
 
 if (environment.development) {
@@ -41,8 +41,9 @@ initBugTracker(environment.sentry);
 initThemeSwitcher();
 
 hideDock();
+
 app.on('window-all-closed', () => {});
-app.on('ready', async () => {
+app.whenReady().then(async () => {
 
     // APP INITIALIZERS
     let [preferences] = await Promise.all([

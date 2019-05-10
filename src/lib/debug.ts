@@ -5,6 +5,7 @@ type NodeIdOrSelector = number | string;
 
 
 export class Debug {
+    private networkTrackingEnabled = false;
 
     constructor (private debug: Debugger) {
 
@@ -187,7 +188,7 @@ export class Debug {
     isElementExistsAndVisible (selector: string, maxTime?: number): Promise<boolean> {
         return this.waitElementVisible(selector, maxTime)
             .then(() => true)
-            .catch(() => false)
+            .catch(() => false);
     }
 
     async scrollIntoView (selector: string) {
@@ -195,6 +196,13 @@ export class Debug {
             expression: `document.querySelector('${selector}').scrollIntoView()`
         }).catch(() => {});
         await this.wait(300);
+    }
+
+    evaluate (script: string) {
+        return this.exec('Runtime.evaluate', null, {
+            expression: script,
+            awaitPromise: true
+        }).catch(() => {});
     }
 
     getCurrentUrl () {
@@ -214,6 +222,42 @@ export class Debug {
             return nodeIdOrSelector;
         }
         return this.querySelector(nodeIdOrSelector);
+    }
+
+    waitForResponseFrom (url: string): Promise<string> {
+        return new Promise(async (resolve, reject) => {
+            if (!this.networkTrackingEnabled) {
+                await this.exec('Network.enable', null)
+                    .then(() => this.networkTrackingEnabled = true)
+                    .catch(err => reject(err));
+            }
+            let requestId = await this.getRequestId(url);
+            this.exec('Network.getResponseBody', 'body', {requestId})
+                .then(body => resolve(body))
+                .catch(err => reject(err));
+        });
+
+    }
+
+    private getRequestId (url) {
+        return new Promise((resolve, reject) => {
+            let requestId,
+                timer = setTimeout(() => {
+                    this.debug.removeListener('message', listener);
+                    reject(new Error(`Can't get response id for "${url}" during 20 sec`));
+                }, 20000),
+                listener = (event, method, params) => {
+                    if (!requestId && method === 'Network.requestWillBeSent' && params.request.url === url) {
+                        requestId = params.requestId;
+                    }
+                    if (requestId && method === 'Network.loadingFinished' && params.requestId === requestId) {
+                        this.debug.removeListener('message', listener);
+                        clearTimeout(timer);
+                        resolve(requestId);
+                    }
+                };
+            this.debug.on('message', listener);
+        });
     }
 
 }

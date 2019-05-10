@@ -5,26 +5,18 @@ import {EventEmitter} from 'events';
 import {Debug} from 'lib/debug';
 import {Sentry} from 'lib/sentry';
 import {TaskRunner, TaskRunnerState} from 'lib/task-runner';
-import {openDebugWindow} from 'lib/window';
+import {messageDialog, openDebugWindow} from 'lib/window';
 import url from 'url';
 
 
-const PROJECT_NAME = 'Appodeal';
-const APP_NAME = 'Appodeal Revenue';
-const CLIENT_NAME = 'Appodeal AdMob Sync App';
-const DOMAINS = [
-    'appodeal.com'
-];
-const ALLOWED_JS = [
-    'https://staging7.appodeal.com',
-    'https://www.appodeal.com',
-    'https://appodeal.com'
-];
-const ALLOWED_CALLBACKS = [
-    'https://staging7.appodeal.com/admob_plugin/api/v3/oauth/callback',
-    'https://www.appodeal.com/admob_plugin/api/v3/oauth/callback',
-    'https://appodeal.com/admob_plugin/api/v3/oauth/callback'
-];
+let {setupOptions} = environment;
+
+const PROJECT_NAME = setupOptions.projectName;
+const APP_NAME = setupOptions.appName;
+const CLIENT_NAME = setupOptions.clientName;
+const DOMAINS = setupOptions.domains;
+const ALLOWED_JS = setupOptions.allowedJs;
+const ALLOWED_CALLBACKS = setupOptions.allowedCallbacks;
 
 
 export class AccountSetup extends EventEmitter {
@@ -55,34 +47,47 @@ export class AccountSetup extends EventEmitter {
         let {window, debug} = await openDebugWindow('https://console.developers.google.com', this.session);
         this.window = window;
         this.debug = debug;
+        this.window.setClosable(false);
 
         this.runner.once('cancel', () => this.emit('cancel'));
 
         if (this.runner.state === TaskRunnerState.idle) {
-            this.initTasks();
-            this.runner.on('progress', progress => this.emit('progress', progress));
-            this.emit('start');
-            this.runner.runTasks()
-                .then(() => {
-                    if (this.clientId && this.clientSecret) {
-                        this.emit('finish', {
-                            clientId: this.clientId,
-                            clientSecret: this.clientSecret
-                        });
-                    } else {
-                        throw new Error('Could not get clientId and clientSecret.');
-                    }
-                })
-                .catch(err => {
-                    this.emit('error', err);
-                    Sentry.captureException(err);
-                })
-                .finally(() => {
-                    this.window.close();
-                });
+            let tosAccepted = await this.checkTermsOfService().catch(() => false);
+            if (tosAccepted) {
+                this.initTasks();
+                this.runner.on('progress', progress => this.emit('progress', progress));
+                this.emit('start');
+                this.runner.runTasks()
+                    .then(() => {
+                        if (this.clientId && this.clientSecret) {
+                            this.emit('finish', {
+                                clientId: this.clientId,
+                                clientSecret: this.clientSecret
+                            });
+                        } else {
+                            throw new Error('Could not get clientId and clientSecret.');
+                        }
+                    })
+                    .catch(err => {
+                        this.emit('error', err);
+                        Sentry.captureException(err);
+                    })
+                    .finally(() => {
+                        this.closeWindow();
+                    });
+            } else {
+                this.runner.break();
+                this.emit('error');
+                this.closeWindow();
+            }
         } else {
-            this.window.close();
+            this.closeWindow()
         }
+    }
+
+    private closeWindow () {
+        this.window.setClosable(true);
+        this.window.close();
     }
 
     stop () {
@@ -99,6 +104,50 @@ export class AccountSetup extends EventEmitter {
         this.createCredentials();
     }
 
+    async checkTermsOfService () {
+        const agreeCheckboxContainer = '[formgroupname="tosAcceptancesFormGroup"]';
+        let required = !!(await this.debug.waitElementVisible(agreeCheckboxContainer, 5000).catch(() => false));
+
+        if (required) {
+            let userDecision = await this.askForTermsOfService();
+            if (userDecision) {
+                this.window.show();
+                await this.debug.evaluate(`
+                    new Promise(resolve => {
+                        let agreeBtn = document.querySelector('.mat-dialog-actions button');
+                        if (agreeBtn) {
+                            agreeBtn.addEventListener('click', function listener () {
+                                agreeBtn.removeEventListener('click', listener);
+                                resolve();
+                            });
+                        }
+                    });
+                `);
+                this.window.hide();
+                return true;
+            } else {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private async askForTermsOfService (): Promise<boolean> {
+        let button = await messageDialog('You have to accept terms of service from Google', null, [
+            {
+                primary: true,
+                label: 'OK',
+                action: () => true
+            },
+            {
+                cancel: true,
+                label: 'Cancel',
+                action: () => false
+            }
+        ]);
+        return button.action();
+    }
+
     findProject () {
         const projectSwitcherBtn = '[data-prober="cloud-console-core-functions-project-switcher"]';
         const newProjectBtn = '.purview-picker-create-project-button';
@@ -113,7 +162,9 @@ export class AccountSetup extends EventEmitter {
         this.runner.createTask(() => this.debug.waitElementVisible(newProjectBtn).catch(() => {
             this.runner.returnTo('find');
         }));
+        this.runner.createTask(() => this.debug.wait(500));
         this.runner.createTask(() => this.debug.enterText(PROJECT_NAME, searchInput));
+        this.runner.createTask(() => this.debug.wait(500));
         this.runner.createTask(async () => projectNodeId = await this.debug.waitElement(projectNameSelector).catch(() => 0));
         this.runner.createTask(async () => {
             if (projectNodeId) {

@@ -83,14 +83,20 @@ export class AdmobAccountComponent extends Component<AdmobAccountComponentProps,
     render () {
         let {account, setupProgress, setupState} = this.props;
         return <>
-            <AdMobAccountSetup setupProgress={setupProgress}
-                               account={account}
-                               setupState={setupState}
-                               appodealAccountId={this.props.appodealAccountId}
-            />
-            {account.isReadyForReports && <>
-                <div>
-                    {this.signedIn && <>
+            {!this.signedIn && <div>
+                <button onClick={singleEvent(this.signInAdMob, this)}
+                        className={'primary'}
+                >Sign In
+                </button>
+            </div>}
+            {this.signedIn && <>
+                <AdMobAccountSetup setupProgress={setupProgress}
+                                   account={account}
+                                   setupState={setupState}
+                                   appodealAccountId={this.props.appodealAccountId}
+                />
+                {account.isReadyForReports && <>
+                    <div>
                         {
                             //  make public when open admob safe browsing admob is implemented
                             environment.development &&
@@ -108,26 +114,21 @@ export class AdmobAccountComponent extends Component<AdmobAccountComponentProps,
 
                         {!this.isSetupFormVisible() &&
                         <button type="button" onClick={() => this.displaySetupForm()}>Update credentials</button>}
-                    </>}
-                    {!this.signedIn && <>
-                        <button onClick={singleEvent(this.signInAdMob, this)}
-                                className={'primary'}
-                        >Sign In
-                        </button>
-                    </>}
-                </div>
 
-                {!!this.props.syncProgress &&
-                <div className={style.syncProgress}>
-                    <AccountStatusComponent syncProgress={this.props.syncProgress} historyInfo={this.props.historyInfo}/>
-                    <ProgressBar value={this.props.syncProgress.percent} status={this.getProgressBarStatus(this.props.syncProgress)}/>
-                </div>
-                }
-                <LogListComponent historyInfo={this.props.historyInfo}
-                                  activeSyncId={this.props.syncProgress ? this.props.syncProgress.id : null}
-                                  admobAccount={account}
-                                  appodealAccountId={this.props.appodealAccountId}
-                />
+                    </div>
+
+                    {!!this.props.syncProgress &&
+                    <div className={style.syncProgress}>
+                        <AccountStatusComponent syncProgress={this.props.syncProgress} historyInfo={this.props.historyInfo}/>
+                        <ProgressBar value={this.props.syncProgress.percent} status={this.getProgressBarStatus(this.props.syncProgress)}/>
+                    </div>
+                    }
+                    <LogListComponent historyInfo={this.props.historyInfo}
+                                      activeSyncId={this.props.syncProgress ? this.props.syncProgress.id : null}
+                                      admobAccount={account}
+                                      appodealAccountId={this.props.appodealAccountId}
+                    />
+                </>}
             </>}
         </>;
     }
