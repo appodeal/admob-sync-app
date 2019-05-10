@@ -60,6 +60,7 @@ export function AdMobAccountSetup ({setupProgress, setupState, account, appodeal
                         <input type="text" id="clientSecret" name="clientSecret"/>
                         <div className="actions">
                             <button type="submit" name="saveBtn" disabled={true}>Save</button>
+                            <button type="button" name="autoSetup" onClick={() => autoSetup(account, appodealAccountId)}>Auto setup</button>
                         </div>
                     </form>
                 </>}

@@ -41,6 +41,7 @@ export class AccountsConnector extends Connector {
         case ActionTypes.adMobSetupTutorial:
             return AdMobSessions.openSetupTutorial();
         case ActionTypes.adMobSetupAccount:
+            this.store.removeAccountSetup(payload.adMobAccount.id);
             return this.setupAccount(payload.appodealAccountId, payload.adMobAccount);
         case ActionTypes.adMobSetupState:
             return this.store.setupState(payload.adMobAccount.id, payload.state);
