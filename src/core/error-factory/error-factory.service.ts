@@ -23,7 +23,8 @@ export declare type ServerError = Error & {
     statusCode: number;
 };
 
-const isNetworkError = (err) => err && err.statusCode !== undefined || err.message === 'net::ERR_INTERNET_DISCONNECTED';
+const isNetworkError = (err) => err && err.response && err.response.status !== undefined
+    || err.message.substring(0, 'net::ERR'.length) === 'net::ERR';
 const isApolloResponseError = (err) => err
     && err.hasOwnProperty('operation')
     && (err.hasOwnProperty('graphQLErrors') || err.hasOwnProperty('networkError'));
@@ -139,20 +140,26 @@ export class ErrorFactoryService {
      * @return {NoConnectionError|InternalServerError|UnavailableEndpointError|AuthorizationError}
      */
     createNetworkError (httpError: ServerError, operationName?: string) {
-        if (httpError.statusCode === 0 || httpError.message === 'net::ERR_INTERNET_DISCONNECTED') {
+
+        // electron network error
+        if (!httpError.response) {
             return new NoConnectionError(httpError);
         }
 
-        if (httpError.statusCode === HttpStatus.InternalServerError) {
+        if (httpError.response.status === 0) {
+            return new NoConnectionError(httpError);
+        }
+
+        if (httpError.response.status === HttpStatus.InternalServerError) {
             return new InternalServerError(httpError, operationName);
         }
 
-        if (httpError.statusCode === HttpStatus.Unauthorized) {
+        if (httpError.response.status === HttpStatus.Unauthorized) {
             return new AuthorizationError(httpError, operationName);
         }
 
         // has any status
-        if (httpError.statusCode > 0) {
+        if (httpError.response.status > 0) {
             return new UnavailableEndpointError(httpError);
         }
 

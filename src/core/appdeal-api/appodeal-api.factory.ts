@@ -52,7 +52,7 @@ export class AppodealApi extends EventEmitter {
             this.destroyApi(account.id);
             this.saveApi(api, account);
             sessionInfo.save(account.id);
-            this.emit('signIn', account)
+            this.emit('signIn', account);
         } else {
             api.destroy();
         }
@@ -71,7 +71,7 @@ export class AppodealApi extends EventEmitter {
         });
         this.destroyApi(accountId);
         await AppodealSessions.remove(accountId);
-        this.emit('signOut', account)
+        this.emit('signOut', account);
     }
 
     async fetchAllAccounts (): Promise<Map<string, AppodealAccount>> {
@@ -79,7 +79,12 @@ export class AppodealApi extends EventEmitter {
             [...this.APIs.entries()]
                 .map(([accountId, api]) => {
                     return api.fetchCurrentUser()
-                        .catch(() => null)
+                        .catch((e) => {
+                            if (e instanceof AuthorizationError) {
+                                return null;
+                            }
+                            throw  e;
+                        })
                         .then<[string, AppodealAccount]>(account => [accountId, account]);
                 })
         ));

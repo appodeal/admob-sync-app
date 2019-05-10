@@ -16,6 +16,7 @@
     "build": "webpack --progress --config=webpack/production.ts",
     "dist": "electron-builder",
     "dist:all": "node tools/dist.js",
+    "postdist:all": "webpack -p --config=download-page/webpack.config.ts",
     "release:github": "node tools/release.js",
     "release:sentry": "sentry-cli releases new $(npm run -s package:version) && sentry-cli releases files $(npm run -s package:version) upload-sourcemaps build/*.{map,js} && sentry-cli releases finalize $(npm run -s package:version)",
     "release:deploy": "sentry-cli releases deploys $(npm run -s package:version) new",
@@ -28,7 +29,7 @@
     "directories": {
       "buildResources": "./resources",
       "app": "./build",
-      "output": "./dist"
+      "output": "./dist/app"
     },
     "extraResources": [
       {
@@ -115,6 +116,7 @@
   },
   "devDependencies": {
     "@brigad/ideal-image-loader": "^1.1.0",
+    "@sentry/cli": "^1.41.1",
     "@types/fs-extra": "^5.0.5",
     "@types/graphql": "^14.0.7",
     "@types/jest": "^24.0.9",
@@ -130,6 +132,7 @@
     "clean-webpack-plugin": "^1.0.1",
     "copy-webpack-plugin": "^5.0.0",
     "css-loader": "^2.1.0",
+    "ejs-webpack-loader": "^2.2.2",
     "electron": "^4.0.6",
     "electron-builder": "^20.38.5",
     "file-loader": "^3.0.1",
@@ -149,8 +152,7 @@
     "webpack": "^4.29.5",
     "webpack-cli": "^3.2.3",
     "webpack-dev-server": "^3.2.0",
-    "webpack-merge": "^4.2.1",
-    "@sentry/cli": "^1.41.1"
+    "webpack-merge": "^4.2.1"
   },
   "dependencies": {
     "@sentry/electron": "^0.16.0",
