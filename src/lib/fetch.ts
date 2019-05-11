@@ -1,4 +1,4 @@
-import {net, Session} from 'electron';
+import {net, Session, Cookie} from 'electron';
 
 
 export interface Fetcher extends Function {
@@ -94,6 +94,6 @@ export function nodeFetch<T extends any> (
     });
 }
 
-export function getSessionCookies (session: Session): Promise<Array<{ name: string, value: string }>> {
-    return new Promise(resolve => session.cookies.get({}, (error, cookies = []) => resolve(cookies)));
+export function getSessionCookies (session: Session): Promise<Array<Cookie>> {
+    return session.cookies.get({}) as unknown as Promise<Array<Cookie>>;
 }

@@ -14,16 +14,26 @@ import style from './Accounts.scss';
 
 type AccountsComponentProps = AppState;
 
+const emailCollator = new Intl.Collator('en', {
+    numeric: true,
+    usage: 'sort',
+    sensitivity: 'base',
+    ignorePunctuation: true
+});
+
 export function AccountsComponent (
     {
         selectedAppodealAccount,
         selectedAccount: {account: selectedAccount},
         preferences: {accounts: {appodealAccounts}, multipleAccountsSupport},
         syncHistory,
-        syncProgress
+        syncProgress,
+        setupProgress,
+        accountSetup
     }: AccountsComponentProps
 ) {
-    let adMobAccounts = selectedAppodealAccount ? selectedAppodealAccount.accounts : [];
+    let adMobAccounts = (selectedAppodealAccount ? selectedAppodealAccount.accounts : [])
+        .sort((a, b) => emailCollator.compare(a.email, b.email));
     let appodealAccount = selectedAppodealAccount;
     return (
         <div className={style.accounts}>
@@ -77,6 +87,11 @@ export function AccountsComponent (
                                                                      appodealAccountId={appodealAccount.id}
                                                                      historyInfo={syncHistory[selectedAccount.id]}
                                                                      syncProgress={syncProgress[selectedAccount.id]}
+                                                                     setupProgress={setupProgress[selectedAccount.id]}
+                                                                     setupState={accountSetup[selectedAccount.id] || {
+                                                                         mode: null,
+                                                                         visible: !selectedAccount.isReadyForReports
+                                                                     }}
                                             />
                                             : <div className={classNames(style.noSelectedAccount)}>Choose account</div>
                                     )

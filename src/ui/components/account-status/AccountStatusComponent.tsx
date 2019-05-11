@@ -14,13 +14,15 @@ interface Props {
 export class AccountStatusComponent extends React.Component<Props> {
 
     render (): React.ReactNode {
-        if (this.props.historyInfo.admobAuthorizationRequired) {
+        let {historyInfo, syncProgress} = this.props;
+
+        if (historyInfo && historyInfo.admobAuthorizationRequired) {
             return <span className={style.warning}>Sign In required!</span>;
         }
 
-        if (this.props.syncProgress) {
+        if (syncProgress) {
             // show warning
-            switch (this.props.syncProgress.lastEvent) {
+            switch (syncProgress.lastEvent) {
             case SyncEventsTypes.Started: {
                 return 'Starting Sync';
             }
@@ -28,12 +30,12 @@ export class AccountStatusComponent extends React.Component<Props> {
                 return 'Calculating progress';
             }
             default:
-                return `Syncing ${this.props.syncProgress.completedApps + this.props.syncProgress.failedApps + 1}/${this.props.syncProgress.totalApps} apps...`;
+                return `Syncing ${syncProgress.completedApps + syncProgress.failedApps + 1}/${syncProgress.totalApps} apps...`;
             }
         }
 
-        if (this.props.historyInfo.lastSync) {
-            return <span>Synced: {(new Date(this.props.historyInfo.lastSync)).toLocaleString()}</span>;
+        if (historyInfo && historyInfo.lastSync) {
+            return <span>Synced: {(new Date(historyInfo.lastSync)).toLocaleString()}</span>;
         }
 
         // not synced yet

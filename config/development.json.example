@@ -15,6 +15,20 @@
     "updates": {
       "releaseNotesUrl": "https://wiki.appodeal.com",
       "updatesServerUrl": "https://amsa-updates.appodeal.com"
+    },
+    "setupOptions": {
+      "projectName": "Appodeal",
+      "appName": "Appodeal Revenue",
+      "clientName": "Appodeal AdMob Sync App (staging)",
+      "domains": [
+        "appodeal.com"
+      ],
+      "allowedJs": [
+        "https://staging7.appodeal.com"
+      ],
+      "allowedCallbacks": [
+        "https://staging7.appodeal.com/admob_plugin/api/v3/oauth/callback"
+      ]
     }
   }
 }

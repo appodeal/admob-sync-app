@@ -1,4 +1,4 @@
-import {systemPreferences, ipcMain} from 'electron';
+import {ipcMain, systemPreferences} from 'electron';
 import {isMacOS} from 'lib/platform';
 
 
@@ -6,6 +6,7 @@ export enum AppAppearance {
     dark = 'dark',
     light = 'light'
 }
+
 
 const listeners = new Set<(appearance: AppAppearance) => void>();
 let interval,
@@ -51,8 +52,9 @@ export function getCurrentTheme (): AppAppearance {
 }
 
 export function getBgColor (): string {
-    return isDark() ? 'rgb(56,55,55)' : 'rgb(236,236,236)'
+    return isDark() ? 'rgb(56,55,55)' : 'rgb(236,236,236)';
 }
+
 
 export function initThemeSwitcher () {
     if (isMacOS()) {
@@ -66,3 +68,6 @@ export function initThemeSwitcher () {
     }
 
 }
+
+
+

@@ -1,4 +1,5 @@
-import {BrowserWindow, BrowserWindowConstructorOptions, dialog, ipcMain, remote} from 'electron';
+import {BrowserWindow, BrowserWindowConstructorOptions, dialog, ipcMain, remote, Session} from 'electron';
+import {Debug} from 'lib/debug';
 import {getBgColor} from './theme';
 
 
@@ -40,11 +41,8 @@ export function openWindow (
                 resolve(window);
             };
 
-        if (/^https?:\/\/[^\/]+/i.test(filePathOrUrl)) {
-            window.loadURL(filePathOrUrl);
-        } else {
-            window.loadFile(filePathOrUrl);
-        }
+        loadInWindow(filePathOrUrl, window);
+
         window.webContents.once('dom-ready', readyListener);
 
         ipcMain.on('windowControl', commandListener);
@@ -54,6 +52,35 @@ export function openWindow (
             onclose(window);
         });
     });
+}
+
+export function openDebugWindow (filePathOrUrl: string, session: Session): Promise<{ window: BrowserWindow, debug: Debug }> {
+    return new Promise(resolve => {
+        let window = new BrowserWindow({
+            show: false,
+            maximizable: true,
+            webPreferences: {
+                session
+            }
+        });
+        window.maximize();
+        loadInWindow(filePathOrUrl, window);
+        window.webContents.once('dom-ready', () => {
+            window.webContents.debugger.attach('1.3');
+            resolve({
+                window,
+                debug: new Debug(window.webContents.debugger)
+            });
+        });
+    });
+}
+
+function loadInWindow (path: string, window: BrowserWindow) {
+    if (/^https?:\/\/[^\/]+/i.test(path)) {
+        window.loadURL(path);
+    } else {
+        window.loadFile(path);
+    }
 }
 
 
@@ -115,41 +142,34 @@ export function waitForNavigation (window: BrowserWindow, urlFragment: RegExp = 
     });
 }
 
-export function confirmDialog (message): Promise<boolean> {
-    return new Promise<boolean>(resolve => {
+export async function confirmDialog (message): Promise<boolean> {
+    return new Promise(resolve => {
         const OKButton = 0;
-
         const dialogOptions = {type: 'question', buttons: ['OK', 'Cancel'], message};
-
-        (dialog || remote.dialog).showMessageBox(dialogOptions, i => {
-            return resolve(i === OKButton);
-        });
+        (dialog || remote.dialog).showMessageBox(dialogOptions, i => resolve(i === OKButton));
     });
 }
 
 interface DialogButton {
     label: string;
-    action?: () => void;
+    action?: () => any;
     primary?: boolean;
     cancel?: boolean;
 }
 
-export function messageDialog (
+export async function messageDialog (
     message: string,
     detail: string = undefined,
     buttons: Array<DialogButton> = [{label: 'OK', action: () => {}, primary: true, cancel: true}]
 ): Promise<DialogButton> {
-    return new Promise(resolve => {
-        (dialog || remote.dialog).showMessageBox({
-            message,
-            detail,
-            buttons: buttons.map(btn => btn.label),
-            cancelId: buttons.findIndex(btn => btn.cancel),
-            defaultId: buttons.findIndex(btn => btn.primary)
-        }, number => {
-            resolve(buttons[number]);
-        });
+    let number = await (dialog || remote.dialog).showMessageBox(null, {
+        message,
+        detail,
+        buttons: buttons.map(btn => btn.label),
+        cancelId: buttons.findIndex(btn => btn.cancel),
+        defaultId: buttons.findIndex(btn => btn.primary)
     });
+    return buttons[number];
 
 }
 

@@ -1,6 +1,6 @@
-import {Menu} from 'electron';
+import {Menu, MenuItemConstructorOptions} from 'electron';
 import {isMacOS} from 'lib/platform';
-import {openAboutWindow} from "lib/ui-windows";
+import {openAboutWindow} from 'lib/ui-windows';
 
 
 let INSTANCE: AppMenu = null;
@@ -17,22 +17,28 @@ class AppMenu {
         this.menu = Menu.buildFromTemplate([
             {
                 label: 'Application',
+                type: 'submenu',
                 submenu: [
-                    {label: 'About Application', click: () => openAboutWindow()},
+                    {type: 'normal', label: 'About Application', click: () => openAboutWindow()},
                     {type: 'separator'},
-                    {label: 'Quit', accelerator: 'Command+Q', role: 'quit'}
+                    {type: 'normal', label: 'Quit', accelerator: 'Command+Q', role: 'quit'}
                 ]
-            }, {
+            },
+            {
                 id: 'edit',
                 label: 'Edit',
+                type: 'submenu',
                 submenu: [
-                    {label: 'Undo', accelerator: 'CmdOrCtrl+Z', role: 'undo'},
-                    {label: 'Redo', accelerator: 'Shift+CmdOrCtrl+Z', role: 'redo'},
+                    {type: 'normal', label: 'Undo', accelerator: 'CmdOrCtrl+Z', role: 'undo'},
+                    {type: 'normal', label: 'Redo', accelerator: 'Shift+CmdOrCtrl+Z', role: 'redo'},
                     {type: 'separator'},
-                    {label: 'Cut', accelerator: 'CmdOrCtrl+X', role: 'cut'},
-                    {label: 'Copy', accelerator: 'CmdOrCtrl+C', role: 'copy'},
-                    {label: 'Paste', accelerator: 'CmdOrCtrl+V', role: 'paste'},
-                    {label: 'Select All', accelerator: 'CmdOrCtrl+A', role: 'selectAll'}
+                    {type: 'normal', label: 'Cut', accelerator: 'CmdOrCtrl+X', role: 'cut'},
+                    {type: 'normal', label: 'Copy', accelerator: 'CmdOrCtrl+C', role: 'copy'},
+                    {type: 'normal', label: 'Paste', accelerator: 'CmdOrCtrl+V', role: 'paste'},
+                    {type: 'normal', label: 'Select All', accelerator: 'CmdOrCtrl+A', role: 'selectall'},
+                    ...(environment.development ? <Array<MenuItemConstructorOptions>>[
+                        {type: 'normal', label: 'Open DevTools', accelerator: 'CmdOrCtrl+Option+I', role: 'toggledevtools'}
+                    ] : [])
                 ]
             }
         ]);
