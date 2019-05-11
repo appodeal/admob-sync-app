@@ -85,7 +85,7 @@ app.on('ready', async () => {
                 }
             });
             for (let acc of store.state.preferences.accounts.appodealAccounts) {
-                if (!acc.active) {
+                if (!acc.active && !store.state.outdatedVersion) {
                     await openAppodealSignInWindow(acc);
                 }
             }
@@ -99,7 +99,12 @@ app.on('ready', async () => {
         store.validateAppVersion()
             .then(async versionValid => {
                 if (!versionValid) {
-                    updates.availableDist.showUpdateDialog();
+                    if (!updates.availableDist) {
+                        await updates.check();
+                    }
+                    if (updates.availableDist) {
+                        return updates.availableDist.showUpdateDialog();
+                    }
                     return;
                 }
                 await store.fetchAllAppodealUsers();
