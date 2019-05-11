@@ -23,7 +23,7 @@ import {AppTray} from 'lib/app-tray';
 import {initBugTracker, Sentry} from 'lib/sentry';
 import {initThemeSwitcher} from 'lib/theme';
 import {TrayIcon} from 'lib/tray-icon';
-import {openAppodealAccountsWindow, openAppodealSignInWindow} from 'lib/ui-windows';
+import {closeAllWindows, openAppodealAccountsWindow, openAppodealSignInWindow} from 'lib/ui-windows';
 import {UpdatesService} from 'lib/updates';
 import * as path from 'path';
 import {DeleteDataConnector} from './core/delete-data-connector';
@@ -138,6 +138,7 @@ app.on('ready', async () => {
 
 
     const cleanUpOnExit = () => Promise.all([
+        closeAllWindows(),
         trayIcon.destroy(),
         tray.destroy(),
         onlineConnector.destroy(),
