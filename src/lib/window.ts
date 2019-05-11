@@ -142,12 +142,12 @@ export function waitForNavigation (window: BrowserWindow, urlFragment: RegExp = 
     });
 }
 
-export async function confirmDialog (message) {
-    const OKButton = 0;
-    const dialogOptions = {type: 'question', buttons: ['OK', 'Cancel'], message};
-    let i = await (dialog || remote.dialog).showMessageBox(null, dialogOptions);
-    return (i === OKButton);
-
+export async function confirmDialog (message): Promise<boolean> {
+    return new Promise(resolve => {
+        const OKButton = 0;
+        const dialogOptions = {type: 'question', buttons: ['OK', 'Cancel'], message};
+        (dialog || remote.dialog).showMessageBox(dialogOptions, i => resolve(i === OKButton));
+    });
 }
 
 interface DialogButton {

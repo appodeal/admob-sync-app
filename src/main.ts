@@ -7,6 +7,7 @@ import {AppodealApi} from 'core/appdeal-api/appodeal-api.factory';
 import {AppodealSessions} from 'core/appdeal-api/appodeal-sessions.helper';
 import {AuthContext} from 'core/appdeal-api/auth-context';
 import {OnlineService} from 'core/appdeal-api/online.service';
+import {DeleteDataConnector} from 'core/delete-data-connector';
 import {ErrorFactoryService} from 'core/error-factory/error-factory.service';
 import {AuthorizationError} from 'core/error-factory/errors/authorization.error';
 import {InternalError} from 'core/error-factory/errors/internal-error';
@@ -25,7 +26,7 @@ import {hideDock} from 'lib/dock';
 import {initBugTracker, Sentry} from 'lib/sentry';
 import {initThemeSwitcher} from 'lib/theme';
 import {TrayIcon} from 'lib/tray-icon';
-import {openAppodealAccountsWindow, openAppodealSignInWindow} from 'lib/ui-windows';
+import {closeAllWindows, openAppodealAccountsWindow, openAppodealSignInWindow} from 'lib/ui-windows';
 import {UpdatesService} from 'lib/updates';
 import path from 'path';
 
@@ -70,7 +71,8 @@ app.whenReady().then(async () => {
         logsConnector = new LogsConnector(store, appodealApi),
         onlineConnector = new OnlineConnector(store),
         syncScheduler = new SyncScheduler(syncService, store, onlineService),
-        syncConnector = new SyncConnector(store, syncService);
+        syncConnector = new SyncConnector(store, syncService),
+        deleteDataConnector = new DeleteDataConnector(store, syncService);
 
     // EVENTS
     appodealApi.onError.subscribe(async ({account, error}) => {
@@ -86,7 +88,7 @@ app.whenReady().then(async () => {
                 }
             });
             for (let acc of store.state.preferences.accounts.appodealAccounts) {
-                if (!acc.active) {
+                if (!acc.active && !store.state.outdatedVersion) {
                     await openAppodealSignInWindow(acc);
                 }
             }
@@ -100,7 +102,12 @@ app.whenReady().then(async () => {
         store.validateAppVersion()
             .then(async versionValid => {
                 if (!versionValid) {
-                    updates.availableDist.showUpdateDialog();
+                    if (!updates.availableDist) {
+                        await updates.check();
+                    }
+                    if (updates.availableDist) {
+                        return updates.availableDist.showUpdateDialog();
+                    }
                     return;
                 }
                 await store.fetchAllAppodealUsers();
@@ -132,6 +139,7 @@ app.whenReady().then(async () => {
 
 
     const cleanUpOnExit = () => Promise.all([
+        closeAllWindows(),
         trayIcon.destroy(),
         tray.destroy(),
         onlineConnector.destroy(),
@@ -142,7 +150,8 @@ app.whenReady().then(async () => {
         syncService.destroy(),
         updatesConnector.destroy(),
         onlineService.destroy(),
-        syncScheduler.destroy()
+        syncScheduler.destroy(),
+        deleteDataConnector.destroy()
     ]);
 
     onlineService.on('statusChange', isOnline => {

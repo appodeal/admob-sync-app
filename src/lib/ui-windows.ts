@@ -34,6 +34,20 @@ export async function openSettingsWindow () {
     });
 }
 
+export function openClearDataWindow () {
+    return new Promise<BrowserWindow>(resolve => {
+        openDialogWindow(
+            './clear-data.html',
+            {
+                width: 350,
+                height: 280,
+                parent: null
+            },
+            (window) => resolve(window)
+        );
+    });
+}
+
 export function openAboutWindow () {
     return openOrFocus('about', () => openWindow('./about.html', {
         frame: true,
@@ -114,4 +128,9 @@ async function openOrFocus (windowName: string, openFunction: () => BrowserWindo
         });
         return window;
     }
+}
+
+
+export function closeAllWindows () {
+    OPENED_WINDOWS.forEach(async window => (await window).close());
 }

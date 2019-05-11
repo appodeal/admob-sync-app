@@ -1,9 +1,11 @@
 .settingsForm {
   align-self: flex-start;
   width: 100%;
+  flex-direction: column;
 
   .inlineActions {
     margin-inline-start: 20px;
+
     button + button {
       margin-inline-start: 10px;
     }

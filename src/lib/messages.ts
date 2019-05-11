@@ -5,13 +5,13 @@ import uuid from 'uuid';
 
 export function onActionFromRenderer (channel: string, cb: (action: Action) => void): Function {
     let listener = ({sender}, {id, action}: { id: string, action: Action }) => {
+        const send = (channel, ...args) => sender.isDestroyed() ? null : sender.send(channel, ...args);
         Promise.resolve()
             .then(() => cb(action))
             .then(result => {
-                sender.send(`${channel}:response:${id}`, {error: null, result});
-            })
-            .catch(error => {
-                sender.send(`${channel}:response:${id}`, {error: errorToJson(error), result: null});
+                send(`${channel}:response:${id}`, {error: null, result});
+            }, error => {
+                send(`${channel}:response:${id}`, {error: errorToJson(error), result: null});
             });
     };
     ipcMain.on(channel, listener);
