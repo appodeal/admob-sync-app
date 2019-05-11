@@ -23,9 +23,10 @@ import {AppTray} from 'lib/app-tray';
 import {initBugTracker, Sentry} from 'lib/sentry';
 import {initThemeSwitcher} from 'lib/theme';
 import {TrayIcon} from 'lib/tray-icon';
-import {openAppodealAccountsWindow, openAppodealSignInWindow} from 'lib/ui-windows';
+import {closeAllWindows, openAppodealAccountsWindow, openAppodealSignInWindow} from 'lib/ui-windows';
 import {UpdatesService} from 'lib/updates';
 import * as path from 'path';
+import {DeleteDataConnector} from './core/delete-data-connector';
 import {InternalError} from './core/error-factory/errors/internal-error';
 import {hideDock} from './lib/dock';
 
@@ -69,7 +70,8 @@ app.on('ready', async () => {
         logsConnector = new LogsConnector(store, appodealApi),
         onlineConnector = new OnlineConnector(store),
         syncScheduler = new SyncScheduler(syncService, store, onlineService),
-        syncConnector = new SyncConnector(store, syncService);
+        syncConnector = new SyncConnector(store, syncService),
+        deleteDataConnector = new DeleteDataConnector(store, syncService);
 
     // EVENTS
     appodealApi.onError.subscribe(async ({account, error}) => {
@@ -136,6 +138,7 @@ app.on('ready', async () => {
 
 
     const cleanUpOnExit = () => Promise.all([
+        closeAllWindows(),
         trayIcon.destroy(),
         tray.destroy(),
         onlineConnector.destroy(),
@@ -146,7 +149,8 @@ app.on('ready', async () => {
         syncService.destroy(),
         updatesConnector.destroy(),
         onlineService.destroy(),
-        syncScheduler.destroy()
+        syncScheduler.destroy(),
+        deleteDataConnector.destroy()
     ]);
 
     onlineService.on('statusChange', isOnline => {

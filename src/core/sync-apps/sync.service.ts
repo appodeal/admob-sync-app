@@ -23,6 +23,7 @@ type FinishPromise = Promise<any>;
 
 export class SyncService {
     private activeSyncs = new Map<Sync, FinishPromise>();
+    private destroying = false;
 
 
     constructor (private store: Store, private appodealApi: AppodealApi, private onlineService: OnlineService) {
@@ -34,7 +35,7 @@ export class SyncService {
      * @param admobAccount
      */
     public canRun (admobAccount: AdMobAccount) {
-        return ![...this.activeSyncs.keys()].some(sync => sync.adMobAccount.id === admobAccount.id);
+        return !this.destroying && ![...this.activeSyncs.keys()].some(sync => sync.adMobAccount.id === admobAccount.id);
     }
 
 
@@ -168,6 +169,7 @@ export class SyncService {
     }
 
     public destroy () {
+        this.destroying = true;
         return Promise.all(
             [...this.activeSyncs.entries()].map(
                 ([sync, finishPromise]: [Sync, Promise<any>]) =>
