@@ -69,8 +69,11 @@ export class AuthContext extends EventEmitter {
         }
         let token = jwt_decode<{ rfr: number, exp: number }>(this.refreshToken),
             secondsNow = Date.now() / 1000;
-        console.debug('isTimeToRefresh', token, secondsNow);
-        return token.rfr && token.rfr < secondsNow && secondsNow < token.exp;
+        if (token.rfr && token.rfr < secondsNow && secondsNow < token.exp) {
+            console.debug('isTimeToRefresh', token, secondsNow);
+            return true;
+        }
+        return false;
     }
 
     remove () {
