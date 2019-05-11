@@ -81,7 +81,7 @@ export class AccountSetup extends EventEmitter {
                 this.closeWindow();
             }
         } else {
-            this.closeWindow()
+            this.closeWindow();
         }
     }
 
@@ -133,7 +133,7 @@ export class AccountSetup extends EventEmitter {
     }
 
     private async askForTermsOfService (): Promise<boolean> {
-        let button = await messageDialog('You have to accept terms of service from Google', null, [
+        let button = await messageDialog('Google developer console requires to accept terms ot service to continue', null, [
             {
                 primary: true,
                 label: 'OK',
