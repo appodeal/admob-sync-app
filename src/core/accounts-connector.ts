@@ -44,6 +44,7 @@ export class AccountsConnector extends Connector {
             this.store.removeAccountSetup(payload.adMobAccount.id);
             return this.setupAccount(payload.appodealAccountId, payload.adMobAccount);
         case ActionTypes.adMobSetupState:
+            this.store.removeAccountSetup(payload.adMobAccount.id);
             return this.store.setupState(payload.adMobAccount.id, payload.state);
         case ActionTypes.adMobCancelSetup:
             let setup = this.setups.get(payload.adMobAccount.id);

@@ -19,7 +19,7 @@
     "setupOptions": {
       "projectName": "Appodeal",
       "appName": "Appodeal Revenue",
-      "clientName": "Appodeal AdMob Sync App",
+      "clientName": "Appodeal AdMob Sync App (staging)",
       "domains": [
         "appodeal.com"
       ],
