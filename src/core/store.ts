@@ -7,7 +7,7 @@ import {AppodealAccount} from 'core/appdeal-api/interfaces/appodeal.account.inte
 import {OnlineService} from 'core/appdeal-api/online.service';
 import {SyncHistory, SyncHistoryInfo} from 'core/sync-apps/sync-history';
 import {SyncEvent, SyncEventsTypes, SyncReportProgressEvent} from 'core/sync-apps/sync.events';
-import {BrowserWindow, Notification} from 'electron';
+import {BrowserWindow, Notification, screen} from 'electron';
 import {AppodealAccountState, UserAccount} from 'interfaces/common.interfaces';
 import {getAppVersion} from 'lib/about';
 import {ActionTypes} from 'lib/actions';
@@ -366,11 +366,14 @@ export class Store {
     ) {
         return this.appodealApi.getFor(appodealAccountId).setAdMobAccountCredentials(accountId, clientId, clientSecret)
             .then(async oAuthUrl => {
+                const {height} = screen.getPrimaryDisplay().workAreaSize;
                 let window = await openWindow(oAuthUrl, {
                     frame: true,
                     titleBarStyle: 'default',
-                    width: 400,
-                    minWidth: 400,
+                    width: 500,
+                    minHeight: Math.min(600, height),
+                    height: Math.min(700, height),
+                    minWidth: 500,
                     webPreferences: {
                         session: AdMobSessions.getSession(accountId)
                     }

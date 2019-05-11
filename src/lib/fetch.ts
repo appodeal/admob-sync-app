@@ -35,7 +35,7 @@ export function nodeFetch<T extends any> (
     url: string,
     options: Partial<FetchOptions> = {},
     session?: Session
-): Promise<{ text: () => Promise<string>, json: () => Promise<T> }> {
+): Promise<{ ok: boolean, status: number, statusText: string, headers: Record<string, string>, text: () => Promise<string>, json: () => Promise<T> }> {
     return new Promise(async (resolve, reject) => {
         let config = {
             ...DEFAULT_FETCH_CONFIG,
@@ -73,6 +73,10 @@ export function nodeFetch<T extends any> (
                 response.removeAllListeners();
                 let data = Buffer.concat(chunks).toString();
                 resolve({
+                    ok: response.statusCode === 200,
+                    headers: response.headers,
+                    status: response.statusCode,
+                    statusText: response.statusMessage,
                     text: async () => data,
                     json: async () => JSON.parse(data)
                 });
@@ -90,6 +94,6 @@ export function nodeFetch<T extends any> (
     });
 }
 
-export function getSessionCookies (session: Session): Promise<Array<{name: string, value: string}>> {
+export function getSessionCookies (session: Session): Promise<Array<{ name: string, value: string }>> {
     return new Promise(resolve => session.cookies.get({}, (error, cookies = []) => resolve(cookies)));
 }

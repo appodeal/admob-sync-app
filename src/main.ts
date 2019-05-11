@@ -27,6 +27,7 @@ import {openAppodealAccountsWindow, openAppodealSignInWindow} from 'lib/ui-windo
 import {UpdatesService} from 'lib/updates';
 import * as path from 'path';
 import {DeleteDataConnector} from './core/delete-data-connector';
+import {InternalError} from './core/error-factory/errors/internal-error';
 import {hideDock} from './lib/dock';
 
 
@@ -86,7 +87,7 @@ app.on('ready', async () => {
                 }
             });
             for (let acc of store.state.preferences.accounts.appodealAccounts) {
-                if (!acc.active) {
+                if (!acc.active && !store.state.outdatedVersion) {
                     await openAppodealSignInWindow(acc);
                 }
             }
@@ -100,7 +101,12 @@ app.on('ready', async () => {
         store.validateAppVersion()
             .then(async versionValid => {
                 if (!versionValid) {
-                    updates.availableDist.showUpdateDialog();
+                    if (!updates.availableDist) {
+                        await updates.check();
+                    }
+                    if (updates.availableDist) {
+                        return updates.availableDist.showUpdateDialog();
+                    }
                     return;
                 }
                 await store.fetchAllAppodealUsers();
@@ -119,12 +125,15 @@ app.on('ready', async () => {
                     }
                 }
             })
-            .then(() => store.updateUserWhenOnline())
             .catch(e => {
                 console.error('FAILED TO FETCH CURRENT USER');
-                Sentry.captureException(e);
+                if (e instanceof InternalError && e.isCritical() || !(e instanceof InternalError)) {
+                    Sentry.captureException(e);
+                }
+                onlineService.setOffline();
                 console.log(e);
-            });
+            })
+            .then(() => store.updateUserWhenOnline());
     });
 
 

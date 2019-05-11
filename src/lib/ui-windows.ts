@@ -47,7 +47,7 @@ export function openAboutWindow () {
         frame: true,
         width: 450,
         titleBarStyle: 'default',
-        height: 270,
+        height: 300,
         parent: null
     }));
 }

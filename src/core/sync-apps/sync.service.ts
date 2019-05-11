@@ -59,8 +59,7 @@ export class SyncService {
 
             const admobSession = await AdMobSessions.getSession(admobAccount);
 
-            if (!admobSession) {
-                await SyncHistory.setAuthorizationRequired(admobAccount);
+            if (!admobSession || (await SyncHistory.getHistory(admobAccount)).admobAuthorizationRequired) {
                 console.warn(`[Sync Service] [${admobAccount.id} ${admobAccount.email}] can not run sync. User has to Sign In in account first.`);
                 return reject(new Error(`Can not run sync for ${admobAccount.email}. User has to Sign In in account first.`));
             }
