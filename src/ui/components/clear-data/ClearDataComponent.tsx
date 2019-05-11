@@ -2,7 +2,6 @@ import React from 'react';
 import {action, ActionTypes} from '../../../lib/actions';
 import {singleEvent} from '../../../lib/dom';
 import {sendToMain} from '../../../lib/messages';
-import {confirmDialog} from '../../../lib/window';
 import style from './ClearData.scss';
 
 
@@ -18,18 +17,18 @@ export function ClearData () {
             <li>Sync history for each admob account</li>
             <li>Sync log files</li>
         </ul>
+        <p><img src={require('ui/assets/images/account-warning.svg')} alt={''} title={'Attention'}/> All data will be immediately deleted.
+            You will immediately signed out. App will be closed. You cannot revert this action.</p>
+        <button type="button" className={'primary'} onClick={singleEvent(closeWindow)}>Cancel</button>
         <button type="button" onClick={singleEvent(confirmDeleteLocalData)}>Clear data</button>
     </div>);
 }
 
 
 function confirmDeleteLocalData () {
-    confirmDialog(
-        `Confirm your intention to delete the data! 
-All the data will be immediately deleted,
-all active syncs will be stopped,
-you will immediately signed out.
-App will be closed.
-This action cannot be undone!`
-    ).then((confirmed) => confirmed ? sendToMain('delete-data', action(ActionTypes.deleteAllAccountsData)) : null);
+    return sendToMain('delete-data', action(ActionTypes.deleteAllAccountsData));
+}
+
+function closeWindow () {
+    return sendToMain('delete-data', action(ActionTypes.hideDeleteAllAccountsDataDialog));
 }

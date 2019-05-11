@@ -35,10 +35,16 @@ export async function openSettingsWindow () {
 }
 
 export function openClearDataWindow () {
-    return openDialogWindow('./clear-data.html', {
-        width: 350,
-        height: 220,
-        parent: null
+    return new Promise<BrowserWindow>(resolve => {
+        openDialogWindow(
+            './clear-data.html',
+            {
+                width: 350,
+                height: 280,
+                parent: null
+            },
+            (window) => resolve(window)
+        );
     });
 }
 

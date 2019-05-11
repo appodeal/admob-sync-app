@@ -6,4 +6,7 @@
   button {
     float: right;
   }
+  button + button {
+    margin: 0 10px;
+  }
 }
