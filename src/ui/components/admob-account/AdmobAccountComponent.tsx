@@ -119,7 +119,7 @@ export class AdmobAccountComponent extends Component<AdmobAccountComponentProps,
 
                     {!!this.props.syncProgress &&
                     <div className={style.syncProgress}>
-                        <AccountStatusComponent syncProgress={this.props.syncProgress} historyInfo={this.props.historyInfo}/>
+                        <AccountStatusComponent account={account} syncProgress={this.props.syncProgress} historyInfo={this.props.historyInfo}/>
                         <ProgressBar value={this.props.syncProgress.percent} status={this.getProgressBarStatus(this.props.syncProgress)}/>
                     </div>
                     }

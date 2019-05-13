@@ -63,8 +63,10 @@ export function AccountsComponent (
                                     />
                                     <span className={style.accountName}>{acc.email}</span>
                                     <span className={style.accountEmail}>
-                                <AccountStatusComponent historyInfo={syncHistory[acc.id]}
-                                                        syncProgress={syncProgress[acc.id]}
+                                <AccountStatusComponent
+                                    account={acc}
+                                    historyInfo={syncHistory[acc.id]}
+                                    syncProgress={syncProgress[acc.id]}
                                 />
                                 </span>
                                 </li>;
@@ -103,8 +105,8 @@ export function AccountsComponent (
                     : <div className={classNames(style.accountsWarning)}>
                         {
                             multipleAccountsSupport
-                                ? (appodealAccounts.length ? 'Sign in into Appodeal account.' : 'Add at least one Appodeal account.')
-                                : 'Sign in into Appodeal account.'
+                                ? (appodealAccounts.length ? 'Sign in to Appodeal account' : 'Add at least one Appodeal account')
+                                : 'Sign in to Appodeal account'
                         }
                     </div>
             }

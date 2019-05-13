@@ -39,7 +39,7 @@ export function openClearDataWindow () {
         openDialogWindow(
             './clear-data.html',
             {
-                width: 350,
+                width: 430,
                 height: 280,
                 parent: null
             },
@@ -54,6 +54,7 @@ export function openAboutWindow () {
         width: 450,
         titleBarStyle: 'default',
         height: 300,
+        center: true,
         parent: null
     }));
 }

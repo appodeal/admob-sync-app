@@ -23,8 +23,7 @@ export function AdMobAccountSetup ({setupProgress, setupState, account, appodeal
         formRef = React.createRef<HTMLFormElement>();
     return <>
         {(visible || !account.isReadyForReports) && <div className={style.setupRequired}>
-            <h1>Setup required {account.isReadyForReports &&
-            <button type="button" onClick={() => closeSetup(account)}>Cancel</button>}</h1>
+            <h1>Setup is required <button type="button" onClick={() => closeSetup(account)}>Cancel</button></h1>
             <section>
                 {
                     (!!setupProgress && setupProgress.state !== 'error' || !setupProgress && mode === 'auto') && <>
@@ -36,8 +35,8 @@ export function AdMobAccountSetup ({setupProgress, setupState, account, appodeal
                 }
                 {
                     !!setupProgress && setupProgress.state === 'error' && <p>
-                        <span className={style.errorMessage}>Auto setup was unsuccessful.&nbsp;</span>
-                        <button type="button" onClick={() => autoSetup(account, appodealAccountId)}>Retry</button>
+                        <span className={style.errorMessage}>Auto setup was unsuccessful.&nbsp;&nbsp;&nbsp;</span>
+                        <button type="button" className={'primary'} onClick={() => autoSetup(account, appodealAccountId)}>Retry</button>
                     </p>
                 }
                 {
@@ -125,7 +124,7 @@ function onFormSubmit (event: React.SyntheticEvent<HTMLFormElement>, adMobAccoun
             clientSecret: formData.get('clientSecret'),
             accountId: adMobAccount.id
         }
-    })).catch(error => messageDialog(error.message))
+    })).catch(error => messageDialog(error.message));
 }
 
 function viewTutorial (event: React.MouseEvent) {

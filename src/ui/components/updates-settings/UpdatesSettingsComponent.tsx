@@ -48,7 +48,7 @@ export function UpdatesSettings ({currentVersion, availableVersion, lastCheck, c
                 </span>
             </output>
             <hr/>
-            <label htmlFor="checkPeriod">Check updates: </label>
+            <label htmlFor="checkPeriod">Perform update checks: </label>
             <select id="checkPeriod" onChange={e => onCheckPeriodChange(e, updatePeriod)} value={checkPeriod}>
                 <option value={UpdatePeriod.manual}>Manually</option>
                 <option value={UpdatePeriod.daily}>Daily</option>
@@ -77,9 +77,9 @@ export function UpdatesSettings ({currentVersion, availableVersion, lastCheck, c
                 </div>
             }
             <hr/>
-            <label htmlFor="clearData">Local data: </label>
+            <label htmlFor="clearData">App data: </label>
             <output id="clearData">
-                <button type="button" onClick={singleEvent(() => openClearDataDialog())}>Clear</button>
+                <button type="button" onClick={singleEvent(() => openClearDataDialog())}>Clear All</button>
             </output>
         </form>
     </div>);
