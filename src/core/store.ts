@@ -398,9 +398,10 @@ export class Store {
                     callback(login, password);
                 });
 
-                await waitForNavigation(window, /\/admob_plugin\/api\/v3\/oauth\/success/);
-                window.webContents.removeAllListeners();
-                window.close();
+                await waitForNavigation(window, /\/admob_plugin\/api\/v3\/oauth\/success/)
+                    .then(() => window.close())
+                    .catch(() => {});
+
             })
             .then(() => this.fetchAppodealUser(appodealAccountId))
             .then(account => this.selectAppodealAccount(account))

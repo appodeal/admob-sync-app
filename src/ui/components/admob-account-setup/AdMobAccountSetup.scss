@@ -58,6 +58,10 @@
 
   .errorMessage {
     color: var(--warn-color);
+
+    + button {
+      margin-inline-start: 20px;
+    }
   }
 
   .setupOptions + * {

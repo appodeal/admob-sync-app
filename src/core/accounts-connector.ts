@@ -3,7 +3,6 @@ import {AdMobSessions} from 'core/admob-api/admob-sessions.helper';
 import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
 import {Connector} from 'core/connector';
 import {Store} from 'core/store';
-import {UserAccount} from 'interfaces/common.interfaces';
 import {Action, ActionTypes} from 'lib/actions';
 import {openAppodealAccountsWindow, openAppodealSignInWindow} from 'lib/ui-windows';
 

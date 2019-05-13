@@ -23,7 +23,13 @@ export function AdMobAccountSetup ({setupProgress, setupState, account, appodeal
         formRef = React.createRef<HTMLFormElement>();
     return <>
         {(visible || !account.isReadyForReports) && <div className={style.setupRequired}>
-            <h1>Setup is required <button type="button" onClick={() => closeSetup(account)}>Cancel</button></h1>
+            <h1>
+                Setup is required
+                {(account.isReadyForReports || isSetupStarted(setupState)) &&
+                <button type="button" onClick={() => closeSetup(account)}>{
+                    isSetupStarted(setupState) ? 'Cancel' : 'Close'
+                }</button>}
+            </h1>
             <section>
                 {
                     (!!setupProgress && setupProgress.state !== 'error' || !setupProgress && mode === 'auto') && <>
@@ -35,7 +41,7 @@ export function AdMobAccountSetup ({setupProgress, setupState, account, appodeal
                 }
                 {
                     !!setupProgress && setupProgress.state === 'error' && <p>
-                        <span className={style.errorMessage}>Auto setup was unsuccessful.&nbsp;&nbsp;&nbsp;</span>
+                        <span className={style.errorMessage}>Auto setup was unsuccessful.</span>
                         <button type="button" className={'primary'} onClick={() => autoSetup(account, appodealAccountId)}>Retry</button>
                     </p>
                 }
@@ -59,13 +65,27 @@ export function AdMobAccountSetup ({setupProgress, setupState, account, appodeal
                         <input type="text" id="clientSecret" name="clientSecret"/>
                         <div className="actions">
                             <button type="submit" name="saveBtn" disabled={true}>Save</button>
-                            <button type="button" name="autoSetup" onClick={() => autoSetup(account, appodealAccountId)}>Auto setup</button>
+                            <button type="button" name="autoSetup" onClick={() => resetSetupMode(account)}>Cancel</button>
                         </div>
                     </form>
                 </>}
             </section>
         </div>}
     </>;
+}
+
+function isSetupStarted (setupState: AccountSetupState): boolean {
+    return !!setupState && setupState.mode === 'auto';
+}
+
+function resetSetupMode (adMobAccount: AdMobAccount) {
+    sendToMain('accounts', action(ActionTypes.adMobSetupState, {
+        adMobAccount,
+        state: {
+            visible: true,
+            mode: null
+        }
+    }));
 }
 
 function closeSetup (adMobAccount: AdMobAccount) {

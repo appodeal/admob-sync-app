@@ -122,9 +122,12 @@ export function openDialogWindow<T = any> (
 }
 
 export function waitForNavigation (window: BrowserWindow, urlFragment: RegExp = null): Promise<void> {
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
         let resolver = () => {
-            window.webContents.once('dom-ready', () => resolve());
+            window.webContents.once('dom-ready', () => {
+                window.removeListener('closed', closeListener);
+                resolve();
+            });
         };
         if (urlFragment) {
             window.webContents.on('did-navigate', (_, address) => {
@@ -138,7 +141,10 @@ export function waitForNavigation (window: BrowserWindow, urlFragment: RegExp = 
                 resolver();
             });
         }
-
+        let closeListener = () => {
+            reject();
+        };
+        window.once('closed', closeListener);
     });
 }
 

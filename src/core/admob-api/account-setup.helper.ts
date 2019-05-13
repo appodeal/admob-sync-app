@@ -41,6 +41,7 @@ export class AccountSetup extends EventEmitter {
         super();
         this.account = account;
         this.session = AdMobSessions.getSession(account);
+        this.runner.once('cancel', () => this.emit('cancel'));
     }
 
     async start () {
@@ -49,37 +50,29 @@ export class AccountSetup extends EventEmitter {
         this.debug = debug;
         this.window.setClosable(false);
 
-        this.runner.once('cancel', () => this.emit('cancel'));
-
-        if (this.runner.state === TaskRunnerState.idle) {
-            let tosAccepted = await this.checkTermsOfService().catch(() => false);
-            if (tosAccepted) {
-                this.initTasks();
-                this.runner.on('progress', progress => this.emit('progress', progress));
-                this.emit('start');
-                this.runner.runTasks()
-                    .then(() => {
-                        if (this.clientId && this.clientSecret) {
-                            this.emit('finish', {
-                                clientId: this.clientId,
-                                clientSecret: this.clientSecret
-                            });
-                        } else {
-                            throw new Error('Could not get clientId and clientSecret.');
-                        }
-                    })
-                    .catch(err => {
-                        this.emit('error', err);
-                        Sentry.captureException(err);
-                    })
-                    .finally(() => {
-                        this.closeWindow();
-                    });
-            } else {
-                this.runner.break();
-                this.emit('error');
-                this.closeWindow();
-            }
+        let tosAccepted = await this.checkTermsOfService().catch(() => false);
+        if (this.runner.state === TaskRunnerState.idle && tosAccepted) {
+            this.initTasks();
+            this.runner.on('progress', progress => this.emit('progress', progress));
+            this.emit('start');
+            this.runner.runTasks()
+                .then(() => {
+                    if (this.clientId && this.clientSecret) {
+                        this.emit('finish', {
+                            clientId: this.clientId,
+                            clientSecret: this.clientSecret
+                        });
+                    } else {
+                        throw new Error('Could not get clientId and clientSecret.');
+                    }
+                })
+                .catch(err => {
+                    this.emit('error', err);
+                    Sentry.captureException(err);
+                })
+                .finally(() => {
+                    this.closeWindow();
+                });
         } else {
             this.closeWindow();
         }
