@@ -393,13 +393,13 @@ export class Store {
                         session: AdMobSessions.getSession(accountId)
                     }
                 });
-                if (environment.development) {
-                    window.webContents.once('login', async (event, request, authInfo, callback) => {
-                        let {login, password} = environment.basicAuth;
-                        callback(login, password);
-                    });
-                }
+                window.webContents.once('login', async (event, request, authInfo, callback) => {
+                    let {login, password} = environment.basicAuth;
+                    callback(login, password);
+                });
+
                 await waitForNavigation(window, /\/admob_plugin\/api\/v3\/oauth\/success/);
+                window.webContents.removeAllListeners();
                 window.close();
             })
             .then(() => this.fetchAppodealUser(appodealAccountId))

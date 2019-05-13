@@ -5,6 +5,7 @@ export class AuthorizationError extends InternalError {
 
     constructor (httpError, operationName?: string) {
         super(`[Unauthorized] ${(operationName ? ` [${operationName}] ` : httpError.message)}`, httpError);
+        this.name = 'AuthorizationError'
     }
 
     isCritical () {
