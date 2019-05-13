@@ -29,7 +29,7 @@ export class RootComponent extends React.Component<RootComponentProps, RootCompo
         };
 
         if (environment.development) {
-            this.tabs.push( {id: 'development', label: 'Development', isDisabled: () => false})
+            this.tabs.push({id: 'development', label: 'Development', isDisabled: () => false});
         }
     }
 
@@ -58,8 +58,9 @@ export class RootComponent extends React.Component<RootComponentProps, RootCompo
         case 'updates':
             return <UpdatesSettings {...this.props.store.preferences.updates}/>;
         case 'development':
-            return <div>
+            return <div className={style.scrollable}>
                 <button type="button" onClick={() => remote.getCurrentWindow().webContents.toggleDevTools()}>Toggle DevTools</button>
+                <pre>{JSON.stringify(environment, null, 4)}</pre>
             </div>;
         }
     }
