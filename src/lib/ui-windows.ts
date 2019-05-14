@@ -133,5 +133,8 @@ async function openOrFocus (windowName: string, openFunction: () => BrowserWindo
 
 
 export function closeAllWindows () {
-    OPENED_WINDOWS.forEach(async window => (await window).close());
+    BrowserWindow.getAllWindows().forEach(window => {
+        window.setClosable(true);
+        window.close();
+    });
 }
