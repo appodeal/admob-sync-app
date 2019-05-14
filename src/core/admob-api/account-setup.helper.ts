@@ -251,7 +251,7 @@ export class AccountSetup extends EventEmitter {
 
     createCredentials () {
         const dropDownBtn = '.p6n-api-credential-dropdown';
-        const credentialLabel = '.p6n-api-credential-table-label a';
+        const credentialLabel = 'tbody .p6n-api-credential-table-label a';
         const oAuthItem = '.p6n-dropdown-row[ng-click*="OAUTH_CLIENT"]';
         const webInput = '.p6n-form-fieldset input[type="radio"][value="WEB"] + span';
         const clientNameInput = 'input[ng-model="oAuthEditorCtrl.oauthClient.displayName"]';
@@ -265,6 +265,8 @@ export class AccountSetup extends EventEmitter {
 
         this.runner.createTask(() => this.debug.waitElementVisible(dropDownBtn)
             .catch(() => this.debug.waitElementVisible(credentialLabel)));
+
+        // check client
         this.runner.createTask(async () => {
             let clientLabelIds = await this.debug.querySelectorAll(credentialLabel),
                 clientLabels = await Promise.all(clientLabelIds.map(nodeId => this.debug.getInnerHTML(nodeId))),
@@ -272,11 +274,26 @@ export class AccountSetup extends EventEmitter {
             if (clientIndex === -1) {
                 this.runner.skipTo('createClient');
             } else {
-                this.runner.skipTo('openClient', clientLabelIds[clientIndex]);
+                this.runner.skipTo('deleteClient', clientIndex);
             }
         }, 'checkClient');
+
+        // delete client
+        this.runner.createTask(index => this.debug.click(`tr:nth-child(${index + 1}) .p6n-api-credential-delete`), 'deleteClient');
+        this.runner.createTask(() => this.debug.wait(500));
+        this.runner.createTask(() => this.debug.click(`.p6n-modal-action-button[name="delete"]`));
+        this.runner.createTask(() => this.debug.waitElement('.p6n-modal-content p b', 1000)
+            .then(async () => {
+                let text;
+                text = await this.debug.getInnerHTML('.p6n-modal-content p b');
+                await this.fillInput(text, 'md-dialog .p6n-form-row-input input');
+                await this.debug.click(`.p6n-modal-action-button[name="delete"]`);
+            })
+            .catch(() => {}));
+
+        // create client
         this.runner.createTask(() => this.debug.click(dropDownBtn), 'createClient');
-        this.runner.createTask(() => this.debug.waitElementVisible(oAuthItem));
+        this.runner.createTask(() => this.debug.waitElementVisible(oAuthItem).catch(() => this.runner.returnTo('createClient')));
         this.runner.createTask(() => this.debug.click(oAuthItem));
         this.runner.createTask(() => this.debug.waitElementVisible(webInput));
         this.runner.createTask(() => this.debug.click(webInput));
@@ -289,8 +306,14 @@ export class AccountSetup extends EventEmitter {
         this.runner.createTask(() => this.debug.waitElement(closeModalBtn));
         this.runner.createTask(() => this.debug.click(closeModalBtn));
         this.runner.createTask(() => this.debug.wait(1000));
-        this.runner.createTask(() => this.runner.returnTo('checkClient'));
-        this.runner.createTask(nodeId => this.debug.click(nodeId), 'openClient');
+
+        // open client
+        this.runner.createTask(async () => {
+            let clientLabelIds = await this.debug.querySelectorAll(credentialLabel),
+                clientLabels = await Promise.all(clientLabelIds.map(nodeId => this.debug.getInnerHTML(nodeId))),
+                clientIndex = clientLabels.indexOf(CLIENT_NAME);
+            await this.debug.click(`tbody tr:nth-child(${clientIndex + 1}) .p6n-api-credential-table-label a`);
+        }, 'openClient');
         this.runner.createTask(() => this.debug.waitElement(submitBtn));
         let nodeIds: Array<number>;
         this.runner.createTask(async () => nodeIds = await this.debug.querySelectorAll(dataSelector));
