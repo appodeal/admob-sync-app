@@ -40,7 +40,7 @@ export function openClearDataWindow () {
             './clear-data.html',
             {
                 width: 430,
-                height: 280,
+                height: 300,
                 parent: null
             },
             (window) => resolve(window)
