@@ -32,3 +32,5 @@ declare interface Environment {
 }
 
 declare const environment: Environment;
+
+declare const DEV_MODE: boolean;

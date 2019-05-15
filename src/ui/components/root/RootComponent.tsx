@@ -28,7 +28,7 @@ export class RootComponent extends React.Component<RootComponentProps, RootCompo
             tab: this.tabs[0].id
         };
 
-        if (environment.development) {
+        if (DEV_MODE) {
             this.tabs.push({id: 'development', label: 'Development', isDisabled: () => false});
         }
     }

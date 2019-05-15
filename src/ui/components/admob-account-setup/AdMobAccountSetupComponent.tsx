@@ -25,6 +25,8 @@ export function AdMobAccountSetup ({setupProgress, setupState, account, appodeal
         {(visible || !account.isReadyForReports) && <div className={style.setupRequired}>
             <h1>
                 Setup is required
+                {DEV_MODE && isSetupStarted(setupState) &&
+                <button type="button" onClick={() => showDebugWindow(account)}>Toggle setup window</button>}
                 {(account.isReadyForReports || isSetupStarted(setupState)) &&
                 <button type="button" onClick={() => closeSetup(account)}>{
                     isSetupStarted(setupState) ? 'Cancel' : 'Close'
@@ -150,4 +152,10 @@ function onFormSubmit (event: React.SyntheticEvent<HTMLFormElement>, adMobAccoun
 function viewTutorial (event: React.MouseEvent) {
     event.preventDefault();
     sendToMain('accounts', action(ActionTypes.adMobSetupTutorial));
+}
+
+function showDebugWindow (adMobAccount: AdMobAccount) {
+    sendToMain('accounts', action(ActionTypes.adMobShowSetup, {
+        adMobAccount
+    }));
 }

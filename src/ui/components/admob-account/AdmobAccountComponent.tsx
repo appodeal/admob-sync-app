@@ -99,7 +99,7 @@ export class AdmobAccountComponent extends Component<AdmobAccountComponentProps,
                     <div>
                         {
                             //  make public when open admob safe browsing admob is implemented
-                            environment.development &&
+                            DEV_MODE &&
                             <div style={{marginBottom: '10px'}}>
                                 <button type="button" onClick={singleEvent(this.openAdMob, this)}>Open Admob (For developers only)</button>
                             </div>
