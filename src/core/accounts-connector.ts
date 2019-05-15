@@ -53,6 +53,16 @@ export class AccountsConnector extends Connector {
                 this.store.removeAccountSetup(payload.adMobAccount.id);
             }
             return this.store.setupState(payload.adMobAccount.id, {visible: false, mode: null});
+        case ActionTypes.adMobShowSetup:
+            let currentSetup = this.setups.get(payload.adMobAccount.id);
+            if (currentSetup) {
+                if (currentSetup.window.isVisible()) {
+                    currentSetup.window.hide();
+                } else {
+                    currentSetup.window.show();
+                }
+            }
+            break;
         case ActionTypes.openAdmobPage:
             return AdMobSessions.openAdmob(payload.adMobAccount);
         case ActionTypes.manageAppodealAccounts:

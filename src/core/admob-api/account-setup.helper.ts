@@ -20,7 +20,7 @@ const ALLOWED_CALLBACKS = setupOptions.allowedCallbacks;
 
 
 export class AccountSetup extends EventEmitter {
-    private window: BrowserWindow;
+    window: BrowserWindow;
     private debug: Debug;
     private account: AdMobAccount;
     private runner = new TaskRunner();
@@ -292,7 +292,7 @@ export class AccountSetup extends EventEmitter {
 
         // create client
         this.runner.createTask(() => this.debug.click(dropDownBtn), 'createClient');
-        this.runner.createTask(() => this.debug.waitElementVisible(oAuthItem).catch(() => this.runner.returnTo('createClient')));
+        this.runner.createTask(() => this.debug.waitElementVisible(oAuthItem, 2000).catch(() => this.runner.returnTo('createClient')));
         this.runner.createTask(() => this.debug.click(oAuthItem));
         this.runner.createTask(() => this.debug.waitElementVisible(webInput));
         this.runner.createTask(() => this.debug.click(webInput));

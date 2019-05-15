@@ -41,6 +41,7 @@ export interface AccountSetupState {
 }
 
 export interface AppState {
+    devMode: boolean;
     selectedAccount: {
         account: AdMobAccount;
     }
@@ -60,6 +61,7 @@ type AccountID = string;
 export class Store {
 
     @observable readonly state: AppState = {
+        devMode: !!environment.development,
         selectedAccount: {
             account: null
         },
@@ -89,6 +91,8 @@ export class Store {
             switch (action.type) {
             case ActionTypes.getStore:
                 return this.emitState();
+            case ActionTypes.toggleDevMode:
+                return this.toggleDevMode();
             }
         });
         observe(this.state, () => this.emitState());
@@ -535,6 +539,11 @@ Do you what to add new Account (${resultAccount.email})?`
                 mode
             }
         }));
+    }
+
+    @action
+    toggleDevMode () {
+        set<AppState>(this.state, 'devMode', !this.state.devMode);
     }
 
 }
