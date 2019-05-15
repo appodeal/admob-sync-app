@@ -13,6 +13,7 @@ import {AdMobApp} from 'lib/translators/interfaces/admob-app.interface';
 import PushStream from 'zen-push';
 import {ErrorFactoryService} from '../error-factory/error-factory.service';
 import {InternalError} from '../error-factory/errors/internal-error';
+import {CallQueue} from './call-queue';
 import addAdMobAccountMutation from './graphql/add-admob-account.mutation.graphql';
 import adMobAccountQuery from './graphql/admob-account-details.graphql';
 import currentUserQuery from './graphql/current-user.query.graphql';
@@ -57,6 +58,7 @@ export interface ApiMutationOptions<T, V> extends MutationOptions<T, V> {
 
 export class AppodealApiService {
 
+    private requestsQueue = new CallQueue(10);
     private client: ApolloClient<NormalizedCacheObject>;
     private _onError = new PushStream<InternalError>();
 
@@ -72,22 +74,26 @@ export class AppodealApiService {
         );
     }
 
-    public query<T, TVariables = OperationVariables> (options: ApiQueryOptions<TVariables>): Promise<T> {
-        this.logRequest(options.query, 'query', options.variables);
-        return this.client.query<T, TVariables>(<QueryOptions<TVariables>>options)
-            .then(result => pluck(result, ...pluckParams(options.dataAttribute)))
-            .catch(apolloError => {
-                throw <InternalError>apolloError.networkError;
-            });
+    public query<T, TVariables = OperationVariables> (options: ApiQueryOptions<TVariables>, dedicated = false): Promise<T> {
+        return this.requestsQueue.call(() => {
+            this.logRequest(options.query, 'query', options.variables);
+            return this.client.query<T, TVariables>(<QueryOptions<TVariables>>options)
+                .then(result => pluck(result, ...pluckParams(options.dataAttribute)))
+                .catch(apolloError => {
+                    throw <InternalError>apolloError.networkError;
+                });
+        }, dedicated);
     }
 
-    public mutate<T, TVariables = OperationVariables> (options: ApiMutationOptions<T, TVariables>): Promise<T> {
-        this.logRequest(options.mutation, 'mutation', options.variables);
-        return this.client.mutate(<MutationOptions<T, TVariables>>options)
-            .then(result => pluck(result, ...pluckParams(options.dataAttribute)))
-            .catch(apolloError => {
-                throw <InternalError>apolloError.networkError;
-            });
+    public mutate<T, TVariables = OperationVariables> (options: ApiMutationOptions<T, TVariables>, dedicated = false): Promise<T> {
+        return this.requestsQueue.call(() => {
+            this.logRequest(options.mutation, 'mutation', options.variables);
+            return this.client.mutate(<MutationOptions<T, TVariables>>options)
+                .then(result => pluck(result, ...pluckParams(options.dataAttribute)))
+                .catch(apolloError => {
+                    throw <InternalError>apolloError.networkError;
+                });
+        }, dedicated);
     };
 
     constructor (errorFactory: ErrorFactoryService, session: Session) {
@@ -177,7 +183,7 @@ export class AppodealApiService {
                 refreshToken
             },
             dataAttribute: ['refreshAccessToken']
-        })
+        }, true)
             .then(tokensInfo => {
                 this.authContext.setTokensInfo(tokensInfo);
                 this.authContext.save();

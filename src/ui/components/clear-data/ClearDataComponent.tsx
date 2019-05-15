@@ -9,17 +9,17 @@ export function ClearData () {
 
     return (<div className={style.root}>
         <p>
-            The app stores the following info locally:
+            The application stores the following data on your computer:
         </p>
         <ul>
             <li>Appodeal access token</li>
-            <li>Cookies for Admob accounts which you have signed in</li>
-            <li>Sync history for each Admob account</li>
+            <li>Cookies for your AdMob accounts</li>
+            <li>Sync history for each AdMob account</li>
             <li>Sync log files</li>
         </ul>
-        <p>&nbsp;</p>
-        <p><img src={require('ui/assets/images/account-warning.svg')} alt={''} title={'Attention'}/> All data will be immediately deleted.
-            You will immediately signed out. App will be closed. You cannot revert this action.</p>
+        <p><img src={require('ui/assets/images/account-warning.svg')} alt={''} title={'Attention'}/> All data will be deleted immediately
+            and irrevocably. You can not undo this action.</p>
+        <p> You will be immediately signed out. The application will be closed.</p>
         <button type="button" className={'primary'} onClick={singleEvent(closeWindow)}>Cancel</button>
         <button type="button" onClick={singleEvent(confirmDeleteLocalData)}>Clear data</button>
     </div>);
