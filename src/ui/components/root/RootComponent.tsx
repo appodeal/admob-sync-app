@@ -19,8 +19,7 @@ interface RootComponentState {
 export class RootComponent extends React.Component<RootComponentProps, RootComponentState> {
     private tabs = [
         {id: 'accounts', label: 'Accounts', isDisabled: () => this.props.store.outdatedVersion},
-        {id: 'updates', label: 'Updates', isDisabled: () => false},
-        {id: 'development', label: 'Development', isDisabled: () => false}
+        {id: 'updates', label: 'Settings', isDisabled: () => false}
     ];
 
     constructor (props) {
@@ -28,6 +27,10 @@ export class RootComponent extends React.Component<RootComponentProps, RootCompo
         this.state = {
             tab: this.tabs[0].id
         };
+
+        if (environment.development) {
+            this.tabs.push({id: 'development', label: 'Development', isDisabled: () => false});
+        }
     }
 
     componentWillMount (): void {
@@ -55,8 +58,9 @@ export class RootComponent extends React.Component<RootComponentProps, RootCompo
         case 'updates':
             return <UpdatesSettings {...this.props.store.preferences.updates}/>;
         case 'development':
-            return <div>
+            return <div className={style.scrollable}>
                 <button type="button" onClick={() => remote.getCurrentWindow().webContents.toggleDevTools()}>Toggle DevTools</button>
+                <pre>{JSON.stringify(environment, null, 4)}</pre>
             </div>;
         }
     }

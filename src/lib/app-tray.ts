@@ -15,9 +15,9 @@ export class AppTray {
         this.menu = Menu.buildFromTemplate([
             {type: 'normal', label: 'Sign in', click: () => openAppodealSignInWindow(), id: 'sign-in', visible: false},
             {type: 'separator', id: 'sign-in-sep', visible: false},
-            {type: 'normal', label: 'Settings', click: () => openSettingsWindow()},
-            {type: 'normal', label: 'About', click: () => openAboutWindow()},
+            {type: 'normal', label: 'Accounts', click: () => openSettingsWindow()},
             {type: 'normal', label: 'Check for updates', click: () => this.updatesConnector.checkForUpdates(false, 'modal')},
+            {type: 'normal', label: 'About', click: () => openAboutWindow()},
             {type: 'separator'},
             {type: 'normal', label: 'Quit', role: 'quit'}
         ]);

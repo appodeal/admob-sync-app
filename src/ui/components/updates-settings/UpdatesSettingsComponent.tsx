@@ -25,8 +25,8 @@ export function UpdatesSettings ({currentVersion, availableVersion, lastCheck, c
             interval: customOptions.interval
         }
     };
-    return (<>
-        <form onSubmit={e => e.preventDefault()} className={classNames(style.settingsForm)}>
+    return (<div className={classNames(style.settingsForm)}>
+        <form onSubmit={e => e.preventDefault()}>
             <label htmlFor="currentVersion">Current version:</label>
             <output id="currentVersion">{currentVersion}</output>
             <label htmlFor="availableVersion">Available version:</label>
@@ -48,7 +48,7 @@ export function UpdatesSettings ({currentVersion, availableVersion, lastCheck, c
                 </span>
             </output>
             <hr/>
-            <label htmlFor="checkPeriod">Check updates: </label>
+            <label htmlFor="checkPeriod">Perform update checks: </label>
             <select id="checkPeriod" onChange={e => onCheckPeriodChange(e, updatePeriod)} value={checkPeriod}>
                 <option value={UpdatePeriod.manual}>Manually</option>
                 <option value={UpdatePeriod.daily}>Daily</option>
@@ -76,8 +76,17 @@ export function UpdatesSettings ({currentVersion, availableVersion, lastCheck, c
                     </select>
                 </div>
             }
+            <hr/>
+            <label htmlFor="clearData">App data: </label>
+            <output id="clearData">
+                <button type="button" onClick={singleEvent(() => openClearDataDialog())}>Clear All</button>
+            </output>
         </form>
-    </>);
+    </div>);
+}
+
+function openClearDataDialog () {
+    return sendToMain('delete-data', action(ActionTypes.showDeleteAllAccountsDataDialog));
 }
 
 function preventNonDigitKeys (event: React.KeyboardEvent<HTMLInputElement>) {

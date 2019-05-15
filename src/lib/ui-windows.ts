@@ -34,12 +34,27 @@ export async function openSettingsWindow () {
     });
 }
 
+export function openClearDataWindow () {
+    return new Promise<BrowserWindow>(resolve => {
+        openDialogWindow(
+            './clear-data.html',
+            {
+                width: 430,
+                height: 300,
+                parent: null
+            },
+            (window) => resolve(window)
+        );
+    });
+}
+
 export function openAboutWindow () {
     return openOrFocus('about', () => openWindow('./about.html', {
         frame: true,
         width: 450,
         titleBarStyle: 'default',
-        height: 270,
+        height: 300,
+        center: true,
         parent: null
     }));
 }
@@ -114,4 +129,12 @@ async function openOrFocus (windowName: string, openFunction: () => BrowserWindo
         });
         return window;
     }
+}
+
+
+export function closeAllWindows () {
+    BrowserWindow.getAllWindows().forEach(window => {
+        window.setClosable(true);
+        window.close();
+    });
 }

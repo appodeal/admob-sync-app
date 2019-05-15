@@ -23,6 +23,7 @@ type FinishPromise = Promise<any>;
 
 export class SyncService {
     private activeSyncs = new Map<Sync, FinishPromise>();
+    private destroying = false;
 
 
     constructor (private store: Store, private appodealApi: AppodealApi, private onlineService: OnlineService) {
@@ -34,7 +35,7 @@ export class SyncService {
      * @param admobAccount
      */
     public canRun (admobAccount: AdMobAccount) {
-        return ![...this.activeSyncs.keys()].some(sync => sync.adMobAccount.id === admobAccount.id);
+        return !this.destroying && ![...this.activeSyncs.keys()].some(sync => sync.adMobAccount.id === admobAccount.id);
     }
 
 
@@ -56,10 +57,14 @@ export class SyncService {
                 return reject(new Error('Can not run sync. App version is OutDated!'));
             }
 
+            if (!admobAccount.isReadyForReports) {
+                console.log('[Sync Service] Can not run sync. AdMob account is not ready. Setup is required!');
+                return reject(new Error('Can not run sync. AdMob account is not ready. Setup is required!'));
+            }
+
             const admobSession = await AdMobSessions.getSession(admobAccount);
 
-            if (!admobSession) {
-                await SyncHistory.setAuthorizationRequired(admobAccount);
+            if (!admobSession || (await SyncHistory.getHistory(admobAccount)).admobAuthorizationRequired) {
                 console.warn(`[Sync Service] [${admobAccount.id} ${admobAccount.email}] can not run sync. User has to Sign In in account first.`);
                 return reject(new Error(`Can not run sync for ${admobAccount.email}. User has to Sign In in account first.`));
             }
@@ -169,6 +174,7 @@ export class SyncService {
     }
 
     public destroy () {
+        this.destroying = true;
         return Promise.all(
             [...this.activeSyncs.entries()].map(
                 ([sync, finishPromise]: [Sync, Promise<any>]) =>

@@ -1,17 +1,17 @@
-import {ipcMain, ipcRenderer, remote} from 'electron';
+import {ipcMain, ipcRenderer} from 'electron';
 import {Action} from 'lib/actions';
 import uuid from 'uuid';
 
 
 export function onActionFromRenderer (channel: string, cb: (action: Action) => void): Function {
     let listener = ({sender}, {id, action}: { id: string, action: Action }) => {
+        const send = (channel, ...args) => sender.isDestroyed() ? null : sender.send(channel, ...args);
         Promise.resolve()
             .then(() => cb(action))
             .then(result => {
-                sender.send(`${channel}:response:${id}`, {error: null, result});
-            })
-            .catch(error => {
-                sender.send(`${channel}:response:${id}`, {error: errorToJson(error), result: null});
+                send(`${channel}:response:${id}`, {error: null, result});
+            }, error => {
+                send(`${channel}:response:${id}`, {error: errorToJson(error), result: null});
             });
     };
     ipcMain.on(channel, listener);
@@ -36,11 +36,7 @@ export function sendToMain<T> (channel: string, action: Action): Promise<T> {
 
 
 export function onMessageFromMain<T = any> (channel: string, callback: (message: T) => void) {
-    ipcRenderer.on(channel, (event, message) => {
-        if (event.sender !== remote.getCurrentWindow().webContents) {
-            callback(message);
-        }
-    });
+    ipcRenderer.on(channel, (event, message) => callback(message));
 }
 
 

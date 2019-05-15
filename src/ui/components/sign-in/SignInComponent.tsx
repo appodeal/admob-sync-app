@@ -17,7 +17,7 @@ export function SignIn ({account}: SignInProps) {
         <img className={classNames(style.logo)} src={require('ui/assets/images/logo-red.svg')} alt="Appodeal" draggable={false}/>
         <form onSubmit={singleEvent(e => onSubmit(e, account))}>
             <label htmlFor="email">Email:</label>
-            <input type="email" name="email" id="email" disabled={!!account} defaultValue={account ? account.email : ''}/>
+            <input type="email" name="email" id="email" defaultValue={account ? account.email : ''}/>
             <label htmlFor="password">Password:</label>
             <input type="password" name="password" id="password"/>
             <div className={classNames('actions')}>

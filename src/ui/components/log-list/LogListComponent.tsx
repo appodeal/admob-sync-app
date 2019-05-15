@@ -13,6 +13,7 @@ import style from './LogList.scss';
 
 
 interface LogListComponentProps {
+    activeSyncId: string | null;
     historyInfo: SyncHistoryInfo;
     admobAccount: AdMobAccount;
     appodealAccountId: string;
@@ -53,13 +54,13 @@ export class LogListComponent extends React.Component<LogListComponentProps> {
     }
 
     statusIcon (syncInfo: SyncInfo) {
-        if (!syncInfo.endTs) {
+        if (syncInfo.id === this.props.activeSyncId) {
             return <Tooltip content="Syncing...">
                 <img className={style.syncing} src={require('../../assets/images/tray/win-syncing/syncing-1.svg')}/>
             </Tooltip>;
         }
 
-        if (syncInfo.terminated) {
+        if (syncInfo.terminated || !syncInfo.endTs) {
             return <Tooltip content="Sync was terminated"><img src={require('../../assets/images/sync-status/times-round.svg')}/></Tooltip>;
         }
 

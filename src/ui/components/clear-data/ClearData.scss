@@ -1,0 +1,12 @@
+:global body {
+  --title-height: 0px;
+}
+
+.root {
+  button {
+    float: right;
+  }
+  button + button {
+    margin: 0 10px;
+  }
+}

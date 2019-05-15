@@ -1,13 +1,14 @@
-import React from "react";
-import style from "./About.scss";
-import {sendToMain} from "lib/messages";
-import {action, ActionTypes} from "lib/actions";
+import {action, ActionTypes} from 'lib/actions';
+import {sendToMain} from 'lib/messages';
+import React from 'react';
+import style from './About.scss';
+
 
 interface AboutProps {
     packageInfo: any
 }
 
-export function About({packageInfo}: AboutProps) {
+export function About ({packageInfo}: AboutProps) {
     let yearStart = 2019,
         yearEnd = new Date().getFullYear();
     return (<div className={style.about}>
@@ -20,10 +21,18 @@ export function About({packageInfo}: AboutProps) {
             packageInfo.author}
         </p>
         <p className={style.links}>
-            <a href='#' onClick={event => {
+            <a href={'#'} onClick={event => {
                 event.preventDefault();
-                sendToMain('about', action(ActionTypes.openPrivacyPolicy)).then(() => window.close())
-            }}>Privacy Policy</a>
+                sendToMain('about', action(ActionTypes.openPrivacyPolicy)).then(() => window.close());
+            }}
+            >Privacy Policy</a>
         </p>
-    </div>)
+        <p className={style.links}>
+            Powered by Electron. <a href={'#'} onClick={event => {
+            event.preventDefault();
+            sendToMain('about', action(ActionTypes.openElectronLicence)).then(() => window.close());
+        }}
+        >Electron License</a>
+        </p>
+    </div>);
 }

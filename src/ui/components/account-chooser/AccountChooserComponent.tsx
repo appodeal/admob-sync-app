@@ -48,8 +48,9 @@ export function AccountChooser ({appodealAccounts, selectedAccount, multipleAcco
                     ? <button type="button" onClick={singleEvent(manageAccounts)}>Manage accounts</button>
                     : <>
                         {!appodealAccounts[0].active &&
-                        <button type="button" onClick={singleEvent(() => reSignIn(appodealAccounts[0]))}>Resign in</button>}
-                        <button type="button" onClick={singleEvent(() => signOut(selectedAccount))}>Sign Out</button>
+                        <button type="button" onClick={singleEvent(() => reSignIn(appodealAccounts[0]))}>Sign in</button>}
+                        {appodealAccounts[0].active &&
+                        <button type="button" onClick={singleEvent(() => signOut(selectedAccount))}>Sign Out</button>}
                     </>
             )
 
@@ -98,7 +99,7 @@ function manageAccounts () {
 async function signOut (account: UserAccount) {
     let button = await messageDialog(
         `Confirm signing out from account "${account.email}".`,
-        'Account will be removed.',
+        '',
         [
             {
                 primary: true,

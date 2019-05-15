@@ -9,9 +9,15 @@ export enum ActionTypes {
     adMobAddAccount = 'adMobAddAccount',
     adMobSetupTutorial = 'adMobSetupTutorial',
     adMobSetCredentials = 'adMobSetCredentials',
+    adMobSetupAccount = 'adMobSetupAccount',
+    adMobSetupState = 'adMobSetupState',
+    adMobCancelSetup = 'adMobCancelSetup',
     runSync = 'RunSync',
     openAdmobPage = 'openAdmobPage',
     selectAccount = 'selectAdmobAccount',
+    hideDeleteAllAccountsDataDialog = 'hideDeleteAllAccountsDataDialog',
+    showDeleteAllAccountsDataDialog = 'showDeleteAllAccountsDataDialog',
+    deleteAllAccountsData = 'deleteLocalData',
     selectAppodealAccount = 'selectAppodealAccount',
     openLogFile = 'openLogFile',
     submitLogToAppodeal = 'submitLogToAppodeal',
@@ -24,6 +30,7 @@ export enum ActionTypes {
     addAppodealAccount = 'addAppodealAccount',
     manageAppodealAccounts = 'manageAppodealAccounts',
     packageInfo = 'packageInfo',
+    openElectronLicence = 'openElectronLicence',
     openPrivacyPolicy = 'openPrivacyPolicy'
 }
 

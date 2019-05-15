@@ -2,14 +2,21 @@ import {app, Session} from 'electron';
 import fs from 'fs-extra';
 import path from 'path';
 
+function copyValue (target, value) {
+    if (isObject(value)) {
+        return deepAssign(target || {}, value);
+    } else {
+        return value;
+    }
+}
 
 export function deepAssign<T> (target: Partial<T>, ...sources: Array<Partial<T>>): T {
     for (let source of sources) {
         for (let [key, value] of objectIterator(source)) {
-            if (isObject(value)) {
-                target[key] = deepAssign(target[key] || {}, value);
+            if (Array.isArray(value)) {
+                target[key] = value.map(item => copyValue(null, item)) as unknown as T[keyof T];
             } else {
-                target[key] = value;
+                target[key] = copyValue(target[key], value);
             }
         }
     }

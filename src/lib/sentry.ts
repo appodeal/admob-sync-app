@@ -3,6 +3,8 @@ import {SentryEvent} from '@sentry/electron';
 import {init} from '@sentry/electron/dist/main';
 import {SentryEventHint} from '@sentry/types';
 
+import * as pkgInfo from '../../package.json';
+
 
 export const Sentry = SentryElectron;
 
@@ -14,6 +16,11 @@ export function initBugTracker (sentryOptions: SentryOptions) {
         init({
             ...sentryOptions,
             beforeSend (event: SentryEvent, hint?: SentryEventHint): SentryEvent {
+
+                event.release = pkgInfo.version;
+                if (event.contexts.app) {
+                    event.contexts.app['build_type'] = environment.development ? 'dev' : 'prod';
+                }
                 // to extend error context
                 if (hint && hint.originalException) {
                     if (hint.originalException['extraInfo']) {

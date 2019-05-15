@@ -7,7 +7,7 @@ import {AppodealAccount} from 'core/appdeal-api/interfaces/appodeal.account.inte
 import {OnlineService} from 'core/appdeal-api/online.service';
 import {SyncHistory, SyncHistoryInfo} from 'core/sync-apps/sync-history';
 import {SyncEvent, SyncEventsTypes, SyncReportProgressEvent} from 'core/sync-apps/sync.events';
-import {BrowserWindow, Notification} from 'electron';
+import {BrowserWindow, Notification, screen} from 'electron';
 import {AppodealAccountState, UserAccount} from 'interfaces/common.interfaces';
 import {getAppVersion} from 'lib/about';
 import {ActionTypes} from 'lib/actions';
@@ -29,6 +29,17 @@ export interface SyncProgress {
     lastEvent: SyncEventsTypes.ReportProgress | SyncEventsTypes.CalculatingProgress | SyncEventsTypes.Started | SyncEventsTypes.Stopped;
 }
 
+
+export interface SetupProgress {
+    percent: number;
+    state: 'idle' | 'progress' | 'error'
+}
+
+export interface AccountSetupState {
+    mode: 'auto' | 'manual';
+    visible: boolean;
+}
+
 export interface AppState {
     selectedAccount: {
         account: AdMobAccount;
@@ -36,6 +47,8 @@ export interface AppState {
     selectedAppodealAccount: AppodealAccount;
     syncHistory: Record<AccountID, SyncHistoryInfo>;
     syncProgress: Record<AccountID, SyncProgress | undefined>;
+    setupProgress: Record<AccountID, SetupProgress>;
+    accountSetup: Record<AccountID, AccountSetupState>;
     preferences: AppPreferences;
     online: boolean;
     outdatedVersion: boolean;
@@ -53,6 +66,8 @@ export class Store {
         selectedAppodealAccount: null,
         syncHistory: {},
         syncProgress: {},
+        setupProgress: {},
+        accountSetup: {},
         preferences: null,
         online: false,
         outdatedVersion: false,
@@ -118,12 +133,12 @@ export class Store {
             return acc;
         }, {});
 
-        set<AppState>(this.state, 'syncHistory', {...(this.state.syncHistory || {}), ...syncHistory});
+        set<AppState>(this.state, 'syncHistory', deepAssign({}, (this.state.syncHistory || {}), syncHistory));
     }
 
     async updateAdMobAccountInfo (account: Pick<AdMobAccount, 'id'>) {
         const history = await SyncHistory.getHistory(account);
-        set<AppState>(this.state, 'syncHistory', {...(this.state.syncHistory || {}), [account.id]: history});
+        set<AppState>(this.state, 'syncHistory', deepAssign({}, (this.state.syncHistory || {}), {[account.id]: history}));
     }
 
 
@@ -197,7 +212,7 @@ export class Store {
         }
         this.updatedID = setTimeout(() => {
             this.updatedID = null;
-            set<AppState>(this.state, 'syncProgress', {...this.state.syncProgress});
+            set<AppState>(this.state, 'syncProgress', deepAssign({}, this.state.syncProgress));
         }, 500);
     }
 
@@ -299,6 +314,7 @@ export class Store {
                         let oldState = accountsState.get(accountId);
                         updatedAccounts.push({
                             ...oldState,
+                            id: accountId,
                             active: !!account,
                             email: account && account.email ? account.email : oldState.email
                         });
@@ -310,12 +326,11 @@ export class Store {
                     }
                 });
                 this.appodealAccounts = accounts;
-                if (!this.state.selectedAppodealAccount) {
-                    this.selectAppodealAccount(updatedAccounts[0] || null);
-                } else {
-                    this.selectAppodealAccount(this.state.selectedAppodealAccount);
-                }
-
+                let accountsArray = [...accounts.values()];
+                let toSelect = this.state.selectedAppodealAccount
+                    ? accountsArray.find(acc => acc.id === this.state.selectedAppodealAccount.id)
+                    : accountsArray[0];
+                await this.selectAppodealAccount(toSelect || null);
                 return accounts;
             });
     }
@@ -332,7 +347,7 @@ export class Store {
     }
 
     @action
-    async addAdMobAccount (appodealAccountId: string) {
+    async addAdMobAccount (appodealAccountId: string): Promise<{ newAccount: AdMobAccount, existingAccount: AdMobAccount }> {
         let account = await AdMobSessions.signIn();
         if (account) {
             let existingAccount = this.state.selectedAppodealAccount.accounts.find(acc => acc.id === account.id);
@@ -342,7 +357,7 @@ export class Store {
                     await this.fetchAllAppodealUsers();
                     return {
                         existingAccount: null,
-                        newAccount: account
+                        newAccount: this.state.selectedAppodealAccount.accounts.find(acc => acc.id === account.id)
                     };
                 } else {
                     throw new Error(`Can't create AdMob account`);
@@ -366,26 +381,33 @@ export class Store {
     ) {
         return this.appodealApi.getFor(appodealAccountId).setAdMobAccountCredentials(accountId, clientId, clientSecret)
             .then(async oAuthUrl => {
+                const {height} = screen.getPrimaryDisplay().workAreaSize;
                 let window = await openWindow(oAuthUrl, {
                     frame: true,
                     titleBarStyle: 'default',
-                    width: 400,
-                    minWidth: 400,
+                    width: 500,
+                    minHeight: Math.min(600, height),
+                    height: Math.min(700, height),
+                    minWidth: 500,
                     webPreferences: {
                         session: AdMobSessions.getSession(accountId)
                     }
                 });
-                if (environment.development) {
-                    window.webContents.once('login', async (event, request, authInfo, callback) => {
-                        let {login, password} = environment.basicAuth;
-                        callback(login, password);
-                    });
-                }
-                await waitForNavigation(window, /\/admob_plugin\/api\/v3\/oauth\/success/);
-                window.close();
+                window.webContents.once('login', async (event, request, authInfo, callback) => {
+                    let {login, password} = environment.basicAuth;
+                    callback(login, password);
+                });
+
+                await waitForNavigation(window, /\/admob_plugin\/api\/v3\/oauth\/success/)
+                    .then(() => window.close())
+                    .catch(() => {});
+
             })
             .then(() => this.fetchAppodealUser(appodealAccountId))
-            .then(account => this.selectAppodealAccount(account));
+            .then(account => this.selectAppodealAccount(account))
+            .then(() => this.selectAdMobAccount(
+                this.state.selectedAppodealAccount.accounts.find(acc => acc.id === accountId)
+            ));
     }
 
     @action
@@ -461,8 +483,58 @@ Do you what to add new Account (${resultAccount.email})?`
 
     @action
     async patchPreferences (patch: Partial<{ [P in keyof AppPreferences]: Partial<AppPreferences[P]> }>) {
-        set<AppState>(this.state, 'preferences', deepAssign({...this.state.preferences}, patch));
-        await Preferences.save(this.state.preferences);
+        let newPreferences = deepAssign<AppPreferences>({}, this.state.preferences, patch as AppPreferences);
+        set<AppState>(this.state, 'preferences', newPreferences);
+        await Preferences.save(newPreferences);
+    }
+
+
+    @action
+    startAccountSetup (accountId: string) {
+        set<AppState>(this.state, 'setupProgress', deepAssign({}, this.state.setupProgress, {
+            [accountId]: <SetupProgress>{
+                state: 'idle',
+                percent: 0
+            }
+        }));
+    }
+
+    @action
+    setAccountSetupProgress (accountId: string, percent: number) {
+        set<AppState>(this.state, 'setupProgress', deepAssign({}, this.state.setupProgress, {
+            [accountId]: {
+                state: 'progress',
+                percent
+            }
+        }));
+    }
+
+    @action
+    errorAccountSetup (accountId: string) {
+        set<AppState>(this.state, 'setupProgress', deepAssign({}, this.state.setupProgress, {
+            [accountId]: {
+                state: 'error',
+                percent: 0
+            }
+        }));
+    }
+
+    @action
+    removeAccountSetup (accountId: string) {
+        let newProgress = deepAssign({}, this.state.setupProgress);
+        delete newProgress[accountId];
+        set<AppState>(this.state, 'setupProgress', newProgress);
+    }
+
+
+    @action
+    setupState (accountId: string, {visible, mode}: AccountSetupState) {
+        set<AppState>(this.state, 'accountSetup', deepAssign({}, this.state.accountSetup, {
+            [accountId]: {
+                visible,
+                mode
+            }
+        }));
     }
 
 }

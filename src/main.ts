@@ -7,8 +7,10 @@ import {AppodealApi} from 'core/appdeal-api/appodeal-api.factory';
 import {AppodealSessions} from 'core/appdeal-api/appodeal-sessions.helper';
 import {AuthContext} from 'core/appdeal-api/auth-context';
 import {OnlineService} from 'core/appdeal-api/online.service';
+import {DeleteDataConnector} from 'core/delete-data-connector';
 import {ErrorFactoryService} from 'core/error-factory/error-factory.service';
 import {AuthorizationError} from 'core/error-factory/errors/authorization.error';
+import {InternalError} from 'core/error-factory/errors/internal-error';
 import {LogsConnector} from 'core/logs-connector';
 import {OnlineConnector} from 'core/online-connector';
 import {Store} from 'core/store';
@@ -20,13 +22,13 @@ import {app} from 'electron';
 import {createAppMenu} from 'lib/app-menu';
 import {Preferences} from 'lib/app-preferences';
 import {AppTray} from 'lib/app-tray';
+import {hideDock} from 'lib/dock';
 import {initBugTracker, Sentry} from 'lib/sentry';
 import {initThemeSwitcher} from 'lib/theme';
 import {TrayIcon} from 'lib/tray-icon';
-import {openAppodealAccountsWindow, openAppodealSignInWindow} from 'lib/ui-windows';
+import {closeAllWindows, openAppodealAccountsWindow, openAppodealSignInWindow} from 'lib/ui-windows';
 import {UpdatesService} from 'lib/updates';
-import * as path from 'path';
-import {hideDock} from './lib/dock';
+import path from 'path';
 
 
 if (environment.development) {
@@ -40,8 +42,9 @@ initBugTracker(environment.sentry);
 initThemeSwitcher();
 
 hideDock();
+
 app.on('window-all-closed', () => {});
-app.on('ready', async () => {
+app.whenReady().then(async () => {
 
     // APP INITIALIZERS
     let [preferences] = await Promise.all([
@@ -68,7 +71,8 @@ app.on('ready', async () => {
         logsConnector = new LogsConnector(store, appodealApi),
         onlineConnector = new OnlineConnector(store),
         syncScheduler = new SyncScheduler(syncService, store, onlineService),
-        syncConnector = new SyncConnector(store, syncService);
+        syncConnector = new SyncConnector(store, syncService),
+        deleteDataConnector = new DeleteDataConnector(store, syncService);
 
     // EVENTS
     appodealApi.onError.subscribe(async ({account, error}) => {
@@ -84,7 +88,7 @@ app.on('ready', async () => {
                 }
             });
             for (let acc of store.state.preferences.accounts.appodealAccounts) {
-                if (!acc.active) {
+                if (!acc.active && !store.state.outdatedVersion) {
                     await openAppodealSignInWindow(acc);
                 }
             }
@@ -98,7 +102,12 @@ app.on('ready', async () => {
         store.validateAppVersion()
             .then(async versionValid => {
                 if (!versionValid) {
-                    updates.availableDist.showUpdateDialog();
+                    if (!updates.availableDist) {
+                        await updates.check();
+                    }
+                    if (updates.availableDist) {
+                        return updates.availableDist.showUpdateDialog();
+                    }
                     return;
                 }
                 await store.fetchAllAppodealUsers();
@@ -117,16 +126,20 @@ app.on('ready', async () => {
                     }
                 }
             })
-            .then(() => store.updateUserWhenOnline())
             .catch(e => {
                 console.error('FAILED TO FETCH CURRENT USER');
-                Sentry.captureException(e);
+                if (e instanceof InternalError && e.isCritical() || !(e instanceof InternalError)) {
+                    Sentry.captureException(e);
+                }
+                onlineService.setOffline();
                 console.log(e);
-            });
+            })
+            .then(() => store.updateUserWhenOnline());
     });
 
 
     const cleanUpOnExit = () => Promise.all([
+        closeAllWindows(),
         trayIcon.destroy(),
         tray.destroy(),
         onlineConnector.destroy(),
@@ -137,7 +150,8 @@ app.on('ready', async () => {
         syncService.destroy(),
         updatesConnector.destroy(),
         onlineService.destroy(),
-        syncScheduler.destroy()
+        syncScheduler.destroy(),
+        deleteDataConnector.destroy()
     ]);
 
     onlineService.on('statusChange', isOnline => {
