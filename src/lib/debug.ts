@@ -48,6 +48,14 @@ export class Debug {
         return this.getHTML(nodeIdOrSelector).then(html => html.inner);
     }
 
+    getTextContents (selector: string): Promise<Array<string>> {
+        return this.exec('Runtime.evaluate', 'result', {
+            returnByValue: true,
+            expression: `[...document.querySelectorAll('${selector}')].map(el => el.textContent);`
+        })
+            .then(result => result.value);
+    }
+
     async focus (nodeId: number): Promise<void> {
         return this.exec('DOM.focus', null, {nodeId});
     }

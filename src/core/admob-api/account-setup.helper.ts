@@ -261,7 +261,6 @@ export class AccountSetup extends EventEmitter {
         const allowedCallbackInput = 'form[name="redirectUriForm"] input[ng-model="ctrl.uriInput"]';
         const submitBtn = 'button[type="submit"]';
         const closeModalBtn = 'pan-modal-action[name="cancel"]';
-        const dataSelector = '.p6n-kv-list-value';
 
         this.runner.createTask(() => this.debug.waitElementVisible(dropDownBtn)
             .catch(() => this.debug.waitElementVisible(credentialLabel)));
@@ -304,25 +303,11 @@ export class AccountSetup extends EventEmitter {
         this.runner.createTask(() => this.debug.scrollIntoView(submitBtn));
         this.runner.createTask(() => this.debug.click(submitBtn));
         this.runner.createTask(() => this.debug.waitElement(closeModalBtn));
-        this.runner.createTask(() => this.debug.click(closeModalBtn));
-        this.runner.createTask(() => this.debug.wait(1000));
-
-        // open client
         this.runner.createTask(async () => {
-            let clientLabelIds = await this.debug.querySelectorAll(credentialLabel),
-                clientLabels = await Promise.all(clientLabelIds.map(nodeId => this.debug.getInnerHTML(nodeId))),
-                clientIndex = clientLabels.indexOf(CLIENT_NAME);
-            await this.debug.click(`tbody tr:nth-child(${clientIndex + 1}) .p6n-api-credential-table-label a`);
-        }, 'openClient');
-        this.runner.createTask(() => this.debug.waitElement(submitBtn));
-        let nodeIds: Array<number>;
-        this.runner.createTask(async () => nodeIds = await this.debug.querySelectorAll(dataSelector));
-        this.runner.createTask(async () => {
-            let [clientId, clientSecret] = await Promise.all(nodeIds.map(nodeId => this.debug.getInnerHTML(nodeId)));
-            this.clientId = clientId;
-            this.clientSecret = clientSecret;
+            let [clientId, clientSecret] = await this.debug.getTextContents('[type="key-selector"] ng-transclude');
+            this.clientId = clientId.trim();
+            this.clientSecret = clientSecret.trim();
         });
-        this.runner.createTask(() => this.debug.click(submitBtn));
     }
 
 
