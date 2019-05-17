@@ -155,10 +155,13 @@ export class AccountSetup extends EventEmitter {
         this.runner.createTask(() => this.debug.waitElementVisible(newProjectBtn).catch(() => {
             this.runner.returnTo('find');
         }));
-        this.runner.createTask(() => this.debug.wait(500));
+        this.runner.createTask(() => this.debug.wait(500), 'searchProject');
+        this.runner.createTask(() => this.debug.waitElementVisible(searchInput));
         this.runner.createTask(() => this.debug.enterText(PROJECT_NAME, searchInput));
         this.runner.createTask(() => this.debug.wait(500));
-        this.runner.createTask(async () => projectNodeId = await this.debug.waitElement(projectNameSelector).catch(() => 0));
+        this.runner.createTask(async () => projectNodeId = await this.debug.waitElement(projectNameSelector).catch(() => {
+            this.runner.returnTo('searchProject');
+        }));
         this.runner.createTask(async () => {
             if (projectNodeId) {
                 projectName = await this.debug.getInnerHTML(projectNodeId);
@@ -221,7 +224,6 @@ export class AccountSetup extends EventEmitter {
             let urlData = url.parse(await this.debug.getCurrentUrl());
             await this.debug.navigate(urlData.href.replace(/(api|library)\/adsense\.googleapis\.com(\/overview)?/, 'credentials/consent'));
         }, 'redirectToOAuth');
-        this.runner.createTask(() => this.debug.wait(1000));
     }
 
     fillOAuthAppData () {
@@ -229,19 +231,36 @@ export class AccountSetup extends EventEmitter {
         const appDomainSelector = '.p6n-apiui-auth-domain';
         const appDomainInput = 'input[ng-model="ctrl.domainInput"]';
         const saveBtn = '#api-consent-save:not([disabled])';
+        const supportEmailSelect = 'jfk-select[ng-model*="supportEmail"] .jfk-select';
+        const supportEmailOption = 'jfk-menu[ng-model*="supportEmail"] jfk-menu-item';
 
-        this.runner.createTask(() => this.debug.waitElementVisible(appNameInput).catch(() => {}));
+        this.runner.createTask(() => this.debug.wait(1000), 'fillOAuth');
+        this.runner.createTask(() => this.debug.waitElementVisible(appNameInput, 2000).catch(() => {
+            this.runner.returnTo('fillOAuth');
+        }));
         this.runner.createTask(() => this.debug.wait(500));
         this.runner.createTask(() => this.debug.enterText(APP_NAME, appNameInput));
+        this.runner.createTask(() => this.debug.click(supportEmailSelect));
+        this.runner.createTask(() => this.debug.waitElementVisible(supportEmailOption));
+        this.runner.createTask(async () => {
+            let nodeIds = await this.debug.querySelectorAll(supportEmailOption),
+                texts = await this.debug.getTextContents(supportEmailOption),
+                index = texts.findIndex(text => text.trim() === this.account.email);
+            if (index !== -1) {
+                await this.debug.click(nodeIds[index]);
+            }
+        });
+        this.runner.createTask(() => this.debug.wait(500));
         this.runner.createTask(() => this.fillOnlyAbsent(DOMAINS, appDomainSelector, appDomainInput));
         this.runner.createTask(async () => {
-            let hasChanges = await this.debug.isElementExistsAndVisible(saveBtn, 5000);
+            let hasChanges = await this.debug.isElementExistsAndVisible(saveBtn, 2000);
             if (!hasChanges) {
                 this.runner.skipTo('redirectToCredentials');
             }
         });
         this.runner.createTask(() => this.debug.scrollIntoView(saveBtn));
         this.runner.createTask(() => this.debug.click(saveBtn));
+        this.runner.createTask(() => this.debug.wait(2000));
         this.runner.createTask(async () => {
             let urlData = url.parse(await this.debug.getCurrentUrl());
             await this.debug.navigate(urlData.href.replace(/credentials\/consent/, 'credentials'));
@@ -288,7 +307,9 @@ export class AccountSetup extends EventEmitter {
                 await this.fillInput(text, 'md-dialog .p6n-form-row-input input');
                 await this.debug.click(`.p6n-modal-action-button[name="delete"]`);
             })
-            .catch(() => {}));
+            .catch(async () => {
+                await this.debug.wait(1000);
+            }));
 
         // create client
         this.runner.createTask(() => this.debug.click(dropDownBtn), 'createClient');
