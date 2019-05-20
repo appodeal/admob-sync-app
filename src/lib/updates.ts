@@ -6,6 +6,8 @@ import {nodeFetch} from 'lib/fetch';
 import {getOsName} from 'lib/platform';
 import {messageDialog} from 'lib/window';
 import Timeout = NodeJS.Timeout;
+
+
 const semver = require('semver');
 
 
@@ -85,12 +87,14 @@ export class UpdatesService extends EventEmitter {
     }
 
     private async fetchDistInfo (): Promise<DistInfo> {
-        let updatesServerUrl = process.env.ADMOB_SYNC_UPDATE_SERVER ||environment.updates.updatesServerUrl,
+        let updatesServerUrl = process.env.ADMOB_SYNC_UPDATE_SERVER || environment.updates.updatesServerUrl,
             response = await nodeFetch<{ [key: string]: DistInfo }>(`${updatesServerUrl}/dist-info.json`, {
                 headers: {
-                    'cache-control': 'no-cache',
+                    'cache-control': 'no-cache'
                 }
-            }).then(r => r.json(), () => null),
+            })
+                .then(r => r.json())
+                .catch(() => null),
             osName = getOsName();
         this.lastCheck = new Date();
         return response && response[osName] || null;
