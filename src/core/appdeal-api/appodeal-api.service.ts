@@ -194,10 +194,9 @@ export class AppodealApiService {
     signOut () {
         return this.mutate({
             mutation: signOutMutation
-        }).then(res => {
-            this.authContext.remove();
+        }).finally(async () => {
+            await this.authContext.remove();
             this.authContext.removeAllListeners();
-            return res;
         });
     }
 

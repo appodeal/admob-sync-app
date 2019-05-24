@@ -8,6 +8,7 @@ import {InternalError} from 'core/error-factory/errors/internal-error';
 import EventEmitter from 'events';
 import {UserAccount} from 'interfaces/common.interfaces';
 import PushStream from 'zen-push';
+import {NetworkError} from '../error-factory/errors/network/network-error';
 
 
 export class AppodealApi extends EventEmitter {
@@ -59,11 +60,16 @@ export class AppodealApi extends EventEmitter {
         return account;
     }
 
-    async signOut (account: UserAccount | string) {
+    /**
+     *
+     * @param account
+     * @param silent if == true no signOut event will be emitted
+     */
+    async signOut (account: UserAccount | string, silent = false) {
         let accountId = account instanceof Object ? account.id : account,
             api = this.getFor(accountId);
         await api.signOut().catch((error: InternalError) => {
-            if (!(error instanceof AuthorizationError)) {
+            if (!(error instanceof AuthorizationError || error instanceof NetworkError)) {
                 throw error;
             } else {
                 error.isHandled = true;
@@ -71,7 +77,9 @@ export class AppodealApi extends EventEmitter {
         });
         this.destroyApi(accountId);
         await AppodealSessions.remove(accountId);
-        this.emit('signOut', account);
+        if (!silent) {
+            this.emit('signOut', account);
+        }
     }
 
     async fetchAllAccounts (): Promise<Map<string, AppodealAccount>> {
