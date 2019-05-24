@@ -347,6 +347,15 @@ export class AccountSetup extends EventEmitter {
             itemsToAdd = texts.filter(text => !existingItems.has(text));
         for (let text of itemsToAdd) {
             await this.fillInput(text, inputSelector);
+
+            await this.debug.waitCondition(async () => {
+                // await filled node appearance
+                nodeIds = await this.debug.querySelectorAll(existingItemSelector);
+                existingItems = new Set(await Promise.all(
+                    nodeIds.map(nodeId => this.debug.getHTML(nodeId).then(html => html.inner))
+                ));
+                return existingItems.has(text);
+            });
         }
     }
 

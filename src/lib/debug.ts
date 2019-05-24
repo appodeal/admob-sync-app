@@ -149,6 +149,38 @@ export class Debug {
         return new Promise(resolve => setTimeout(() => resolve(), time));
     }
 
+    /**
+     * wait until condition return true or maxTime
+     * @param condition
+     * @param maxTime
+     */
+    waitCondition (condition: () => boolean | Promise<boolean>, maxTime = 20000): Promise<void> {
+        return new Promise((resolve, reject) => {
+            let lastError;
+            let timeout = setTimeout(() => {
+                clearTimeout(interval);
+                console.warn('[waitCondition] last Error', lastError);
+                reject(new Error(`Can't wait condition '${condition}' during ${maxTime}ms`));
+            }, maxTime);
+            let check = () => setTimeout(async () => {
+                let result;
+                try {
+                    result = await condition();
+                } catch (e) {
+                    lastError = e;
+                    result = false;
+                }
+                if (result) {
+                    clearTimeout(timeout);
+                    return setTimeout(() => resolve(), 500);
+                }
+                interval = check();
+            }, 500);
+
+            let interval = check();
+        });
+    }
+
     waitElement (selector: string, maxTime = 20000): Promise<number> {
         return new Promise((resolve, reject) => {
             let timeout = setTimeout(() => {
