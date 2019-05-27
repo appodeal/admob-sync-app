@@ -311,9 +311,11 @@ export class AccountSetup extends EventEmitter {
         this.runner.createTask(() => this.debug.wait(500), 'deleteClient');
         // click with injected script instead
         this.runner.createTask(async () => {
+            // function's name is changed during compression
+            // so that we have to explicitly give a name to getElementSelector function
             const result = await this.debug.evaluate(`                
                     new Promise(resolve => {
-                        ${getElementSelector.toString()}
+                        let getElementSelector = ${getElementSelector.toString()}
                         let targetLabel = [...document.querySelectorAll('${credentialLabel}')].find( a => a.innerText.trim() === '${CLIENT_NAME}');
                         if (targetLabel) {
                             let section = targetLabel.closest('tr'),
