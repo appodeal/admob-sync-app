@@ -55,7 +55,7 @@ export class AccountsConnector extends Connector {
             return this.store.setupState(payload.adMobAccount.id, {visible: false, mode: null});
         case ActionTypes.adMobShowSetup:
             let currentSetup = this.setups.get(payload.adMobAccount.id);
-            if (currentSetup) {
+            if (currentSetup && currentSetup.window) {
                 if (currentSetup.window.isVisible()) {
                     currentSetup.window.hide();
                 } else {

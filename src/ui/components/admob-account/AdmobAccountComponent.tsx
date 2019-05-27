@@ -95,6 +95,11 @@ export class AdmobAccountComponent extends Component<AdmobAccountComponentProps,
                                    setupState={setupState}
                                    appodealAccountId={this.props.appodealAccountId}
                 />
+                {!account.isReadyForReports && DEV_MODE && <>
+                    <div style={{marginBottom: '10px'}}>
+                        <button type="button" onClick={singleEvent(this.openAdMob, this)}>Open Admob (For developers only)</button>
+                    </div>
+                </>}
                 {account.isReadyForReports && <>
                     <div>
                         {
