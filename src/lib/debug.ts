@@ -238,11 +238,11 @@ export class Debug {
         await this.wait(300);
     }
 
-    evaluate (script: string) {
-        return this.exec('Runtime.evaluate', null, {
+    evaluate (script: string, property: string = null) {
+        return this.exec('Runtime.evaluate', property, {
             expression: script,
             awaitPromise: true
-        }).catch(() => {});
+        });
     }
 
     getCurrentUrl () {
