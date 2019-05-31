@@ -66,15 +66,27 @@ export function retryProxy<T extends object> (
             }
 
             return function (...args) {
-                return retryIfPromise(
-                    () => propValue.apply(target, args),
-                    retryCondition,
-                    maxAttempts,
-                    sleepBetweenMs
-                ).catch(e => {
-                    onEmitError ? onEmitError(e) : null;
+                let result;
+                try {
+                    result = retryIfPromise(
+                        () => propValue.apply(target, args),
+                        retryCondition,
+                        maxAttempts,
+                        sleepBetweenMs
+                    );
+                } catch (e) {
+                    if(onEmitError) {
+                        onEmitError(e)
+                    }
                     throw e;
-                });
+                }
+                if (result instanceof Promise) {
+                    result.catch(e => {
+                        onEmitError ? onEmitError(e) : null;
+                        throw e;
+                    });
+                }
+                return result;
             };
         }
     });
