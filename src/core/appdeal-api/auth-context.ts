@@ -26,7 +26,11 @@ export class AuthContext extends EventEmitter {
             accessToken,
             refreshToken
         });
-        await saveJsonFile(AuthContext.TOKENS_FILE, [...AuthContext.TOKENS.entries()].reduce((tokens, [accountId, tokensInfo]) => {
+        await AuthContext.saveTokensToFile();
+    }
+
+    private static saveTokensToFile () {
+        return saveJsonFile(AuthContext.TOKENS_FILE, [...AuthContext.TOKENS.entries()].reduce((tokens, [accountId, tokensInfo]) => {
             tokens[accountId] = tokensInfo;
             return tokens;
         }, {}));
@@ -78,17 +82,16 @@ export class AuthContext extends EventEmitter {
 
     remove () {
         console.log(`auth tokens for ${this.accountId} have been deleted`);
+        if (AuthContext.TOKENS.has(this.accountId)) {
+            // if new token is here we should not delete it
+            if (AuthContext.TOKENS.get(this.accountId).accessToken === this.accessToken) {
+                AuthContext.TOKENS.delete(this.accountId);
+            }
+        }
         this.refreshToken = null;
         this.accessToken = null;
-        return saveJsonFile(
-            AuthContext.TOKENS_FILE,
-            [...AuthContext.TOKENS.entries()]
-                .filter(([accountId]) => accountId !== this.accountId)
-                .reduce((data, [accountId, tokensInfo]) => {
-                    data[accountId] = tokensInfo;
-                    return data;
-                }, {})
-        );
+
+        return AuthContext.saveTokensToFile();
     }
 
     setTokensInfo ({accessToken, refreshToken}: { accessToken: string, refreshToken: string }) {

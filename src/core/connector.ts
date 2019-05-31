@@ -3,7 +3,7 @@ import {onActionFromRenderer} from 'lib/messages';
 
 
 const CHANNELS = new Map<string, Connector>();
-const SUBSCRIPTIONS = new WeakMap<Connector, {unsubscribe: Function}>();
+const SUBSCRIPTIONS = new WeakMap<Connector, { unsubscribe: Function }>();
 
 export abstract class Connector {
 
@@ -17,7 +17,10 @@ export abstract class Connector {
     }
 
     init () {
-        let unsubscribe = onActionFromRenderer(this.channelName, action => this.onAction(action));
+        let unsubscribe = onActionFromRenderer(this.channelName, action => this.onAction(action).catch(e => {
+            console.error(e);
+            throw e;
+        }));
         SUBSCRIPTIONS.set(this, {unsubscribe});
     }
 

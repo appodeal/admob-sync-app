@@ -15,7 +15,7 @@ interface SignInProps {
 export function SignIn ({account}: SignInProps) {
     return (<>
         <img className={classNames(style.logo)} src={require('ui/assets/images/logo-red.svg')} alt="Appodeal" draggable={false}/>
-        <form onSubmit={singleEvent(e => onSubmit(e, account))}>
+        <form onSubmit={singleEvent(e => onSubmit(e))}>
             <label htmlFor="email">Email:</label>
             <input type="email" name="email" id="email" defaultValue={account ? account.email : ''}/>
             <label htmlFor="password">Password:</label>
@@ -29,11 +29,11 @@ export function SignIn ({account}: SignInProps) {
 }
 
 
-function onSubmit (event: Event, account: AppodealAccountState) {
+function onSubmit (event: Event) {
     event.preventDefault();
     let formData = new FormData(event.target as HTMLFormElement);
     return sendToMain('accounts', action(ActionTypes.appodealSignIn, {
-        email: account ? account.email : formData.get('email'),
+        email: formData.get('email'),
         password: formData.get('password')
     }))
         .then(account => ipcRenderer.send('returnValue', account))
