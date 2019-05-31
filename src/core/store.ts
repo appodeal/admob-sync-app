@@ -432,10 +432,15 @@ export class Store {
 
     @action
     async addAppodealAccount (account: AppodealAccount) {
+        let otherAccounts = this.state.preferences.accounts.appodealAccounts.filter(acc => acc.id !== account.id);
+        if (!environment.multipleAccountsSupport) {
+            await Promise.all(otherAccounts.map(oldAccount => this.appodealApi.signOut(oldAccount, true)));
+            otherAccounts = [];
+        }
         await this.patchPreferences({
             accounts: {
                 appodealAccounts: [
-                    ...this.state.preferences.accounts.appodealAccounts.filter(acc => acc.id !== account.id),
+                    ...otherAccounts,
                     {
                         id: account.id,
                         email: account.email,

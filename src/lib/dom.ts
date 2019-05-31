@@ -59,3 +59,66 @@ function getButtonToDisable (event: React.SyntheticEvent): HTMLButtonElement {
 export function getFormElement<T = HTMLInputElement> (form: HTMLFormElement, fieldName: string): T {
     return form.elements.namedItem(fieldName) as unknown as T;
 }
+
+/**
+ * function is supposed to be stringifyed
+ * @param element
+ */
+export function getElementSelector (element: HTMLElement): string {
+    function isElement (el) {
+        let isElem;
+
+        if (typeof HTMLElement === 'object') {
+            isElem = el instanceof HTMLElement;
+        } else {
+            isElem = !!el && (typeof el === 'object') && el.nodeType === 1 && typeof el.nodeName === 'string';
+        }
+        return isElem;
+    }
+
+    function getNthChild (element) {
+        let counter = 0;
+        let k;
+        let sibling;
+        const {parentElement} = element;
+
+        if (Boolean(parentElement)) {
+            const {childNodes} = parentElement;
+            const len = childNodes.length;
+            for (k = 0; k < len; k++) {
+                sibling = childNodes[k];
+                if (isElement(sibling)) {
+                    counter++;
+                    if (sibling === element) {
+                        return `:nth-child(${counter})`;
+                    }
+                }
+            }
+        }
+        return '';
+    }
+
+
+    let results = [];
+    do {
+        const id = element.getAttribute('id');
+
+        if (id !== null && id !== '') {
+            // if the ID starts with a number selecting with a hash will cause a DOMException
+            results.push(id.match(/^\d/) ? `[id="${id}"]` : '#' + id);
+            break;
+        }
+
+        const tag = element.tagName.toLowerCase().replace(/:/g, '\\:'),
+            classes = Array.from(element.classList),
+            selector = [tag, ...classes].join('.');
+
+        if (selector.length) {
+            results.push(selector + getNthChild(element));
+        }
+        element = element.parentElement;
+    } while (element);
+
+    return results.reverse().filter(v => v).join(' > ');
+
+}
