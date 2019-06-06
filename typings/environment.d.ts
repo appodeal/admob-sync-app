@@ -21,14 +21,15 @@ declare interface Environment {
         releaseNotesUrl: string,
         updatesServerUrl: string
     };
-    readonly setupOptions: {
+    readonly setupOptions: Readonly<{
+        tutorialUrl: string,
         projectName: string,
         appName: string,
         clientName: string,
         domains: Array<string>,
         allowedJs: Array<string>,
         allowedCallbacks: Array<string>
-    };
+    }>;
 }
 
 declare const environment: Environment;
