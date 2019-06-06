@@ -15,8 +15,21 @@
   }
   .links {
     a {
-      color: #e11916;
+      color: #e1392e;
     }
   }
+
+
+  .separator {
+    display: inline-block;
+    border-width: 0 1px 0 0;
+    border-color: currentColor;
+    border-style: solid;
+    height: 1em;
+    vertical-align: middle;
+    width: 0;
+    margin: 0 10px;
+  }
 }
+
 

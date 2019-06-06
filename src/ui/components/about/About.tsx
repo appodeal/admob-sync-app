@@ -26,6 +26,12 @@ export function About ({packageInfo}: AboutProps) {
                 sendToMain('about', action(ActionTypes.openPrivacyPolicy)).then(() => window.close());
             }}
             >Privacy Policy</a>
+            <i className={style.separator} />
+            <a href={'#'} onClick={event => {
+                event.preventDefault();
+                sendToMain('updates', action(ActionTypes.viewReleaseNotes));
+            }}
+            >View Changelog</a>
         </p>
         <p className={style.links}>
             Powered by Electron. <a href={'#'} onClick={event => {
