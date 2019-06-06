@@ -244,7 +244,7 @@ export namespace AdMobSessions {
 
 
     export function openSetupTutorial () {
-        return shell.openExternal('https://wiki.appodeal.com');
+        return shell.openExternal(environment.setupOptions.tutorialUrl);
     }
 
 }

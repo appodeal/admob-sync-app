@@ -2,7 +2,7 @@ import {Connector} from 'core/connector';
 import {Store} from 'core/store';
 import {action, Action, ActionTypes} from 'lib/actions';
 import {AppPreferences} from 'lib/app-preferences';
-import {UpdatePeriod, UpdatesService} from 'lib/updates';
+import {Dist, UpdatePeriod, UpdatesService} from 'lib/updates';
 
 
 export class UpdatesConnector extends Connector {
@@ -24,13 +24,13 @@ export class UpdatesConnector extends Connector {
         case ActionTypes.getDist:
             return this.updates.availableDist;
         case ActionTypes.viewReleaseNotes:
-            return this.updates.availableDist.viewReleaseNotes();
+            return Dist.viewReleaseNotes();
         case ActionTypes.checkUpdates:
             let available = await this.updates.check();
             this.store.patchPreferences({
                 updates: {
                     lastCheck: new Date().toISOString(),
-                    availableVersion: available ? this.updates.availableDist.version: null
+                    availableVersion: available ? this.updates.availableDist.version : null
                 }
             });
             if (available) {
@@ -39,7 +39,7 @@ export class UpdatesConnector extends Connector {
                 } else if (payload.mode === 'notification') {
                     this.updates.availableDist.notify();
                 }
-            } else if (!payload.updateOnly)  {
+            } else if (!payload.updateOnly) {
                 this.updates.showNoUpdatesDialog();
             }
             return;
@@ -69,7 +69,7 @@ export class UpdatesConnector extends Connector {
         return this.onAction(action(ActionTypes.updatesCheckPeriod, {
             period: checkPeriod,
             customOptions
-        }))
+        }));
     }
 
     async destroy () {
