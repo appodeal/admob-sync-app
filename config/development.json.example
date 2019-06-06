@@ -13,7 +13,7 @@
     },
     "multipleAccountsSupport": false,
     "updates": {
-      "releaseNotesUrl": "https://wiki.appodeal.com",
+      "releaseNotesUrl": "https://wiki.appodeal.com/en/admob-sync/changelog",
       "updatesServerUrl": "https://amsa-updates.appodeal.com"
     },
     "setupOptions": {
