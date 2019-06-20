@@ -1,9 +1,5 @@
 import {InternalError} from 'core/error-factory/errors/internal-error';
-import {AppTranslator} from 'lib/translators/admob-app.translator';
-import {AdUnitTranslator} from 'lib/translators/admop-ad-unit.translator';
 import {AdmobErrorTranslator} from 'lib/translators/admop-error.translator';
-import {AdMobAdUnit} from 'lib/translators/interfaces/admob-ad-unit.interface';
-import {AdMobApp} from 'lib/translators/interfaces/admob-app.interface';
 import {getTranslator} from 'lib/translators/translator.helpers';
 import trim from 'lodash.trim';
 
@@ -61,9 +57,7 @@ export class AdmobApiService {
             });
     }
 
-    async refreshXsrfToken () {
-        const response = await this.fetchHomePage();
-        const body = await response.text();
+    refreshXsrfToken (body: string) {
         const mathResult = body.match(/xsrfToken: '([^\']*)'/);
         if (!mathResult || !mathResult[1]) {
             // may be user's action required
@@ -94,46 +88,6 @@ export class AdmobApiService {
         if (e && this.onError) {
             return this.onError(e);
         }
-    }
-
-    /**
-     * fetch Apps W
-     */
-    fetchAppsWitAdUnits (): Promise<{
-        apps: AdMobApp[],
-        adUnits: AdMobAdUnit[]
-    }> {
-        return this.fetch <{
-            result: {
-                1: {
-                    // encoded Admob Apps
-                    1: AdMobApp[]
-                    // encoded Admob adUnits Apps
-                    2: AdMobAdUnit[]
-                }
-            }
-            error?: any
-        }>
-        (
-            this.appsEndpointUrl,
-            'application/json;charset=UTF-8',
-            `{method: "initialize", params: {}, xsrf: "${this.xsrfToken}"}`
-        )
-            .then(responseBody => {
-                if (responseBody.error) {
-                    throw  new Error(JSON.stringify(responseBody));
-                }
-                const apps = responseBody.result[1][1] || [];
-                const adUnits = responseBody.result[1][2] || [];
-                return {
-                    apps: apps.map<AdMobApp>(getTranslator(AppTranslator).decode),
-                    adUnits: adUnits.map<AdMobAdUnit>(getTranslator(AdUnitTranslator).decode)
-                };
-            })
-            .catch(e => {
-                this.handleError(e);
-                throw e;
-            });
     }
 
     /**

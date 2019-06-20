@@ -6,6 +6,8 @@ import {nodeFetch} from 'lib/fetch';
 import {getOsName} from 'lib/platform';
 import {messageDialog} from 'lib/window';
 import Timeout = NodeJS.Timeout;
+
+
 const semver = require('semver');
 
 
@@ -14,9 +16,13 @@ export interface DistInfo {
     fileName: string;
 }
 
-class Dist implements DistInfo {
+export class Dist implements DistInfo {
     version: string;
     fileName: string;
+
+    static viewReleaseNotes () {
+        shell.openExternal(`${environment.updates.releaseNotesUrl}/`);
+    }
 
     constructor ({version, fileName}: DistInfo) {
         this.version = version;
@@ -25,10 +31,6 @@ class Dist implements DistInfo {
 
     download () {
         shell.openExternal(`${environment.updates.updatesServerUrl}/${this.fileName}`);
-    }
-
-    viewReleaseNotes () {
-        shell.openExternal(`${environment.updates.releaseNotesUrl}/`);
     }
 
     async notify () {
@@ -51,7 +53,7 @@ class Dist implements DistInfo {
                 `New version: ${this.version}`
             ].join('\n'), [
                 {label: 'Cancel', action: () => {}, cancel: true},
-                {label: 'View release notes', action: () => this.viewReleaseNotes()},
+                {label: 'View release notes', action: () => Dist.viewReleaseNotes()},
                 {label: 'Download', action: () => this.download(), primary: true}
             ]);
         userChoice.action();
@@ -85,12 +87,14 @@ export class UpdatesService extends EventEmitter {
     }
 
     private async fetchDistInfo (): Promise<DistInfo> {
-        let updatesServerUrl = process.env.ADMOB_SYNC_UPDATE_SERVER ||environment.updates.updatesServerUrl,
+        let updatesServerUrl = process.env.ADMOB_SYNC_UPDATE_SERVER || environment.updates.updatesServerUrl,
             response = await nodeFetch<{ [key: string]: DistInfo }>(`${updatesServerUrl}/dist-info.json`, {
                 headers: {
-                    'cache-control': 'no-cache',
+                    'cache-control': 'no-cache'
                 }
-            }).then(r => r.json(), () => null),
+            })
+                .then(r => r.json())
+                .catch(() => null),
             osName = getOsName();
         this.lastCheck = new Date();
         return response && response[osName] || null;

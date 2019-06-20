@@ -13,6 +13,7 @@ import {AdMobApp} from 'lib/translators/interfaces/admob-app.interface';
 import PushStream from 'zen-push';
 import {ErrorFactoryService} from '../error-factory/error-factory.service';
 import {InternalError} from '../error-factory/errors/internal-error';
+import {NetworkError} from '../error-factory/errors/network/network-error';
 import {CallQueue} from './call-queue';
 import addAdMobAccountMutation from './graphql/add-admob-account.mutation.graphql';
 import adMobAccountQuery from './graphql/admob-account-details.graphql';
@@ -133,7 +134,12 @@ export class AppodealApiService {
         }
         this.authContext.init(accountId);
         this.authContext.on('refresh', refreshToken => {
-            this.refreshAccessToken(refreshToken);
+            this.refreshAccessToken(refreshToken).catch((e: InternalError) => {
+                console.warn(e);
+                if (!(e instanceof NetworkError)) {
+                    throw e;
+                }
+            });
         });
         this.initialized = true;
     }
@@ -194,10 +200,9 @@ export class AppodealApiService {
     signOut () {
         return this.mutate({
             mutation: signOutMutation
-        }).then(res => {
-            this.authContext.remove();
+        }).finally(async () => {
+            await this.authContext.remove();
             this.authContext.removeAllListeners();
-            return res;
         });
     }
 

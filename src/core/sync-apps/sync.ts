@@ -15,6 +15,7 @@ import {AdMobAdUnit, CpmFloorMode, CpmFloorSettings} from 'lib/translators/inter
 import {AdMobApp} from 'lib/translators/interfaces/admob-app.interface';
 import {getTranslator} from 'lib/translators/translator.helpers';
 import uuid from 'uuid';
+import {decodeOctString} from '../../lib/oct-decode';
 import {NoConnectionError} from '../error-factory/errors/network/no-connection-error';
 import {UnavailableEndpointError} from '../error-factory/errors/network/unavailable-endpoint-error';
 import {SyncContext} from './sync-context';
@@ -59,6 +60,8 @@ export class Sync {
     private skipNativeAdUnits = false;
 
     constructor (
+        // With retry proxy
+        // each failed request will be retried 3 times automatically
         private adMobApi: AdmobApiService,
         private appodealApi: AppodealApiService,
         public adMobAccount: AdMobAccount,
@@ -182,8 +185,10 @@ export class Sync {
 
 
         yield `refrech Admob xsrf Token`;
+        let pageBody: string;
         try {
-            await this.adMobApi.refreshXsrfToken();
+            pageBody = await this.adMobApi.fetchHomePage().then(response => response.text());
+            this.adMobApi.refreshXsrfToken(pageBody);
         } catch (e) {
             if (e instanceof RefreshXsrfTokenError) {
                 // this error is not supposed to be emitted and handler further
@@ -203,7 +208,12 @@ export class Sync {
         this.emit(SyncEventsTypes.CalculatingProgress);
 
 
-        this.context.loadAdMob(await this.adMobApi.fetchAppsWitAdUnits());
+        yield `Fetch Admob Apps and AdUnits`;
+
+        this.context.loadAdMob({
+            apps: this.ejectAppsAppsFromAdmob(pageBody),
+            adUnits: this.ejectAdUnitsFromAdmob(pageBody)
+        });
         yield 'Admob Apps and AdUnits fetched';
 
 
@@ -223,6 +233,31 @@ export class Sync {
 
         yield `All Appodeal Apps fetched`;
 
+    }
+
+    ejectAppsAppsFromAdmob (body: string) {
+
+        const mathResult = body.match(/var apd = '(?<appsJson>[^\']*)';/);
+
+        if (!mathResult || !mathResult.groups || !mathResult.groups.appsJson) {
+            // may be user's action required
+            throw new Error('Apps not found');
+        }
+        const json = decodeOctString(mathResult.groups.appsJson);
+        const apps = <any[]>JSON.parse(json)[1] || [];
+        return apps.map<AdMobApp>(getTranslator(AppTranslator).decode);
+    }
+
+    ejectAdUnitsFromAdmob (body: string) {
+        const mathResult = body.match(/var aupd = '(?<appsJson>[^\']*)';/);
+
+        if (!mathResult || !mathResult.groups || !mathResult.groups.appsJson) {
+            // may be user's action required
+            throw new Error('AdUnits not found');
+        }
+        const json = decodeOctString(mathResult.groups.appsJson);
+        const adUnits = <any[]>JSON.parse(json)[1] || [];
+        return adUnits.map<AdMobAdUnit>(getTranslator(AdUnitTranslator).decode);
     }
 
     async* syncApps () {

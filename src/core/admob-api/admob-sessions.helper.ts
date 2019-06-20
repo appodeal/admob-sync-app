@@ -2,16 +2,15 @@ import * as Sentry from '@sentry/electron';
 import {Severity} from '@sentry/electron';
 import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
 import {SyncHistory} from 'core/sync-apps/sync-history';
-import {app, BrowserWindow, Session, session, shell} from 'electron';
-import * as fs from 'fs-extra';
+import {BrowserWindow, Session, session, shell} from 'electron';
 import {ExtractedAdmobAccount} from 'interfaces/common.interfaces';
 import {removeSession} from 'lib/core';
 import {nodeFetch} from 'lib/fetch';
 import {getJsonFile, saveJsonFile} from 'lib/json-storage';
 import {retry} from 'lib/retry';
 import {openWindow, waitForNavigation} from 'lib/window';
-import path from 'path';
 import uuid from 'uuid';
+import {decodeOctString} from '../../lib/oct-decode';
 
 
 export namespace AdMobSessions {
@@ -152,7 +151,7 @@ export namespace AdMobSessions {
             const {id} = result.groups;
             let email;
             result = /var amrpd = '(?<emailSource>.*?)';/.exec(responseBody);
-            const amrpdSource = (new Function('', `return '${result.groups.emailSource}'`))();
+            const amrpdSource = decodeOctString(result.groups.emailSource);
             const amrpd = JSON.parse(amrpdSource);
             email = amrpd[32][3][1];
 
@@ -245,7 +244,7 @@ export namespace AdMobSessions {
 
 
     export function openSetupTutorial () {
-        return shell.openExternal('https://wiki.appodeal.com');
+        return shell.openExternal(environment.setupOptions.tutorialUrl);
     }
 
 }

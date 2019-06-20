@@ -7,6 +7,8 @@ import {Sentry} from 'lib/sentry';
 import {TaskRunner, TaskRunnerState} from 'lib/task-runner';
 import {messageDialog, openDebugWindow} from 'lib/window';
 import url from 'url';
+import {getElementSelector} from '../../lib/dom';
+import {retry} from '../../lib/retry';
 
 
 let {setupOptions} = environment;
@@ -105,7 +107,8 @@ export class AccountSetup extends EventEmitter {
             let userDecision = await this.askForTermsOfService();
             if (userDecision) {
                 this.window.show();
-                await this.debug.evaluate(`
+                try {
+                    await this.debug.evaluate(`
                     new Promise(resolve => {
                         let agreeBtn = document.querySelector('.mat-dialog-actions button');
                         if (agreeBtn) {
@@ -116,6 +119,9 @@ export class AccountSetup extends EventEmitter {
                         }
                     });
                 `);
+                } catch (e) {
+                    console.error(e);
+                }
                 this.window.hide();
                 return true;
             } else {
@@ -162,9 +168,13 @@ export class AccountSetup extends EventEmitter {
         this.runner.createTask(async () => projectNodeId = await this.debug.waitElement(projectNameSelector).catch(() => {
             this.runner.returnTo('searchProject');
         }));
-        this.runner.createTask(async () => {
+        this.runner.createTask(() => {
+
             if (projectNodeId) {
-                projectName = await this.debug.getInnerHTML(projectNodeId);
+                return retry(async () => {
+                    projectNodeId = await this.debug.waitElement(projectNameSelector);
+                    projectName = await this.debug.getInnerHTML(projectNodeId);
+                });
             }
         });
         this.runner.createTask(() => {
@@ -281,6 +291,7 @@ export class AccountSetup extends EventEmitter {
         const submitBtn = 'button[type="submit"]';
         const closeModalBtn = 'pan-modal-action[name="cancel"]';
 
+        this.runner.createTask(() => this.debug.wait(1000));
         this.runner.createTask(() => this.debug.waitElementVisible(dropDownBtn)
             .catch(() => this.debug.waitElementVisible(credentialLabel)));
 
@@ -297,8 +308,33 @@ export class AccountSetup extends EventEmitter {
         }, 'checkClient');
 
         // delete client
-        this.runner.createTask(index => this.debug.click(`tr:nth-child(${index + 1}) .p6n-api-credential-delete`), 'deleteClient');
-        this.runner.createTask(() => this.debug.wait(500));
+        this.runner.createTask(() => this.debug.wait(500), 'deleteClient');
+        // click with injected script instead
+        this.runner.createTask(async () => {
+            // function's name is changed during compression
+            // so that we have to explicitly give a name to getElementSelector function
+            const result = await this.debug.evaluate(`                
+                    new Promise(resolve => {
+                        let getElementSelector = ${getElementSelector.toString()}
+                        let targetLabel = [...document.querySelectorAll('${credentialLabel}')].find( a => a.innerText.trim() === '${CLIENT_NAME}');
+                        if (targetLabel) {
+                            let section = targetLabel.closest('tr'),
+                            deleteIcon = section.querySelector('.p6n-api-credential-delete'),
+                            targetSelector = getElementSelector(deleteIcon)
+                            
+                            return resolve(targetSelector)
+                        }
+                        resolve();
+                    });
+                `, 'result').catch(e => console.warn(e));
+
+            console.log('selector to click Delete', result.value);
+            if (result.value) {
+                await this.debug.click(result.value);
+            }
+        });
+
+        this.runner.createTask(() => this.debug.wait(1000));
         this.runner.createTask(() => this.debug.click(`.p6n-modal-action-button[name="delete"]`));
         this.runner.createTask(() => this.debug.waitElement('.p6n-modal-content p b', 1000)
             .then(async () => {
@@ -312,7 +348,9 @@ export class AccountSetup extends EventEmitter {
             }));
 
         // create client
-        this.runner.createTask(() => this.debug.click(dropDownBtn), 'createClient');
+        // wait button
+        this.runner.createTask(() => this.debug.wait(1000), 'createClient');
+        this.runner.createTask(() => this.debug.click(dropDownBtn));
         this.runner.createTask(() => this.debug.waitElementVisible(oAuthItem, 2000).catch(() => this.runner.returnTo('createClient')));
         this.runner.createTask(() => this.debug.click(oAuthItem));
         this.runner.createTask(() => this.debug.waitElementVisible(webInput));
@@ -347,6 +385,15 @@ export class AccountSetup extends EventEmitter {
             itemsToAdd = texts.filter(text => !existingItems.has(text));
         for (let text of itemsToAdd) {
             await this.fillInput(text, inputSelector);
+
+            await this.debug.waitCondition(async () => {
+                // await filled node appearance
+                nodeIds = await this.debug.querySelectorAll(existingItemSelector);
+                existingItems = new Set(await Promise.all(
+                    nodeIds.map(nodeId => this.debug.getHTML(nodeId).then(html => html.inner))
+                ));
+                return existingItems.has(text);
+            });
         }
     }
 
