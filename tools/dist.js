@@ -1,10 +1,33 @@
 'use strict';
 
+const yargs = require('yargs');
 const builder = require('electron-builder/out/index');
 const packageInfo = require('../package.json');
 const buildConfig = packageInfo.build;
 const path = require('path');
 const fs = require('fs-extra');
+
+
+let flags = yargs
+    .option('mac-cert-name', {
+        alias: 'mc',
+        default: null,
+        description: 'Name of the certificate from keychain "login"'
+    })
+    .option('win-cert-file', {
+        alias: 'cf',
+        default: null,
+        description: 'Path to *.pfx certificate file'
+    })
+    .option('win-cert-pass', {
+        alias: 'cp',
+        default: null,
+        description: 'Password for certificate'
+    })
+    .argv;
+
+console.log(process.argv);
+console.log(flags);
 
 const EXTENSIONS = {
     nsis: 'exe',
@@ -40,7 +63,19 @@ const targets = (targets => {
     let results = await builder.build({
         ...targets,
         publish: null,
-        config: buildConfig
+        config: {
+            ...buildConfig,
+            win: {
+                ...(buildConfig.win || {}),
+                certificateFile: flags.winCertFile,
+                certificatePassword: flags.winCertPass
+            },
+            mac: {
+                ...(buildConfig.mac || {}),
+                identity: flags.macCertName
+            }
+        }
+
     }).catch((err) => {
         console.error(err);
         return [];
@@ -132,7 +167,7 @@ const targets = (targets => {
 
 })().catch(e => {
     console.error(e);
-    process.exit(1)
+    process.exit(1);
 });
 
 function objectFromEntries (entries) {
