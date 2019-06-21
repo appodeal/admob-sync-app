@@ -578,6 +578,9 @@ export class Sync {
 
     /**
      * build Template ID from which adUnit is created
+     *
+     *  user can modify adunit attributes manually after it created
+     *  that is why we match adunit only by AdFormat which can not be changed and its name
      * @param adUnit
      */
     static getAdUnitTemplateId (adUnit: AdMobAdUnit): AdUnitTemplateId {
