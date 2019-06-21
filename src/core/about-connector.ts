@@ -14,13 +14,11 @@ export class AboutConnector extends Connector {
         switch (type) {
         case ActionTypes.packageInfo:
             return packageInfo;
-        case ActionTypes.openElectronLicence:
-            shell.openExternal('https://github.com/electron/electron/blob/master/LICENSE');
-            return;
-        case ActionTypes.openPrivacyPolicy:
-            shell.openExternal('https://www.appodeal.com/home/privacy-policy');
+        case ActionTypes.openExternalUrl:
+            shell.openExternal(payload);
             return;
         }
+
         return;
     }
 }

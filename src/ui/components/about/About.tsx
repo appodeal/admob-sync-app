@@ -8,6 +8,19 @@ interface AboutProps {
     packageInfo: any
 }
 
+enum ExternalUrls {
+    appLicence = 'https://github.com/appodeal/admob-sync-app/blob/develop/MIT-LICENSE',
+    privacyPolicy = 'https://www.appodeal.com/home/privacy-policy',
+    electronLicence = 'https://github.com/electron/electron/blob/master/LICENSE'
+}
+
+function openExternalUrlHandler (url) {
+    return event => {
+        event.preventDefault();
+        sendToMain('about', action(ActionTypes.openExternalUrl, url)).then(() => window.close());
+    };
+}
+
 export function About ({packageInfo}: AboutProps) {
     let yearStart = 2019,
         yearEnd = new Date().getFullYear();
@@ -21,12 +34,10 @@ export function About ({packageInfo}: AboutProps) {
             packageInfo.author}
         </p>
         <p className={style.links}>
-            <a href={'#'} onClick={event => {
-                event.preventDefault();
-                sendToMain('about', action(ActionTypes.openPrivacyPolicy)).then(() => window.close());
-            }}
-            >Privacy Policy</a>
-            <i className={style.separator} />
+            <a href={ExternalUrls.appLicence} onClick={openExternalUrlHandler(ExternalUrls.appLicence)}>License</a>
+            <i className={style.separator}/>
+            <a href={ExternalUrls.privacyPolicy} onClick={openExternalUrlHandler(ExternalUrls.privacyPolicy)}>Privacy Policy</a>
+            <i className={style.separator}/>
             <a href={'#'} onClick={event => {
                 event.preventDefault();
                 sendToMain('updates', action(ActionTypes.viewReleaseNotes));
@@ -34,10 +45,7 @@ export function About ({packageInfo}: AboutProps) {
             >View Changelog</a>
         </p>
         <p className={style.links}>
-            Powered by Electron. <a href={'#'} onClick={event => {
-            event.preventDefault();
-            sendToMain('about', action(ActionTypes.openElectronLicence)).then(() => window.close());
-        }}
+            Powered by Electron. <a href={ExternalUrls.electronLicence} onClick={openExternalUrlHandler(ExternalUrls.electronLicence)}
         >Electron License</a>
         </p>
     </div>);
