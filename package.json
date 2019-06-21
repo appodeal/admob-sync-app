@@ -128,7 +128,7 @@
     "@types/uuid": "^3.4.4",
     "@types/winston": "^2.4.4",
     "@types/zen-push": "^0.1.0",
-    "args": "^5.0.1",
+    "yargs": "^13.2.4",
     "clean-webpack-plugin": "^1.0.1",
     "copy-webpack-plugin": "^5.0.0",
     "css-loader": "^2.1.0",
