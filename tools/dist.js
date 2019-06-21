@@ -26,9 +26,6 @@ let flags = yargs
     })
     .argv;
 
-console.log(process.argv);
-console.log(flags);
-
 const EXTENSIONS = {
     nsis: 'exe',
     dmg: 'dmg',
