@@ -14,16 +14,6 @@ let flags = yargs
         default: null,
         description: 'Name of the certificate from keychain "login"'
     })
-    .option('win-cert-file', {
-        alias: 'cf',
-        default: null,
-        description: 'Path to *.pfx certificate file'
-    })
-    .option('win-cert-pass', {
-        alias: 'cp',
-        default: null,
-        description: 'Password for certificate'
-    })
     .argv;
 
 const EXTENSIONS = {
@@ -62,11 +52,6 @@ const targets = (targets => {
         publish: null,
         config: {
             ...buildConfig,
-            win: {
-                ...(buildConfig.win || {}),
-                certificateFile: flags.winCertFile,
-                certificatePassword: flags.winCertPass
-            },
             mac: {
                 ...(buildConfig.mac || {}),
                 identity: flags.macCertName
