@@ -18,10 +18,8 @@
     "dist:all": "node tools/dist.js",
     "postdist:all": "webpack -p --config=download-page/webpack.config.ts",
     "release:github": "node tools/release.js",
-    "release:sentry": "sentry-cli releases new $(npm run -s package:version) && sentry-cli releases files $(npm run -s package:version) upload-sourcemaps build/*.{map,js} && sentry-cli releases finalize $(npm run -s package:version)",
-    "release:deploy": "sentry-cli releases deploys $(npm run -s package:version) new",
-    "package:version": "node tools/utils.js --version",
-    "package:hash": "node tools/utils.js --hash"
+    "release:sentry": "sentry-cli releases new $npm_package_version && sentry-cli releases files $npm_package_version upload-sourcemaps build/*.{map,js} && sentry-cli releases finalize $npm_package_version",
+    "release:deploy": "sentry-cli releases deploys $npm_package_version new"
   },
   "build": {
     "appId": "com.electron.admob.desktop",
