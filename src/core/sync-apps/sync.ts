@@ -403,7 +403,7 @@ export class Sync {
 
 
         for (const adUnitTemplate of templatesToCreate.values()) {
-            if (this.skipNativeAdUnits) {
+            if (this.skipNativeAdUnits && adUnitTemplate.__metadata.adType === AdType.NATIVE) {
                 this.logger.info(`Creating Native AdUnit is skipped. ${adUnitTemplate.name}`);
                 continue;
             }
