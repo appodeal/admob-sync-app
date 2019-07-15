@@ -1,5 +1,6 @@
 import {BrowserWindow, BrowserWindowConstructorOptions, dialog, ipcMain, remote, Session} from 'electron';
 import {Debug} from 'lib/debug';
+import {isMacOS} from './platform';
 import {getBgColor} from './theme';
 
 
@@ -42,6 +43,10 @@ export function openWindow (
             };
 
         loadInWindow(filePathOrUrl, window);
+
+        if (!isMacOS()) {
+            window.removeMenu();
+        }
 
         window.webContents.once('dom-ready', readyListener);
 
