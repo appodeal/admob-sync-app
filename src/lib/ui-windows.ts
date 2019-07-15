@@ -8,6 +8,17 @@ import {hideDock, showDock} from './dock';
 
 const OPENED_WINDOWS = new Map<string, BrowserWindow | Promise<BrowserWindow>>();
 
+export function hasOpenedWindows (): boolean {
+    return BrowserWindow.getAllWindows().length > 0;
+}
+
+export function restoreAllWindows () {
+    BrowserWindow.getAllWindows().forEach(window => {
+        window.restore();
+        window.focus();
+    });
+}
+
 export async function openSettingsWindow () {
     return openOrFocus('settings', async () => {
         let window = await openWindow('./settings.html', {
