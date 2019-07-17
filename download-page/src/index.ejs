@@ -134,6 +134,17 @@
         </div>
 
     </div>
+    <script>
+        if (window.fetch) {
+            fetch('/version').then(function (r) {return r.text()}).then(function (latestVersion) {
+                var htmlVersion = '<%= dist.linux.version %>';
+                // to make sure it redirect only once if page is cached
+                if (htmlVersion !== latestVersion && document.location.search !== '?v=' + latestVersion) {
+                    document.location.href = '/?v=' + latestVersion;
+                }
+            }).catch(console.error)
+        }
+    </script>
 </div>
 </body>
 </html>

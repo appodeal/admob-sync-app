@@ -31,4 +31,11 @@ server {
         rewrite ^(.*) /index.html last;
     }
 
+    location /version {
+        if_modified_since off;
+        expires off;
+        etag off;
+        return 200 '<%= dist.linux.version %>';
+    }
+
 }
