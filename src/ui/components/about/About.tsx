@@ -1,6 +1,7 @@
 import {action, ActionTypes} from 'lib/actions';
 import {sendToMain} from 'lib/messages';
 import React from 'react';
+import {ExternalUrls} from '../../../external-urls';
 import style from './About.scss';
 
 
@@ -8,11 +9,6 @@ interface AboutProps {
     packageInfo: any
 }
 
-enum ExternalUrls {
-    appLicence = 'https://github.com/appodeal/admob-sync-app/blob/develop/MIT-LICENSE',
-    privacyPolicy = 'https://www.appodeal.com/home/privacy-policy',
-    electronLicence = 'https://github.com/electron/electron/blob/master/LICENSE'
-}
 
 function openExternalUrlHandler (url) {
     return event => {
@@ -38,11 +34,7 @@ export function About ({packageInfo}: AboutProps) {
             <i className={style.separator}/>
             <a href={ExternalUrls.privacyPolicy} onClick={openExternalUrlHandler(ExternalUrls.privacyPolicy)}>Privacy Policy</a>
             <i className={style.separator}/>
-            <a href={'#'} onClick={event => {
-                event.preventDefault();
-                sendToMain('updates', action(ActionTypes.viewReleaseNotes));
-            }}
-            >View Changelog</a>
+            <a href={ExternalUrls.releaseNotes} onClick={openExternalUrlHandler(ExternalUrls.releaseNotes)}>View Changelog</a>
         </p>
         <p className={style.links}>
             Powered by Electron. <a href={ExternalUrls.electronLicence} onClick={openExternalUrlHandler(ExternalUrls.electronLicence)}
