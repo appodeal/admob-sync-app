@@ -50,6 +50,8 @@ const targets = (targets => {
     let results = await builder.build({
         ...targets,
         publish: null,
+        x64: true,
+        ia32: true,
         config: {
             ...buildConfig,
             mac: {
