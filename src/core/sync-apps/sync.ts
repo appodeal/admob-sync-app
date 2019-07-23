@@ -12,7 +12,7 @@ import {AppTranslator} from 'lib/translators/admob-app.translator';
 import {AdMobPlatform} from 'lib/translators/admob.constants';
 import {AdUnitTranslator} from 'lib/translators/admop-ad-unit.translator';
 import {AdMobAdUnit, CpmFloorMode, CpmFloorSettings} from 'lib/translators/interfaces/admob-ad-unit.interface';
-import {AdMobApp} from 'lib/translators/interfaces/admob-app.interface';
+import {AdMobApp, UserMetricsStatus} from 'lib/translators/interfaces/admob-app.interface';
 import {getTranslator} from 'lib/translators/translator.helpers';
 import uuid from 'uuid';
 import {decodeOctString} from '../../lib/oct-decode';
@@ -655,7 +655,8 @@ export class Sync {
 
         const adMobApp: Partial<AdMobApp> = {
             name: ['Appodeal', app.id, app.name].join('/').substr(0, MAX_APP_NAME_LENGTH),
-            platform: Sync.toAdMobPlatform(app)
+            platform: Sync.toAdMobPlatform(app),
+            userMetricsStatus: UserMetricsStatus.DISABLED
         };
 
         return this.adMobApi.post('AppService', 'Create', getTranslator(AppTranslator).encode(adMobApp))

@@ -14,7 +14,7 @@ export interface AdMobAdUnit {
     rewardsSettings: RewardsSettings,
     frequencyCap: any
     googleOptimizedRefreshRate: boolean,
-
+    usageSummary: any,
     cpmFloorSettings: CpmFloorSettings,
 }
 

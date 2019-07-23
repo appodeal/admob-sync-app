@@ -71,6 +71,7 @@ export class AdUnitTranslator extends ObjectTranslator<AdMobAdUnit> {
             18: ['rewardsSettings', RewardsSettingsTranslator],
             19: 'frequencyCap',
             21: ['googleOptimizedRefreshRate', BooleanTranslator],
+            22: 'usageSummary',
             23: ['cpmFloorSettings', CpmFloorSettingsTranslator]
         });
     }

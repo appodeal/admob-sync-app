@@ -25,6 +25,12 @@ export interface AdMobApp {
     monetizationEngineInfo?: any,
     admobPlusEapEnabled: boolean,
     enhancedReportingEnabled?: boolean
+    userMetricsStatus: UserMetricsStatus
+    policyData: any
+}
+
+export enum UserMetricsStatus {
+    DISABLED = 3
 }
 
 export interface ServingSettings {
