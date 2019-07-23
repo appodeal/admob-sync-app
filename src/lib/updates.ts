@@ -5,6 +5,7 @@ import {AppPreferences} from 'lib/app-preferences';
 import {nodeFetch} from 'lib/fetch';
 import {getOsName} from 'lib/platform';
 import {messageDialog} from 'lib/window';
+import {ExternalUrls} from '../external-urls';
 import Timeout = NodeJS.Timeout;
 
 
@@ -21,7 +22,7 @@ export class Dist implements DistInfo {
     fileName: string;
 
     static viewReleaseNotes () {
-        shell.openExternal(`${environment.updates.releaseNotesUrl}/`);
+        shell.openExternal(ExternalUrls.releaseNotes);
     }
 
     constructor ({version, fileName}: DistInfo) {

@@ -18,7 +18,6 @@ declare interface Environment {
     };
     readonly multipleAccountsSupport: boolean;
     readonly updates: {
-        releaseNotesUrl: string,
         updatesServerUrl: string
     };
     readonly setupOptions: Readonly<{
