@@ -8,7 +8,6 @@ import {TaskRunner, TaskRunnerState} from 'lib/task-runner';
 import {messageDialog, openDebugWindow} from 'lib/window';
 import url from 'url';
 import {getElementSelector} from '../../lib/dom';
-import {retry} from '../../lib/retry';
 
 
 let {setupOptions} = environment;
@@ -151,10 +150,9 @@ export class AccountSetup extends EventEmitter {
         const projectSwitcherBtn = '[data-prober="cloud-console-core-functions-project-switcher"]';
         const newProjectBtn = '.purview-picker-create-project-button';
         const searchInput = '.cdk-overlay-pane mat-form-field.cfc-purview-picker-modal-search-box input';
-        const projectNameSelector = '.cdk-overlay-pane tr:nth-child(1) a.cfc-purview-picker-list-name-link';
+        const projectNameSelector = 'a.cfc-purview-picker-list-name-link';
 
-        let projectNodeId,
-            projectName;
+        let foundProjectSelector;
 
         this.runner.createTask(() => this.debug.waitElementVisible(projectSwitcherBtn), 'find');
         this.runner.createTask(() => this.debug.click(projectSwitcherBtn));
@@ -165,21 +163,17 @@ export class AccountSetup extends EventEmitter {
         this.runner.createTask(() => this.debug.waitElementVisible(searchInput));
         this.runner.createTask(() => this.debug.enterText(PROJECT_NAME, searchInput));
         this.runner.createTask(() => this.debug.wait(500));
-        this.runner.createTask(async () => projectNodeId = await this.debug.waitElement(projectNameSelector).catch(() => {
-            this.runner.returnTo('searchProject');
-        }));
+        this.runner.createTask(() =>
+            this.debug.waitCondition(async () => {
+                foundProjectSelector = await this.debug.findElementUniqSelector(projectNameSelector, PROJECT_NAME);
+                return Boolean(foundProjectSelector);
+            }).catch(e => {
+                console.warn('failed to find project', e);
+            })
+        );
         this.runner.createTask(() => {
-
-            if (projectNodeId) {
-                return retry(async () => {
-                    projectNodeId = await this.debug.waitElement(projectNameSelector);
-                    projectName = await this.debug.getInnerHTML(projectNodeId);
-                });
-            }
-        });
-        this.runner.createTask(() => {
-            if (projectName === PROJECT_NAME) {
-                this.runner.skipTo('select', projectNodeId);
+            if (foundProjectSelector) {
+                this.runner.skipTo('select', foundProjectSelector);
             } else {
                 this.runner.skipTo('create');
             }
@@ -193,7 +187,7 @@ export class AccountSetup extends EventEmitter {
     }
 
     createNewProject () {
-        const backIcon = '.cdk-overlay-pane cfc-icon[icon="arrow-back"]';
+        const backIcon = '.cdk-overlay-pane [icon="arrow-back"]';
         const newProjectBtn = '.purview-picker-create-project-button';
         const projectNameInput = '#p6ntest-name-input';
         const submitBtn = '.projtest-create-form-submit';
@@ -217,7 +211,8 @@ export class AccountSetup extends EventEmitter {
         const enableApiBtn = '#p6n-mp-enable-api-button';
         const disableApiBtn = '[maml-ve="disableApiButton"] button';
 
-        this.runner.createTask(() => this.debug.click(libraryMenuItem), 'adsense');
+        this.runner.createTask(() => this.debug.waitElementVisible(libraryMenuItem), 'adsense');
+        this.runner.createTask(() => this.debug.click(libraryMenuItem));
         this.runner.createTask(() => this.debug.waitElementVisible(adSenseCard));
         this.runner.createTask(() => this.debug.scrollIntoView(adSenseCard));
         this.runner.createTask(() => this.debug.click(adSenseCard));
