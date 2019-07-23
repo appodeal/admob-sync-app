@@ -48,7 +48,9 @@ export class AppTranslator extends ObjectTranslator<AdMobApp> {
             23: 'firebaseSettings',
             24: ['monetizationEngineInfo', MonetizationEngineInfoTranslator],
             25: ['admobPlusEapEnabled', BooleanTranslator],
-            26: 'enhancedReportingEnabled'
+            26: 'enhancedReportingEnabled',
+            27: 'userMetricsStatus',
+            28: 'policyData'
         });
     }
 
