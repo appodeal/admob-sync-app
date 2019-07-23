@@ -1,4 +1,6 @@
 import {Debugger} from 'electron';
+import {getElementSelector} from './dom';
+import {retry} from './retry';
 
 
 type NodeIdOrSelector = number | string;
@@ -36,12 +38,14 @@ export class Debug {
     }
 
     async getHTML (nodeIdOrSelector: NodeIdOrSelector) {
-        let nodeId = await this.resolveNodeId(nodeIdOrSelector);
-        let outer = await this.exec('DOM.getOuterHTML', 'outerHTML', {nodeId});
-        return {
-            outer,
-            inner: />(?<inner>.*)<\//.exec(outer).groups.inner.trim()
-        };
+        return retry(async () => {
+            let nodeId = await this.resolveNodeId(nodeIdOrSelector);
+            let outer = await this.exec('DOM.getOuterHTML', 'outerHTML', {nodeId});
+            return {
+                outer,
+                inner: />(?<inner>.*)<\//.exec(outer).groups.inner.trim()
+            };
+        }, 3, 500);
     }
 
     getInnerHTML (nodeIdOrSelector: NodeIdOrSelector): Promise<string> {
@@ -61,14 +65,19 @@ export class Debug {
     }
 
     async enterText (text: string, nodeIdOrSelector: NodeIdOrSelector): Promise<void> {
-        let inputNodeId = await this.resolveNodeId(nodeIdOrSelector);
-        if (inputNodeId) {
-            await this.focus(inputNodeId);
-            if (nodeIdOrSelector !== inputNodeId) {
-                await this.exec('Runtime.evaluate', null, {
-                    expression: `document.querySelector('${nodeIdOrSelector}').select();`
-                }).catch(() => {});
+        let inputNodeId = await retry(async () => {
+            let inputNodeId = await this.resolveNodeId(nodeIdOrSelector);
+            if (inputNodeId) {
+                await this.focus(inputNodeId);
+                if (nodeIdOrSelector !== inputNodeId) {
+                    await this.exec('Runtime.evaluate', null, {
+                        expression: `document.querySelector('${nodeIdOrSelector}').select();`
+                    }).catch(() => {});
+                }
             }
+            return inputNodeId;
+        }, 3, 500);
+        if (inputNodeId) {
             await text.split('')
                 .reduce((promise, char) => {
                     return promise.then(() => this.enterSymbol(char));
@@ -93,8 +102,10 @@ export class Debug {
     }
 
     async click (nodeIdOrSelector: NodeIdOrSelector) {
-        let nodeId = await this.resolveNodeId(nodeIdOrSelector),
-            {cx, cy} = await this.getNodeRect(nodeId);
+        const {cx, cy} = await retry(async () => {
+            let nodeId = await this.resolveNodeId(nodeIdOrSelector);
+            return this.getNodeRect(nodeId);
+        }, 3, 500);
         await this.exec('Input.dispatchMouseEvent', null, {
             type: 'mousePressed',
             button: 'left',
@@ -219,7 +230,7 @@ export class Debug {
                     } else {
                         interval = check();
                     }
-                }, 500);
+                }, 1500);
             };
             let interval = check();
         });
@@ -243,6 +254,30 @@ export class Debug {
             expression: script,
             awaitPromise: true
         });
+    }
+
+    /**
+     * build uniq element selector
+     * @param selector
+     * @param innerText
+     */
+    async findElementUniqSelector (selector: string, innerText: string): Promise<string> {
+        return this.evaluate(`                
+                    new Promise((resolve, reject) => {
+                        let getElementSelector = ${getElementSelector.toString()}                       
+                        let target = [...document.querySelectorAll('${selector}')].find( a => a.innerText.trim() === '${innerText}');                                         
+                        
+                        if (target) {
+                            return resolve(getElementSelector(target))
+                        }
+                        reject();
+                    });
+                `, 'result')
+            .then(result => result.value)
+            .catch(e => {
+                console.warn(e);
+                throw e;
+            });
     }
 
     getCurrentUrl () {
