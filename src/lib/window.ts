@@ -64,6 +64,8 @@ export function openDebugWindow (filePathOrUrl: string, session: Session): Promi
         let window = new BrowserWindow({
             show: false,
             maximizable: true,
+            width: 800,
+            minWidth: 800,
             webPreferences: {
                 session
             }

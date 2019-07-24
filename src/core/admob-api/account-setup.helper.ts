@@ -68,8 +68,10 @@ export class AccountSetup extends EventEmitter {
                     }
                 })
                 .catch(err => {
-                    this.emit('error', err);
-                    Sentry.captureException(err);
+                    if (this.runner.state !== TaskRunnerState.cancelled) {
+                        this.emit('error', err);
+                        Sentry.captureException(err);
+                    }
                 })
                 .finally(() => {
                     this.closeWindow();
@@ -206,7 +208,7 @@ export class AccountSetup extends EventEmitter {
     }
 
     enableAdSense () {
-        const libraryMenuItem = '#cfctest-section-nav-item-library';
+        const libraryMenuItem = 'a[href^="/apis/library"]';
         const adSenseCard = 'a[href^="/apis/library/adsense.googleapis.com"]';
         const enableApiBtn = '#p6n-mp-enable-api-button';
         const disableApiBtn = '[maml-ve="disableApiButton"] button';
@@ -245,6 +247,7 @@ export class AccountSetup extends EventEmitter {
         }));
         this.runner.createTask(() => this.debug.wait(500));
         this.runner.createTask(() => this.debug.enterText(APP_NAME, appNameInput));
+        this.runner.createTask(() => this.debug.scrollIntoView(supportEmailSelect));
         this.runner.createTask(() => this.debug.click(supportEmailSelect));
         this.runner.createTask(() => this.debug.waitElementVisible(supportEmailOption));
         this.runner.createTask(async () => {
@@ -324,6 +327,7 @@ export class AccountSetup extends EventEmitter {
                 `, 'result').catch(e => console.warn(e));
 
             console.log('selector to click Delete', result.value);
+            await this.debug.scrollIntoView(result.value);
             if (result.value) {
                 await this.debug.click(result.value);
             }

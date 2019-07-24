@@ -102,10 +102,7 @@ export class Debug {
     }
 
     async click (nodeIdOrSelector: NodeIdOrSelector) {
-        const {cx, cy} = await retry(async () => {
-            let nodeId = await this.resolveNodeId(nodeIdOrSelector);
-            return this.getNodeRect(nodeId);
-        }, 3, 500);
+        const {cx, cy} = await retry(() => this.getNodeRect(nodeIdOrSelector), 4, 800);
         await this.exec('Input.dispatchMouseEvent', null, {
             type: 'mousePressed',
             button: 'left',
@@ -222,8 +219,16 @@ export class Debug {
             }, maxTime);
             let check = () => {
                 return setTimeout(async () => {
-                    let nodeId = await this.querySelector(selector),
-                        rect = await this.getNodeRect(nodeId).catch(() => null);
+                    let nodeId, rect;
+                    try {
+                        nodeId = await this.querySelector(selector);
+                        rect = await this.getNodeRect(nodeId);
+                    } catch (e) {
+                        console.log(e);
+                        if (nodeId && !rect) {
+                            await this.scrollIntoView(selector);
+                        }
+                    }
                     if (nodeId && rect) {
                         clearTimeout(timeout);
                         setTimeout(() => resolve(nodeId), 500);
