@@ -26,6 +26,7 @@ export class TaskRunner extends EventEmitter {
     private currentReturn: string = null;
     private taskArgs: Array<any> = null;
     state = TaskRunnerState.idle;
+    private activeTaskNum = 0;
 
     get total () {
         return this.tasks.length;
@@ -40,7 +41,7 @@ export class TaskRunner extends EventEmitter {
 
     runTasks () {
         this.state = TaskRunnerState.running;
-        return this.exec(this.tasks)
+        return this.exec()
             .then(() => {
                 this.state = TaskRunnerState.finished;
             })
@@ -64,50 +65,38 @@ export class TaskRunner extends EventEmitter {
         });
     }
 
-    private exec (tasks: Array<Task>, noProgress = false) {
-        return tasks.reduce((promise, task, index) => {
-            return promise.then(() => {
+    private exec () {
+        return new Promise(async (resolve, reject) => {
+
+            const runNext = () => {
                 if (this.state === TaskRunnerState.cancelled) {
-                    throw new Error('Canceled');
+                    return reject(new Error('Canceled'));
                 }
-                let currentStep = Promise.resolve();
-                if (this.hasSkip()) {
-                    if (this.currentSkip === task.name) {
-                        this.currentSkip = null;
-                    } else {
-                        if (!noProgress) {
-                            this.increaseCompleted();
-                        }
-                        return currentStep;
-                    }
-                }
-                if (this.hasReturn()) {
-                    let returnIndex = this.tasks.findIndex(task => task.name === this.currentReturn);
-                    this.currentReturn = null;
-                    if (returnIndex !== -1) {
-                        let tasksToRepeat = this.tasks.slice(returnIndex, index);
-                        currentStep = currentStep.then(() => this.exec(tasksToRepeat, true));
-                    }
-                }
-                return currentStep
+                const activeTask = this.tasks[this.activeTaskNum];
+                let taskArgs = this.taskArgs || [];
+                this.taskArgs = null;
+                console.log(`Execute task: ${activeTask['func'].toString()}`);
+                return activeTask.execute(...taskArgs)
                     .then(() => {
-                        let taskArgs = this.taskArgs || [];
-                        this.taskArgs = null;
-                        console.log(`Execute task: ${task['func'].toString()}`);
-                        return task.execute(...taskArgs)
-                            .catch(err => {
-                                console.error(err);
-                                console.error(task['func'].toString());
-                                throw err;
-                            });
+                        if (!this.hasSkip() && !this.hasReturn()) {
+                            this.activeTaskNum++;
+                        }
+                        this.increaseCompleted();
+                        this.currentSkip = '';
+                        this.currentReturn = '';
+                        if (this.activeTaskNum === this.tasks.length) {
+                            return resolve();
+                        }
+                        setTimeout(() => runNext());
                     })
-                    .then(() => {
-                        if (!noProgress) {
-                            this.increaseCompleted();
-                        }
+                    .catch(err => {
+                        console.error(err);
+                        console.error(activeTask['func'].toString());
+                        return reject(err);
                     });
-            });
-        }, Promise.resolve());
+            };
+            setTimeout(() => runNext());
+        });
     }
 
     private hasSkip () {
@@ -120,22 +109,32 @@ export class TaskRunner extends EventEmitter {
 
     private increaseCompleted () {
         this.completed++;
+        let completed = Math.max(this.completed, this.activeTaskNum);
         this.emit('progress', {
             total: this.total,
-            completed: this.completed,
-            percent: (this.completed / this.total) * 100
+            completed: completed,
+            percent: (completed / this.total) * 100
         });
     }
 
     skipTo (name: string, ...args: Array<any>) {
+        this.goTo(name, ...args);
+
         this.currentSkip = name;
         this.currentReturn = null;
-        this.taskArgs = args;
     }
 
     returnTo (name: string, ...args: Array<any>) {
+        this.goTo(name, ...args);
+
         this.currentReturn = name;
         this.currentSkip = null;
+    }
+
+    private goTo (name: string, ...args: Array<any>) {
+        const next = this.tasks.findIndex(task => task.name === name);
+        this.completed += next - this.activeTaskNum - 1;
+        this.activeTaskNum = next;
         this.taskArgs = args;
     }
 }
