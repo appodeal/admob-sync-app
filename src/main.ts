@@ -45,7 +45,8 @@ initBugTracker(environment.sentry);
 
 function runApp () {
 
-    function onRunSecondAppInstance () {
+    async function onRunSecondAppInstance () {
+        await app.whenReady();
         if (hasOpenedWindows()) {
             return restoreAllWindows();
         }
@@ -57,7 +58,7 @@ function runApp () {
     app.on('second-instance', () => {
         // Someone tried to run a second instance, we should focus our window.
         console.log('activation event : ', 'second-instance');
-        onRunSecondAppInstance();
+        return onRunSecondAppInstance();
     });
 
     // override window-all-closed so that app does not close when all windows is closed
@@ -68,7 +69,7 @@ function runApp () {
         app.on(eventName, (event) => {
             console.log('activation event : ', eventName);
             event.preventDefault();
-            onRunSecondAppInstance();
+            return onRunSecondAppInstance();
         });
     });
 
