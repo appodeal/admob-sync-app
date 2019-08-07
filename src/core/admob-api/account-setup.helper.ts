@@ -68,9 +68,12 @@ export class AccountSetup extends EventEmitter {
                     }
                 })
                 .catch(err => {
+                    console.error('AccountSetup: runTasks error', err);
                     if (this.runner.state !== TaskRunnerState.cancelled) {
                         this.emit('error', err);
                         Sentry.captureException(err);
+                    } else {
+                        console.error('AccountSetup: is Canceled');
                     }
                 })
                 .finally(() => {

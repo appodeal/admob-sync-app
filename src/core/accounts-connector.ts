@@ -104,9 +104,9 @@ export class AccountsConnector extends Connector {
     }
 
     async destroy (): Promise<void> {
-        await super.destroy();
         for (let setup of this.setups.values()) {
             await setup.stop();
         }
+        await super.destroy();
     }
 }

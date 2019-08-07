@@ -65,18 +65,45 @@ export class TaskRunner extends EventEmitter {
         });
     }
 
+    cancelableJob<T> (jobFn: () => Promise<T>): Promise<T> {
+        return new Promise(((resolve, reject) => {
+            let jobFullFiled = false;
+            let timerID;
+
+            const done = (cb: Function) => v => {
+                clearTimeout(timerID);
+                jobFullFiled = true;
+                cb(v);
+            };
+
+            jobFn().then(done(resolve), done(reject));
+            const check = () => {
+                if (jobFullFiled) {
+                    return;
+                }
+                if (this.state === TaskRunnerState.cancelled) {
+                    console.log(`Execution terminated. Stop waiting task execution`);
+                    return reject(new Error('Canceled'));
+                }
+                timerID = setTimeout(check, 100);
+            };
+            check();
+        }));
+    }
+
     private exec () {
         return new Promise(async (resolve, reject) => {
 
             const runNext = () => {
                 if (this.state === TaskRunnerState.cancelled) {
+                    console.log(`Execution terminated`);
                     return reject(new Error('Canceled'));
                 }
                 const activeTask = this.tasks[this.activeTaskNum];
                 let taskArgs = this.taskArgs || [];
                 this.taskArgs = null;
                 console.log(`Execute task: ${activeTask['func'].toString()}`);
-                return activeTask.execute(...taskArgs)
+                return this.cancelableJob(() => activeTask.execute(...taskArgs))
                     .then(() => {
                         if (!this.hasSkip() && !this.hasReturn()) {
                             this.activeTaskNum++;

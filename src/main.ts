@@ -170,22 +170,23 @@ function runApp () {
                 .then(() => store.updateUserWhenOnline());
         });
 
-
-        const cleanUpOnExit = () => Promise.all([
-            closeAllWindows(),
-            trayIcon.destroy(),
-            tray.destroy(),
-            onlineConnector.destroy(),
-            accountsConnector.destroy(),
-            aboutConnector.destroy(),
-            syncConnector.destroy(),
-            logsConnector.destroy(),
-            syncService.destroy(),
-            updatesConnector.destroy(),
-            onlineService.destroy(),
-            syncScheduler.destroy(),
-            deleteDataConnector.destroy()
-        ]);
+        const cleanUpOnExit = async () => {
+            await accountsConnector.destroy().catch(console.error);
+            return Promise.all([
+                syncService.destroy(),
+                closeAllWindows(),
+                trayIcon.destroy(),
+                tray.destroy(),
+                onlineConnector.destroy(),
+                aboutConnector.destroy(),
+                syncConnector.destroy(),
+                logsConnector.destroy(),
+                updatesConnector.destroy(),
+                onlineService.destroy(),
+                syncScheduler.destroy(),
+                deleteDataConnector.destroy()
+            ]);
+        };
 
         onlineService.on('statusChange', isOnline => {
             console.warn('online', isOnline);
