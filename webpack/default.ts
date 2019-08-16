@@ -9,12 +9,13 @@ import signIn from './entries/sign-in';
 import accounts from './entries/accounts';
 import about from './entries/about';
 import clearData from './entries/clear-data';
+import preload from './entries/preload';
 
 export const SRC_PATH = path.resolve(__dirname, '../src');
 export const BUILD_PATH = path.resolve(__dirname, '../build');
 export const PACKAGE = require(path.join(__dirname, '../package.json'));
 
-export const entries = [main, settings, signIn, accounts, about, clearData].map(entry => (env: webpack.Configuration): webpack.Configuration => {
+export const entries = [main, settings, signIn, accounts, about, clearData, preload].map(entry => (env: webpack.Configuration): webpack.Configuration => {
     return merge(entry(env), {
         output: {
             path: BUILD_PATH,

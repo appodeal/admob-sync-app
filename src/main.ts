@@ -18,7 +18,7 @@ import {SyncScheduler} from 'core/sync-apps/sync-scheduler';
 import {SyncService} from 'core/sync-apps/sync.service';
 import {SyncConnector} from 'core/sync-connector';
 import {UpdatesConnector} from 'core/updates-connector';
-import {app} from 'electron';
+import {app, session} from 'electron';
 import {createAppMenu} from 'lib/app-menu';
 import {Preferences} from 'lib/app-preferences';
 import {AppTray} from 'lib/app-tray';
@@ -31,6 +31,7 @@ import {
 } from 'lib/ui-windows';
 import {UpdatesService} from 'lib/updates';
 import path from 'path';
+import {cutElectronFromUserAgent} from './lib/user-agent';
 
 
 const QUIT_DEADLINE_TIMOUT = 5000;
@@ -222,6 +223,9 @@ function runApp () {
         let {checkPeriod, customOptions} = store.state.preferences.updates;
         updatesConnector.checkForUpdates(true, 'notification');
         updatesConnector.runScheduler(checkPeriod, customOptions);
+
+        session.defaultSession.setUserAgent(cutElectronFromUserAgent(session.defaultSession.getUserAgent()));
+        setTimeout(() => openSettingsWindow(), 100)
     });
 
 }

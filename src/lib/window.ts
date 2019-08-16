@@ -1,5 +1,6 @@
 import {BrowserWindow, BrowserWindowConstructorOptions, dialog, ipcMain, remote, Session} from 'electron';
 import {Debug} from 'lib/debug';
+import * as path from 'path';
 import {isMacOS} from './platform';
 import {getBgColor} from './theme';
 
@@ -18,6 +19,7 @@ function getConfig (config: BrowserWindowConstructorOptions, backgroundColor: st
         show: false,
         webPreferences: {
             nodeIntegration: true,
+            preload: path.resolve(environment.development ? process.env.PWD : process.resourcesPath, `preload.js`),
             ...(config.webPreferences || {})
         }
     };
@@ -49,6 +51,7 @@ export function openWindow (
         }
 
         window.webContents.once('dom-ready', readyListener);
+        // window.webContents.toggleDevTools();
 
         ipcMain.on('windowControl', commandListener);
 

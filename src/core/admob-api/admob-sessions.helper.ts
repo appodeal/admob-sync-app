@@ -11,6 +11,7 @@ import {retry} from 'lib/retry';
 import {openWindow, waitForNavigation} from 'lib/window';
 import uuid from 'uuid';
 import {decodeOctString} from '../../lib/oct-decode';
+import {cutElectronFromUserAgent} from '../../lib/user-agent';
 
 
 export namespace AdMobSessions {
@@ -18,7 +19,9 @@ export namespace AdMobSessions {
     let SESSIONS: Map<string, string>;
 
     function sessionFromPartition (sessionID: string) {
-        return session.fromPartition(`persist:${sessionID}`);
+        const sess = session.fromPartition(`persist:${sessionID}`);
+        sess.setUserAgent(cutElectronFromUserAgent(sess.getUserAgent()));
+        return sess;
     }
 
     export function init () {
@@ -131,6 +134,7 @@ export namespace AdMobSessions {
             minHeight: 700,
             height: 700,
             webPreferences: {
+                nodeIntegration: false,
                 session
             }
         });
