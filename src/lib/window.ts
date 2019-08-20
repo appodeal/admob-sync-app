@@ -19,7 +19,7 @@ function getConfig (config: BrowserWindowConstructorOptions, backgroundColor: st
         show: false,
         webPreferences: {
             nodeIntegration: true,
-            preload: path.resolve(environment.development ? process.env.PWD : process.resourcesPath, `preload.js`),
+            preload: environment.development ? path.join(process.env.PWD + '/preload.js') : path.join(__dirname, '/preload.js'),
             ...(config.webPreferences || {})
         }
     };
