@@ -16,6 +16,8 @@ import {cutElectronFromUserAgent} from '../../lib/user-agent';
 
 export namespace AdMobSessions {
 
+    const sessionsFileName = 'admob-sessions-ff';
+
     let SESSIONS: Map<string, string>;
 
     function sessionFromPartition (sessionID: string) {
@@ -25,7 +27,7 @@ export namespace AdMobSessions {
     }
 
     export function init () {
-        return getJsonFile('admob-sessions').then(sessions => {
+        return getJsonFile(sessionsFileName).then(sessions => {
             SESSIONS = sessions ? new Map(Object.entries(sessions)) : new Map();
         });
     }
@@ -98,7 +100,7 @@ export namespace AdMobSessions {
     }
 
     function saveSessions (): Promise<void> {
-        return saveJsonFile('admob-sessions', [...SESSIONS.entries()].reduce((acc, [accId, sessionId]) => {
+        return saveJsonFile(sessionsFileName, [...SESSIONS.entries()].reduce((acc, [accId, sessionId]) => {
             acc[accId] = sessionId;
             return acc;
         }, {}));

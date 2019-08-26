@@ -1,8 +1,15 @@
-import packageInfo from '../../package.json';
-
-
 export function cutElectronFromUserAgent (originalUA: string): string {
-    let appName = packageInfo.productName.split(' ').join(''),
-        electron = 'Electron';
-    return originalUA.split(' ').filter(text => !(text.match(appName) || text.match(electron))).join(' ');
+    let match = originalUA.match(/(?<platform>[^\)]+)\).*/);
+    if (!match || !match.groups.platform) {
+        // invalid UA we cant help here
+        return originalUA;
+    }
+    let platformInfo = match.groups.platform;
+    if (platformInfo.toLowerCase().includes('mac')) {
+        const chunks = platformInfo.split(' ');
+        chunks[chunks.length - 1] = chunks[chunks.length - 1].split('_').filter((_, i) => i < 2).join('.');
+        platformInfo = chunks.join(' ');
+    }
+
+    return `${platformInfo}; rv:68.0) Gecko/20100101 Firefox/68.0`;
 }
