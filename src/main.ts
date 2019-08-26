@@ -225,7 +225,7 @@ function runApp () {
         updatesConnector.runScheduler(checkPeriod, customOptions);
 
         session.defaultSession.setUserAgent(cutElectronFromUserAgent(session.defaultSession.getUserAgent()));
-        setTimeout(() => openSettingsWindow(), 100)
+        setTimeout(() => openSettingsWindow(), 100);
     });
 
 }
