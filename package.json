@@ -8,7 +8,7 @@
   "repository": "https://github.com/appodeal/admob-sync-app",
   "description": "Appodeal AdMob Sync application",
   "private": true,
-  "version": "0.1.28",
+  "version": "0.1.29",
   "scripts": {
     "start": "node --max_old_space_size=4096 node_modules/.bin/webpack --watch --progress --config=webpack/development.ts",
     "test": "jest",
