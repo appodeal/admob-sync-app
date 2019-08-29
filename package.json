@@ -81,11 +81,6 @@
       "artifactName": "${name}-setup-${version}.${ext}"
     }
   },
-  "symlinkName": {
-    "win": "${name}-setup-latest.${ext}",
-    "mac": "${name}-latest.${ext}",
-    "linux": "${name}-setup-latest.${ext}"
-  },
   "jest": {
     "clearMocks": true,
     "coverageDirectory": "coverage",
