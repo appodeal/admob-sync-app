@@ -22,16 +22,6 @@ const EXTENSIONS = {
     deb: 'deb'
 };
 
-/**
- * Can contain following keys:
- * os - Operation system name (windows, mac-os, linux)
- * distName - Name of the dist file
- * name - Name of the package
- * version - Version of the package
- * ext - Extension of the dist file
- * @type {string}
- */
-const DEFAULT_SYMLINK_TEMPLATE = '${os}';
 
 const targets = (targets => {
     if (buildConfig.win) {
@@ -47,23 +37,35 @@ const targets = (targets => {
 })({});
 
 (async () => {
-    let results = await builder.build({
-        ...targets,
+
+    const linuxAndMacBuild = await builder.build({
+        linux: [buildConfig.linux.target],
+        mac: [buildConfig.mac.target],
         publish: null,
         x64: true,
-        ia32: true,
         config: {
-            ...buildConfig,
             mac: {
                 ...(buildConfig.mac || {}),
                 identity: flags.macCertName
             }
         }
-
     }).catch((err) => {
         console.error(err);
         return [];
     });
+
+    let winBuild = await builder.build({
+        win: [buildConfig.win.target],
+        publish: null,
+        x64: true,
+        ia32: true,
+        config: {...buildConfig}
+    }).catch((err) => {
+        console.error(err);
+        return [];
+    });
+
+    const results = [...linuxAndMacBuild, ...winBuild];
 
     if (results.length) {
         let distInfo = Object.keys(targets).reduce((info, platform) => {
@@ -108,43 +110,8 @@ const targets = (targets => {
 
         distInfo = objectFromEntries(infoEntries);
 
-        const resolveSymlinkName = (target) => {
-            let data = {
-                    get os () {
-                        return getOsName(target);
-                    },
-                    get name () {
-                        return packageInfo.name;
-                    },
-                    get distName () {
-                        return distInfo[target].fileName;
-                    },
-                    get version () {
-                        return packageInfo.version;
-                    },
-                    get ext () {
-                        return distInfo[target].fileName.match(/\.(?<ext>[A-z0-9]+)$/).groups.ext;
-                    }
-                },
-                template = packageInfo.symlinkName && packageInfo.symlinkName[target] || DEFAULT_SYMLINK_TEMPLATE;
-            return template.replace(/\$\{([A-z]*)\}/g, (_, key) => data[key]);
-        };
-
         await Promise.all([
-            fs.writeFile(path.resolve(distFolder, './dist-info.json'), JSON.stringify(distInfo, null, 2)),
-            // works only on UNIX systems
-            fs.symlink(
-                `./${distInfo.mac.fileName}`,
-                path.resolve(distFolder, `./${resolveSymlinkName('mac')}`)
-            ),
-            fs.symlink(
-                `./${distInfo.win.fileName}`,
-                path.resolve(distFolder, `./${resolveSymlinkName('win')}`)
-            ),
-            fs.symlink(
-                `./${distInfo.linux.fileName}`,
-                path.resolve(distFolder, `./${resolveSymlinkName('linux')}`)
-            )
+            fs.writeFile(path.resolve(distFolder, './dist-info.json'), JSON.stringify(distInfo, null, 2))
         ]);
     }
 
@@ -160,17 +127,5 @@ function objectFromEntries (entries) {
         return obj;
     }, {});
 }
-
-function getOsName (target) {
-    switch (target) {
-    case 'win':
-        return 'windows';
-    case 'mac':
-        return 'mac-os';
-    case 'linux':
-        return 'linux';
-    }
-}
-
 
 
