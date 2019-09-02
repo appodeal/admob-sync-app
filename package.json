@@ -157,6 +157,7 @@
     "compare-versions": "^3.4.0",
     "electron": "^5.0.1",
     "electron-platform": "^1.2.0",
+    "escape-string-regexp": "^2.0.0",
     "fs-extra": "^7.0.1",
     "graphql": "^14.1.1",
     "graphql-tag": "^2.10.1",

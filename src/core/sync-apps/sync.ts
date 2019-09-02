@@ -1,5 +1,5 @@
 import {captureMessage} from '@sentry/core';
-import {AdmobApiService, RefreshXsrfTokenError} from 'core/admob-api/admob.api';
+import {AdmobApiService, RefreshXsrfTokenError, UpdateRequest, UpdateResponse} from 'core/admob-api/admob.api';
 import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
 import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
 import {AdType, AppodealAdUnit, AppodealApp, AppodealPlatform, Format} from 'core/appdeal-api/interfaces/appodeal-app.interface';
@@ -16,11 +16,13 @@ import {AdMobApp, UserMetricsStatus} from 'lib/translators/interfaces/admob-app.
 import {getTranslator} from 'lib/translators/translator.helpers';
 import uuid from 'uuid';
 import {decodeOctString} from '../../lib/oct-decode';
+import {AppodealAccount} from '../appdeal-api/interfaces/appodeal.account.interface';
 import {NoConnectionError} from '../error-factory/errors/network/no-connection-error';
 import {UnavailableEndpointError} from '../error-factory/errors/network/unavailable-endpoint-error';
 import {SyncContext} from './sync-context';
 import {SyncEventEmitter} from './sync-event.emitter';
 import {SyncErrorEvent, SyncEvent, SyncEventsTypes, SyncReportProgressEvent} from './sync.events';
+import escapeStringRegexp = require('escape-string-regexp');
 
 
 const isObject = (v) => v !== null && typeof v === 'object';
@@ -38,6 +40,7 @@ interface AdUnitTemplate extends Partial<AdMobAdUnit> {
     }
 }
 
+const defaultAdUnitPrefix = 'Appodeal';
 
 export class Sync {
 
@@ -65,7 +68,7 @@ export class Sync {
         private adMobApi: AdmobApiService,
         private appodealApi: AppodealApiService,
         public adMobAccount: AdMobAccount,
-        private appodealAccountId: string,
+        private appodealAccount: AppodealAccount,
         private logger: Partial<Console>,
         // some uniq syncId
         public readonly id: string,
@@ -156,7 +159,7 @@ export class Sync {
         this.logger.info(`Sync Params
         uuid: ${this.id}
         AppodealAccount: 
-            id: ${this.appodealAccountId}
+            id: ${this.appodealAccount.id}
         AdmobAccount: 
             id: ${this.adMobAccount.id}
             email: ${this.adMobAccount.email}
@@ -375,6 +378,18 @@ export class Sync {
                 this.emitError(e);
             }
         }
+        // app has default name & does not match with app in Google play or App store
+        if (!adMobApp.applicationStoreId) {
+            if (this.appNameRegExp(app).test(adMobApp.name)
+                && adMobApp.name.substr(0, this.adUnitNamePrefix.length) !== this.adUnitNamePrefix
+            ) {
+                const oldName = adMobApp.name;
+                adMobApp = await this.updateAdMobAppName(adMobApp, this.patchNamePrefix(adMobApp.name));
+                this.context.updateAdMobApp(adMobApp);
+                this.stats.appUpdated(app);
+                yield `App Name prefix updated [${app.id}] from ${oldName} to ${adMobApp.name}`;
+            }
+        }
 
         const actualAdUnits = yield* this.syncAdUnits(app, adMobApp);
         yield `AdUnits actualized`;
@@ -388,10 +403,12 @@ export class Sync {
         const templatesToCreate = this.buildAdUnitsSchema(app);
         const adUnitsToDelete: AdUnitId[] = [];
         const appodealAdUnits = [];
+        const oldGoodAdUnits: AdMobAdUnit[] = [];
 
         this.getActiveAdmobAdUnitsCreatedByApp(app, adMobApp).forEach((adMobAdUnit: AdMobAdUnit) => {
             const templateId = Sync.getAdUnitTemplateId(adMobAdUnit);
             if (templatesToCreate.has(templateId)) {
+                oldGoodAdUnits.push(adMobAdUnit);
                 appodealAdUnits.push(this.convertToAppodealAdUnit(adMobAdUnit, templatesToCreate.get(templateId)));
                 templatesToCreate.delete(templateId);
             } else {
@@ -435,6 +452,17 @@ export class Sync {
             await this.deleteAdMobAdUnits(adUnitsToDelete);
             this.context.removeAdMobAdUnits(adUnitsToDelete);
             yield `Bad AdUnits (${adUnitsToDelete}) was deleted`;
+        }
+
+        // rename adunits if needed
+        for (let adMobAdUnit of oldGoodAdUnits) {
+            if (adMobAdUnit.name.substr(0, this.adUnitNamePrefix.length) !== this.adUnitNamePrefix) {
+                const oldName = adMobAdUnit.name;
+                adMobAdUnit = await this.updateAdMobAdUnitName(adMobAdUnit, this.patchNamePrefix(adMobAdUnit.name));
+                this.context.addAdMobAdUnit(adMobAdUnit);
+                this.stats.appUpdated(app);
+                yield `AdUnit Name prefix updated ${this.adUnitCode(adMobAdUnit)} from ${oldName} to ${adMobAdUnit.name}`;
+            }
         }
 
         return appodealAdUnits;
@@ -486,7 +514,7 @@ export class Sync {
 
     filterAppAdUnits (app: AppodealApp, adUnits: AdMobAdUnit[]) {
         const pattern = new RegExp('^' + [
-            'Appodeal',
+            `(${escapeStringRegexp(defaultAdUnitPrefix)}|${escapeStringRegexp(this.adUnitNamePrefix)})`,
             app.id,
             `(${Object.values(AdType).map((v: string) => v.toLowerCase()).join('|')})`,
             `(${Object.values(Format).map((v: string) => v.toLowerCase()).join('|')})`
@@ -500,9 +528,9 @@ export class Sync {
         return `ca-app-${this.adMobAccount.id}/${adUnit.adUnitId}`;
     }
 
-    static adUnitName (app: AppodealApp, adType: AdType, format: Format, cpmFloor?: number) {
+    adUnitName (app: AppodealApp, adType: AdType, format: Format, cpmFloor?: number) {
         return [
-            'Appodeal',
+            this.adUnitNamePrefix,
             app.id,
             adType.toLowerCase(),
             format.toLowerCase(),
@@ -539,12 +567,12 @@ export class Sync {
                                 ecpmFloor: 0,
                                 format: floor.format
                             },
-                            name: Sync.adUnitName(app, floor.adType, floor.format)
+                            name: this.adUnitName(app, floor.adType, floor.format)
                         },
                         // AdUnits for sent ecpm Floors
                         ...floor.ecpmFloor.filter(v => v > 0).map(ecpmFloor => ({
                             ...template,
-                            name: Sync.adUnitName(app, floor.adType, floor.format, ecpmFloor),
+                            name: this.adUnitName(app, floor.adType, floor.format, ecpmFloor),
                             __metadata: {
                                 adType: floor.adType,
                                 ecpmFloor: ecpmFloor,
@@ -586,9 +614,20 @@ export class Sync {
     static getAdUnitTemplateId (adUnit: AdMobAdUnit): AdUnitTemplateId {
 
         return stringify([
-            Sync.normalizeAdmobAdUnitName(adUnit.name),
+            // extract prefix. it has no power here
+            Sync.normalizeAdmobAdUnitName(adUnit.name).split('/').slice(1).join('/'),
             adUnit.adFormat
         ]);
+    }
+
+    patchNamePrefix (name: string): string {
+        const chunks = name.split('/');
+        chunks[0] = this.adUnitNamePrefix;
+        return chunks.join('/');
+    }
+
+    get adUnitNamePrefix () {
+        return this.appodealAccount.adUnitNamePrefix || defaultAdUnitPrefix;
     }
 
     validateAdmobApp (app: AppodealApp, adMobApp: AdMobApp) {
@@ -615,6 +654,10 @@ export class Sync {
         return adMobApp;
     }
 
+    appNameRegExp (app: AppodealApp) {
+        return new RegExp(`^(${escapeStringRegexp(defaultAdUnitPrefix)}|${escapeStringRegexp(this.adUnitNamePrefix)})/${app.id}/.*$`);
+    }
+
     findAdMobApp (app: AppodealApp, apps: AdMobApp[]): AdMobApp {
         const adMobPlatform = Sync.toAdMobPlatform(app);
 
@@ -639,7 +682,7 @@ export class Sync {
             }
         }
 
-        const namePattern = new RegExp(`^Appodeal/${app.id}/.*$`);
+        const namePattern = this.appNameRegExp(app);
         adMobApp = apps.find(adMobApp => !adMobApp.hidden && adMobApp.platform === adMobPlatform && namePattern.test(adMobApp.name));
         if (adMobApp) {
             this.logger.info('[FindAdMobApp] Found by NAME pattern');
@@ -654,13 +697,21 @@ export class Sync {
     async createAdMobApp (app: AppodealApp): Promise<AdMobApp> {
 
         const adMobApp: Partial<AdMobApp> = {
-            name: ['Appodeal', app.id, app.name].join('/').substr(0, MAX_APP_NAME_LENGTH),
+            name: [this.adUnitNamePrefix, app.id, app.name].join('/').substr(0, MAX_APP_NAME_LENGTH),
             platform: Sync.toAdMobPlatform(app),
             userMetricsStatus: UserMetricsStatus.DISABLED
         };
 
         return this.adMobApi.post('AppService', 'Create', getTranslator(AppTranslator).encode(adMobApp))
             .then(res => getTranslator(AppTranslator).decode(res));
+    }
+
+    async updateAdMobAppName (adMobApp: AdMobApp, newName: string): Promise<AdMobApp> {
+        adMobApp.name = newName;
+        return await this.adMobApi.postRaw('AppService', 'Update', <UpdateRequest>{
+            1: getTranslator(AppTranslator).encode(adMobApp),
+            2: {1: ['name']}
+        }).then((res: UpdateResponse) => getTranslator(AppTranslator).decode(res[1]));
     }
 
 
@@ -688,16 +739,6 @@ export class Sync {
             2: any[]; // apps ;
         }
 
-        interface UpdateAppRequest {
-            1: any; // encoded App
-            2: { 1: string[] }; // updateMask
-        }
-
-        interface UpdateAppResponse {
-            1: any; // encoded App
-            2: any; // validation Status
-        }
-
         const searchAppResponse: AdMobApp[] = await this.adMobApi.postRaw('AppService', 'Search', <SearchAppRequest>{
             1: app.bundleId,
             2: 0,
@@ -710,10 +751,10 @@ export class Sync {
             this.logger.info(`App found in store`);
             this.stats.appUpdated(app);
             adMobApp = {...adMobApp, ...publishedApp};
-            return await this.adMobApi.postRaw('AppService', 'Update', <UpdateAppRequest>{
+            return await this.adMobApi.postRaw('AppService', 'Update', <UpdateRequest>{
                 1: getTranslator(AppTranslator).encode(adMobApp),
                 2: {1: ['application_store_id', 'vendor']}
-            }).then((res: UpdateAppResponse) => getTranslator(AppTranslator).decode(res[1]));
+            }).then((res: UpdateResponse) => getTranslator(AppTranslator).decode(res[1]));
         }
         this.logger.info(`App NOT found in store`);
         return adMobApp;
@@ -722,6 +763,15 @@ export class Sync {
     async createAdMobAdUnit (adUnit: Partial<AdMobAdUnit>): Promise<AdMobAdUnit> {
         return this.adMobApi.post('AdUnitService', 'Create', getTranslator(AdUnitTranslator).encode(adUnit))
             .then(res => getTranslator(AdUnitTranslator).decode(res));
+    }
+
+    async updateAdMobAdUnitName (adMobAdUnit: AdMobAdUnit, newName: string): Promise<AdMobAdUnit> {
+        adMobAdUnit.name = newName;
+
+        return await this.adMobApi.postRaw('AdUnitService', 'Update', <UpdateRequest>{
+            1: getTranslator(AdUnitTranslator).encode(adMobAdUnit),
+            2: {1: ['name']}
+        }).then((res: UpdateResponse) => getTranslator(AdUnitTranslator).decode(res[1]));
     }
 
     async deleteAdMobAdUnits (ids: string[]) {

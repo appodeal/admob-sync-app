@@ -2,6 +2,7 @@ query currentUser {
     currentUser {
         id
         email
+        adUnitNamePrefix
         accounts {
             id
             email
