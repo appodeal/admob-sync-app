@@ -62,6 +62,13 @@ export class SyncService {
                 return reject(new Error('Can not run sync. AdMob account is not ready. Setup is required!'));
             }
 
+            // refetch user to get latest prefix value
+            const appodealAccount = await this.store.fetchAppodealUser(appodealAccountId);
+            if (!appodealAccount) {
+                console.log('[Sync Service] Can not run sync. Appodeal account not found in store!');
+                return reject(new Error('Can not run sync. Internal Error. Try later!'));
+            }
+
             const admobSession = await AdMobSessions.getSession(admobAccount);
 
             if (!admobSession || (await SyncHistory.getHistory(admobAccount)).admobAuthorizationRequired) {
@@ -78,7 +85,7 @@ export class SyncService {
                 adMobApi,
                 this.appodealApi.getFor(appodealAccountId),
                 admobAccount,
-                appodealAccountId,
+                appodealAccount,
                 logger,
                 id,
                 runner

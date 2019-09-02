@@ -4,8 +4,17 @@ import {getTranslator} from 'lib/translators/translator.helpers';
 import trim from 'lodash.trim';
 
 
-export class RefreshXsrfTokenError extends Error {
+export class RefreshXsrfTokenError extends Error {}
 
+
+export interface UpdateRequest {
+    1: any; // encoded App|AdUnit
+    2: { 1: string[] }; // updateMask
+}
+
+export interface UpdateResponse {
+    1: any; // encoded App|AdUnit
+    2: any; // validation Status
 }
 
 export class AdmobApiService {
@@ -14,10 +23,6 @@ export class AdmobApiService {
     private xsrfToken: string;
 
     public onError: (e: InternalError) => void;
-
-    private get appsEndpointUrl () {
-        return this.host + '/tlcgwt/inventory';
-    }
 
     private getPostApiEndpoint (serviceName: string, method: string) {
         return [this.host, 'inventory/_/rpc', serviceName, method].join('/');
