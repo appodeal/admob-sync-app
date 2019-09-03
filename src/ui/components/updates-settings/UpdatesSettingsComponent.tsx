@@ -32,13 +32,13 @@ export function UpdatesSettings ({currentVersion, availableVersion, lastCheck, c
             <label htmlFor="availableVersion">Available version:</label>
             <output id="availableVersion">
                 {availableVersion || 'You are already up to date'}
-                {
-                    !!availableVersion && availableVersion !== currentVersion &&
-                    <span className={classNames(style.inlineActions)}>
-                        <button type="button" className={classNames('primary')} onClick={singleEvent(downloadDist)}>Download</button>
-                        <button type="button" onClick={singleEvent(viewReleaseNotes)}>View release notes</button>
-                    </span>
-                }
+                <span className={classNames(style.inlineActions)}>
+                        {
+                            !!availableVersion && availableVersion !== currentVersion &&
+                            <button type="button" className={classNames('primary')} onClick={singleEvent(downloadDist)}>Download</button>
+                        }
+                    <button type="button" onClick={singleEvent(viewReleaseNotes)}>View release notes</button>
+                </span>
             </output>
             <label htmlFor="lastCheck">Last updates check:</label>
             <output id="lastCheck">
