@@ -32,6 +32,7 @@ import {
 import {UpdatesService} from 'lib/updates';
 import path from 'path';
 import {cutElectronFromUserAgent} from './lib/user-agent';
+import {deleteFolderRecursive} from "./lib/delete-folder";
 
 
 const QUIT_DEADLINE_TIMOUT = 5000;
@@ -43,6 +44,14 @@ if (!environment.development) {
     console.debug = () => {};
 }
 initBugTracker(environment.sentry);
+
+if (process.argv.includes('--clearData')) {
+    try {
+        deleteFolderRecursive(app.getPath('userData'))
+    } finally {
+        process.exit(0)
+    }
+}
 
 function runApp () {
 
