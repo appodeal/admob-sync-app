@@ -1,0 +1,3 @@
+mutation setAdmobAccountId ($email: String!, $accountId: ID!) {
+    setAdmobAccountId(accountEmail: $email, accountId: $accountId)
+}

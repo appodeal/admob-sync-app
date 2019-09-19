@@ -1,7 +1,6 @@
 import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
 import {SyncHistoryInfo} from 'core/sync-apps/sync-history';
 import {AppInfo, SyncInfo} from 'core/sync-apps/sync-stats';
-import {SyncRunner} from 'core/sync-apps/sync.service';
 import {ActionTypes, LogAction} from 'lib/actions';
 import {classNames, singleEvent} from 'lib/dom';
 import {sendToMain} from 'lib/messages';
@@ -9,6 +8,7 @@ import React from 'react';
 import Accordion from 'react-tiny-accordion';
 import Tooltip from 'react-tooltip-lite';
 import {TextToClipboard} from 'ui/components/text-to-clipboard/TextToClipboardComponent';
+import {SyncRunner} from '../../../core/sync-apps/sync-runner';
 import style from './LogList.scss';
 
 

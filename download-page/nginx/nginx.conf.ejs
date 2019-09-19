@@ -31,6 +31,11 @@ server {
         rewrite ^(.*) /index.html last;
     }
 
+    location /extension {
+        add_header Content-Disposition 'attachment; filename="extension-<%= dist.linux.version %>.zip"';
+        rewrite ^(.*) /extension-<%= dist.linux.version %>.zip break;
+    }
+
     location /version {
         if_modified_since off;
         expires off;

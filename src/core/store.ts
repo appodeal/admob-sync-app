@@ -460,8 +460,14 @@ export class Store {
         if (!resultAccount) {
             return;
         }
-        if (resultAccount.id === currentAccount.id) {
-            return await this.updateAdMobAccountInfo(currentAccount);
+        if (resultAccount.email.toLowerCase() === currentAccount.email.toLowerCase()) {
+            // ok, target account
+            if (resultAccount.id !== currentAccount.id) {
+                // update account ID if we prevously has stored invalid accountID
+                await this.appodealApi.getFor(appodealAccountId).setAdmobAccountId(resultAccount.email, resultAccount.id);
+                currentAccount.id = resultAccount.id;
+            }
+            return await this.updateAdMobAccountInfo(resultAccount);
         }
 
         const existedAccount = this.state.selectedAppodealAccount.accounts.find(account => account.id === resultAccount.id);

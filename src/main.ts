@@ -31,8 +31,10 @@ import {
 } from 'lib/ui-windows';
 import {UpdatesService} from 'lib/updates';
 import path from 'path';
+import {FileJsonStorage} from './core/json-storage/file.json-storage';
+import {deleteFolderRecursive} from './lib/delete-folder';
+import {updateIsPacked} from './lib/urls';
 import {cutElectronFromUserAgent} from './lib/user-agent';
-import {deleteFolderRecursive} from "./lib/delete-folder";
 
 
 const QUIT_DEADLINE_TIMOUT = 5000;
@@ -47,9 +49,9 @@ initBugTracker(environment.sentry);
 
 if (process.argv.includes('--clearData')) {
     try {
-        deleteFolderRecursive(app.getPath('userData'))
+        deleteFolderRecursive(app.getPath('userData'));
     } finally {
-        process.exit(0)
+        process.exit(0);
     }
 }
 
@@ -89,12 +91,14 @@ function runApp () {
 
     app.whenReady().then(async () => {
 
+        updateIsPacked(app.isPackaged);
+        await AuthContext.init(new FileJsonStorage());
+
         // APP INITIALIZERS
         let [preferences] = await Promise.all([
                 Preferences.load(),
                 AppodealSessions.init(),
-                AdMobSessions.init(),
-                AuthContext.init()
+                AdMobSessions.init()
             ]),
             errorFactory = new ErrorFactoryService(),
             appodealApi = new AppodealApi(errorFactory, preferences.accounts.appodealAccounts),

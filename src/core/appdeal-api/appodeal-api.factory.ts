@@ -8,6 +8,7 @@ import {InternalError} from 'core/error-factory/errors/internal-error';
 import EventEmitter from 'events';
 import {UserAccount} from 'interfaces/common.interfaces';
 import PushStream from 'zen-push';
+import {createFetcher} from '../../lib/fetch';
 import {NetworkError} from '../error-factory/errors/network/network-error';
 
 
@@ -23,9 +24,9 @@ export class AppodealApi extends EventEmitter {
         accounts: Array<UserAccount>
     ) {
         super();
-        this.DEFAULT_API = new AppodealApiService(errorFactory, AppodealSessions.DEFAULT_SESSION);
+        this.DEFAULT_API = new AppodealApiService(errorFactory, createFetcher(AppodealSessions.DEFAULT_SESSION));
         accounts.forEach(account => {
-            let api = new AppodealApiService(this.errorFactory, AppodealSessions.get(account));
+            let api = new AppodealApiService(this.errorFactory, createFetcher(AppodealSessions.get(account)));
             this.saveApi(api, account);
         });
     }
@@ -43,7 +44,7 @@ export class AppodealApi extends EventEmitter {
 
     async signIn (email: string, password: string): Promise<AppodealAccount> {
         let sessionInfo = AppodealSessions.create(),
-            api = new AppodealApiService(this.errorFactory, sessionInfo.session);
+            api = new AppodealApiService(this.errorFactory, createFetcher(sessionInfo.session));
         let account = await api.signIn(email, password)
             .catch(async err => {
                 await sessionInfo.remove();

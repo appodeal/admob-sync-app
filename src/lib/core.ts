@@ -1,13 +1,13 @@
-import {app, Session} from 'electron';
-import fs from 'fs-extra';
-import path from 'path';
-
 function copyValue (target, value) {
     if (isObject(value)) {
         return deepAssign(target || {}, value);
     } else {
         return value;
     }
+}
+
+export function deepClone (value) {
+    return copyValue({}, value);
 }
 
 export function deepAssign<T> (target: Partial<T>, ...sources: Array<Partial<T>>): T {
@@ -30,15 +30,6 @@ export function deepFreeze<T> (obj: T): T {
         }
     }
     return Object.freeze(obj);
-}
-
-export async function removeSession (session: Session, sessionId: string) {
-    if (typeof session['destroy'] === 'function') {
-        await session['destroy']();
-    }
-    session.removeAllListeners();
-    await fs.remove(path.resolve(app.getPath('userData'), `./Partitions/${sessionId}`))
-        .catch(err => console.error(err));
 }
 
 class ObjectIterator<T = any> {
@@ -84,7 +75,7 @@ export function getMapItem<K, V> (map: Map<K, V>, index: number): V {
         if (i === index) {
             return value;
         }
-        i++
+        i++;
     }
     return undefined;
 }

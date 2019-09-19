@@ -1,6 +1,7 @@
 {
   "compileOnSave": false,
   "compilerOptions": {
+    "allowJs": true,
     "sourceMap": true,
     "declaration": false,
     "esModuleInterop": true,
@@ -34,9 +35,11 @@
     ]
   },
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "./chrome-extension/legacy/**/*"
   ],
   "include": [
+    "./chrome-extension/**/*",
     "./src",
     "./typings/**/*"
   ]

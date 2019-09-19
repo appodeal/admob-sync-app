@@ -10,16 +10,24 @@
   "private": true,
   "version": "0.1.31",
   "scripts": {
-    "start": "node --max_old_space_size=4096 node_modules/.bin/webpack --watch --progress --config=webpack/development.ts",
+    "start": "npm run start:app",
+    "start:app": "node --max_old_space_size=4096 node_modules/.bin/webpack --watch --progress --config=webpack/development.ts",
+    "start:ext": "webpack --watch --progress --config=webpack/development.ts --chrome-ext",
+    "prestart:ext": "rm -rf dist/extension",
     "test": "jest",
     "test:watch": "jest --watchAll",
-    "electron": "cd build && electron .",
-    "build": "node --max_old_space_size=4096 node_modules/.bin/webpack --progress --config=webpack/production.ts",
+    "electron": "cd build/app && electron .",
+    "prebuild": "node tools/extract-version-from-tag.js",
+    "build": "npm run build:ext && npm run build:app",
+    "build:app": "node --max_old_space_size=4096 node_modules/.bin/webpack --progress --config=webpack/production.ts",
+    "build:ext": "webpack --progress --config=webpack/production.ts --chrome-ext",
+    "prebuild:ext": "rm -rf dist/extension dist/extension.zip",
+    "postbuild:ext": "mkdir -p dist/extension && zip -r ./dist/extension/extension-$npm_package_version.zip ./build/extension",
     "dist": "electron-builder",
     "dist:all": "node tools/dist.js",
     "postdist:all": "node --max_old_space_size=4096 node_modules/.bin/webpack -p --config=download-page/webpack.config.ts",
     "release:github": "node tools/release.js",
-    "release:sentry": "sentry-cli releases new $npm_package_version && sentry-cli releases files $npm_package_version upload-sourcemaps build/*.{map,js} && sentry-cli releases finalize $npm_package_version",
+    "release:sentry": "sentry-cli releases new $npm_package_version && sentry-cli releases files $npm_package_version upload-sourcemaps build/app/*.{map,js} && sentry-cli releases finalize $npm_package_version",
     "release:deploy": "sentry-cli releases deploys $npm_package_version new"
   },
   "build": {
@@ -27,12 +35,12 @@
     "productName": "AdMob Sync",
     "directories": {
       "buildResources": "./resources",
-      "app": "./build",
+      "app": "./build/app",
       "output": "./dist/app"
     },
     "extraResources": [
       {
-        "from": "build/assets/images",
+        "from": "build/app/assets/images",
         "to": "assets/images"
       }
     ],
@@ -122,7 +130,6 @@
     "@types/uuid": "^3.4.4",
     "@types/winston": "^2.4.4",
     "@types/zen-push": "^0.1.0",
-    "yargs": "^13.2.4",
     "clean-webpack-plugin": "^1.0.1",
     "copy-webpack-plugin": "^5.0.0",
     "css-loader": "^2.1.0",
@@ -145,16 +152,19 @@
     "webpack": "^4.39.2",
     "webpack-cli": "^3.2.3",
     "webpack-dev-server": "^3.2.0",
-    "webpack-merge": "^4.2.1"
+    "webpack-merge": "^4.2.1",
+    "yargs": "^13.2.4"
   },
   "dependencies": {
     "@sentry/electron": "^0.16.0",
+    "@types/chrome": "0.0.88",
     "apollo-cache-inmemory": "^1.5.1",
     "apollo-client": "^2.5.1",
     "apollo-link-batch-http": "^1.2.8",
     "apollo-link-context": "^1.0.15",
     "apollo-link-error": "^1.1.7",
     "compare-versions": "^3.4.0",
+    "dotenv": "^8.1.0",
     "electron": "^5.0.1",
     "electron-platform": "^1.2.0",
     "escape-string-regexp": "^2.0.0",

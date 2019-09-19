@@ -2,7 +2,7 @@ import {ApolloLink} from 'apollo-link';
 import {setContext} from 'apollo-link-context';
 import {EventEmitter} from 'events';
 import jwt_decode from 'jwt-decode';
-import {getJsonFile, saveJsonFile} from 'lib/json-storage';
+import {JsonStorage} from '../json-storage/json-storage.interface';
 
 
 export interface TokensInfo {
@@ -17,8 +17,17 @@ export class AuthContext extends EventEmitter {
 
     private static TOKENS: Map<string, TokensInfo>;
 
-    static async init () {
-        AuthContext.TOKENS = new Map(Object.entries(await getJsonFile(this.TOKENS_FILE, {})));
+    private static storage: JsonStorage;
+
+    public static readonly ready: Promise<void> = new Promise(() => {});
+
+    static async init (storage: JsonStorage) {
+        // @ts-ignore
+        AuthContext.ready = new Promise<void>(async r => {
+            AuthContext.storage = storage;
+            AuthContext.TOKENS = new Map(Object.entries(await AuthContext.storage.load(this.TOKENS_FILE, {})));
+            r();
+        });
     }
 
     static async saveTokens (accountId: string, accessToken: string, refreshToken: string) {
@@ -30,10 +39,13 @@ export class AuthContext extends EventEmitter {
     }
 
     private static saveTokensToFile () {
-        return saveJsonFile(AuthContext.TOKENS_FILE, [...AuthContext.TOKENS.entries()].reduce((tokens, [accountId, tokensInfo]) => {
-            tokens[accountId] = tokensInfo;
-            return tokens;
-        }, {}));
+        return AuthContext.storage.save(
+            AuthContext.TOKENS_FILE,
+            [...AuthContext.TOKENS.entries()].reduce((tokens, [accountId, tokensInfo]) => {
+                tokens[accountId] = tokensInfo;
+                return tokens;
+            }, {})
+        );
     }
 
     static getTokens (accountId: string): TokensInfo {
@@ -57,6 +69,10 @@ export class AuthContext extends EventEmitter {
         // check should we update refresh token each 1 minute
         this.refreshInterval = setInterval(() => this.emitRefresh(), 60000);
         this.emitRefresh();
+    }
+
+    isInitialized (): boolean {
+        return Boolean(this.accessToken && this.refreshToken);
     }
 
     private emitRefresh () {

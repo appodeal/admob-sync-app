@@ -12,12 +12,8 @@ import {SyncErrorEvent, SyncEventsTypes} from 'core/sync-apps/sync.events';
 import {createFetcher} from 'lib/fetch';
 import {createSyncLogger, getLogContent, LoggerInstance, rotateSyncLogs} from 'lib/sync-logs/logger';
 import uuid from 'uuid';
+import {SyncRunner} from './sync-runner';
 
-
-export enum SyncRunner {
-    User = 1,
-    SyncScheduler = 2
-}
 
 type FinishPromise = Promise<any>;
 

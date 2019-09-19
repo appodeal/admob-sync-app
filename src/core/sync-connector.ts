@@ -1,7 +1,8 @@
 import {Connector} from 'core/connector';
 import {Store} from 'core/store';
-import {SyncRunner, SyncService} from 'core/sync-apps/sync.service';
+import {SyncService} from 'core/sync-apps/sync.service';
 import {Action, ActionTypes} from 'lib/actions';
+import {SyncRunner} from './sync-apps/sync-runner';
 
 
 export class SyncConnector extends Connector {

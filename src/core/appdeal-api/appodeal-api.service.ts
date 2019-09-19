@@ -6,9 +6,8 @@ import {ErrorResponse, onError} from 'apollo-link-error';
 import {AuthContext, TokensInfo} from 'core/appdeal-api/auth-context';
 import {AppodealAccount} from 'core/appdeal-api/interfaces/appodeal.account.interface';
 import {AuthorizationError} from 'core/error-factory/errors/authorization.error';
-import {Session} from 'electron';
 import {ExtractedAdmobAccount} from 'interfaces/common.interfaces';
-import {createFetcher, Fetcher} from 'lib/fetch';
+import {Fetcher} from 'lib/fetch';
 import {AdMobApp} from 'lib/translators/interfaces/admob-app.interface';
 import PushStream from 'zen-push';
 import {ErrorFactoryService} from '../error-factory/error-factory.service';
@@ -24,6 +23,7 @@ import minimalAppVersionQuery from './graphql/minimal-app-version.query.graphql'
 import pingQuery from './graphql/ping.query.graphql';
 import refreshTokenMutation from './graphql/refresh-token-mutation.graphql';
 import setAdMobAccountCredentialsMutation from './graphql/set-admob-account-credentials.mutation.graphql';
+import setAdmobAccountIdMutation from './graphql/set-admob-account-id.mutation.graphql';
 import signInMutation from './graphql/sign-in.mutation.graphql';
 import signOutMutation from './graphql/sign-out.mutation.graphql';
 import startSync from './graphql/start-sync.mutation.graphql';
@@ -64,8 +64,36 @@ export class AppodealApiService {
     private _onError = new PushStream<InternalError>();
 
     public onError = this._onError.observable;
-    fetcher: Fetcher;
+
     authContext: AuthContext;
+
+    constructor (errorFactory: ErrorFactoryService, private fetcher: Fetcher) {
+        const errorLink = onError((errorResponse: ErrorResponse) => {
+            const error = errorFactory.create(errorResponse);
+            this.handleError(error);
+            return new Observable<FetchResult>((ob) => ob.error(error));
+        });
+
+        const defaultApolloLink = new BatchHttpLink({uri: environment.services.appodeal, fetch: this.fetcher});
+
+        this.authContext = new AuthContext();
+
+
+        this.client = new ApolloClient({
+            defaultOptions: {
+                query: {
+                    fetchPolicy: 'network-only'
+                }
+            },
+            link: ApolloLink.from([
+                errorLink,
+                this.authContext.createLink(),
+                defaultApolloLink
+            ]),
+            cache: new InMemoryCache()
+        });
+
+    }
 
     private logRequest (operations, opType, variables) {
         operations.definitions.filter(op => op.kind === 'OperationDefinition').forEach(
@@ -96,35 +124,6 @@ export class AppodealApiService {
                 });
         }, dedicated);
     };
-
-    constructor (errorFactory: ErrorFactoryService, session: Session) {
-        const errorLink = onError((errorResponse: ErrorResponse) => {
-            const error = errorFactory.create(errorResponse);
-            this.handleError(error);
-            return new Observable<FetchResult>((ob) => ob.error(error));
-        });
-        this.fetcher = createFetcher(session);
-
-        const defaultApolloLink = new BatchHttpLink({uri: environment.services.appodeal, fetch: this.fetcher});
-
-        this.authContext = new AuthContext();
-
-
-        this.client = new ApolloClient({
-            defaultOptions: {
-                query: {
-                    fetchPolicy: 'network-only'
-                }
-            },
-            link: ApolloLink.from([
-                errorLink,
-                this.authContext.createLink(),
-                defaultApolloLink
-            ]),
-            cache: new InMemoryCache()
-        });
-
-    }
 
     private initialized = false;
 
@@ -288,6 +287,18 @@ export class AppodealApiService {
         })
             .then(async ({setAdmobAccountCredentials: {oAuthUrl}}) => oAuthUrl);
     }
+
+    setAdmobAccountId (email: string, adMobAccountId: string): Promise<boolean> {
+        return this.mutate({
+            mutation: setAdmobAccountIdMutation,
+            variables: {
+                email: email,
+                accountId: adMobAccountId
+            },
+            dataAttribute: 'setAdmobAccountId'
+        });
+    }
+
 
     addAdMobAccount ({id: accountId, email}: ExtractedAdmobAccount): Promise<boolean> {
         return this.mutate<{ addAdmobAccount: boolean }>({
