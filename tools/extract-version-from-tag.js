@@ -3,7 +3,7 @@ const fs = require('fs');
 
 const envpath = '.envfile';
 if (fs.existsSync(envpath)) {
-    console.log(`Read env from ${envfile}`);
+    console.log(`Read env from ${envpath}`);
     require('dotenv').config({path: envpath});
 }
 
@@ -22,7 +22,7 @@ if (!tag || !tag.trim()) {
     process.exit(0);
 }
 
-const pkg = require('package.json');
+const pkg = JSON.parse(fs.readFileSync('package.json').toString());
 pkg.version = getVersion(tag);
 fs.writeFileSync('package.json', JSON.stringify(pkg));
 console.log(`VERSION from TAG env variable "${tag}" -> "${pkg.version}" is set to package.json`);
