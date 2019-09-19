@@ -1,8 +1,8 @@
 import {Session, session} from 'electron';
 import {UserAccount} from 'interfaces/common.interfaces';
-import {removeSession} from 'lib/core';
 import {getJsonFile, saveJsonFile} from 'lib/json-storage';
 import uuid from 'uuid';
+import {removeSession} from '../../lib/sessions';
 
 
 export namespace AppodealSessions {

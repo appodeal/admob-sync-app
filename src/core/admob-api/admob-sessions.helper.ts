@@ -4,14 +4,14 @@ import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface'
 import {SyncHistory} from 'core/sync-apps/sync-history';
 import {BrowserWindow, Session, session, shell} from 'electron';
 import {ExtractedAdmobAccount} from 'interfaces/common.interfaces';
-import {removeSession} from 'lib/core';
 import {nodeFetch} from 'lib/fetch';
 import {getJsonFile, saveJsonFile} from 'lib/json-storage';
 import {retry} from 'lib/retry';
 import {openWindow, waitForNavigation} from 'lib/window';
 import uuid from 'uuid';
-import {decodeOctString} from '../../lib/oct-decode';
+import {removeSession} from '../../lib/sessions';
 import {cutElectronFromUserAgent} from '../../lib/user-agent';
+import {extractAccountInfo} from './extract-admob-account-info';
 
 
 export namespace AdMobSessions {
@@ -145,31 +145,6 @@ export namespace AdMobSessions {
     async function waitForSignIn (window: BrowserWindow): Promise<BrowserWindow> {
         await waitForNavigation(window, /^https:\/\/apps\.admob\.com\/v2/);
         return window;
-    }
-
-    function extractAccountInfo (responseBody: string): ExtractedAdmobAccount {
-        try {
-            let result = /(?<id>pub-\d+)/.exec(responseBody);
-            if (!result) {
-                return null;
-            }
-
-            const {id} = result.groups;
-            let email;
-            result = /var amrpd = '(?<emailSource>.*?)';/.exec(responseBody);
-            const amrpdSource = decodeOctString(result.groups.emailSource);
-            const amrpd = JSON.parse(amrpdSource);
-            email = amrpd[32][3][1];
-
-            return {
-                id,
-                email
-            };
-        } catch (e) {
-            console.warn(e);
-        }
-
-        return null;
     }
 
 

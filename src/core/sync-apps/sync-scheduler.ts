@@ -1,9 +1,10 @@
 import {OnlineService} from 'core/appdeal-api/online.service';
 import {Store} from 'core/store';
 import {SyncHistory} from 'core/sync-apps/sync-history';
-import {SyncRunner, SyncService} from 'core/sync-apps/sync.service';
+import {SyncService} from 'core/sync-apps/sync.service';
 import {timeConversion} from 'lib/time';
 import {observe} from 'mobx';
+import {SyncRunner} from './sync-runner';
 
 
 type Milliseconds = number;

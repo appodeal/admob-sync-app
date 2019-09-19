@@ -1,5 +1,6 @@
 declare interface Services {
     readonly appodeal: string;
+    readonly appodeal_auth: string;
     readonly ad_mob: string;
 }
 

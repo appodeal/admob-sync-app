@@ -1,11 +1,9 @@
 import {captureMessage} from '@sentry/core';
 import {AdmobApiService, RefreshXsrfTokenError, UpdateRequest, UpdateResponse} from 'core/admob-api/admob.api';
 import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
-import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
 import {AdType, AppodealAdUnit, AppodealApp, AppodealPlatform, Format} from 'core/appdeal-api/interfaces/appodeal-app.interface';
 import {getAdUnitTemplate} from 'core/sync-apps/ad-unit-templates';
 import {SyncStats} from 'core/sync-apps/sync-stats';
-import {SyncRunner} from 'core/sync-apps/sync.service';
 import stringify from 'json-stable-stringify';
 import {retryProxy} from 'lib/retry';
 import {AppTranslator} from 'lib/translators/admob-app.translator';
@@ -16,12 +14,14 @@ import {AdMobApp, UserMetricsStatus} from 'lib/translators/interfaces/admob-app.
 import {getTranslator} from 'lib/translators/translator.helpers';
 import uuid from 'uuid';
 import {decodeOctString} from '../../lib/oct-decode';
+import {AdMobAccount} from '../appdeal-api/interfaces/admob-account.interface';
 import {AppodealAccount} from '../appdeal-api/interfaces/appodeal.account.interface';
 import {NoConnectionError} from '../error-factory/errors/network/no-connection-error';
 import {UnavailableEndpointError} from '../error-factory/errors/network/unavailable-endpoint-error';
 import {SyncContext} from './sync-context';
 import {SyncEventEmitter} from './sync-event.emitter';
-import {SyncErrorEvent, SyncEvent, SyncEventsTypes, SyncReportProgressEvent} from './sync.events';
+import {SyncRunner} from './sync-runner';
+import {SyncErrorEvent, SyncEvent, SyncEventsTypes, SyncReportProgressEvent, SyncStopEvent} from './sync.events';
 import escapeStringRegexp = require('escape-string-regexp');
 
 
@@ -127,7 +127,7 @@ export class Sync {
 
     finish () {
         this.stats.end();
-        this.emit(SyncEventsTypes.Stopped);
+        this.emitStop();
         this.appodealApi.reportSyncEnd(this.id);
     }
 
@@ -153,6 +153,10 @@ export class Sync {
         });
     }
 
+    emitStop () {
+        return this.emit(<SyncStopEvent>{type: SyncEventsTypes.Stopped, terminated: this.terminated, hasErrors: this.hasErrors});
+    }
+
     async* doSync () {
         this.stats.start();
         this.emit(SyncEventsTypes.Started);
@@ -170,7 +174,7 @@ export class Sync {
         } catch (e) {
             this.logger.error('Failed to fetchDataToSync ', e);
             this.emitError(e);
-            this.emit(SyncEventsTypes.Stopped);
+            this.emitStop();
             return;
         }
 
@@ -179,7 +183,7 @@ export class Sync {
         } catch (e) {
             this.logger.error('Failed to syncApps ', e);
             this.emitError(e);
-            this.emit(SyncEventsTypes.Stopped);
+            this.emitStop();
             return;
         }
     }

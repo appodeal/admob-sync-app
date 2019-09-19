@@ -1,6 +1,6 @@
 import {AppodealApp} from 'core/appdeal-api/interfaces/appodeal-app.interface';
 import {Sync} from 'core/sync-apps/sync';
-import {SyncRunner} from 'core/sync-apps/sync.service';
+import {SyncRunner} from './sync-runner';
 
 
 export type AppInfo = Pick<AppodealApp, 'id'> & Pick<AppodealApp, 'name'>;

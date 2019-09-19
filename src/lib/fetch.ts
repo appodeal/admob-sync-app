@@ -1,9 +1,8 @@
-import {net, Session, Cookie} from 'electron';
+import {Cookie, net, Session} from 'electron';
 
 
 export interface Fetcher extends Function {
     (input: RequestInfo, init?: RequestInit): Promise<Response>;
-    updateSession? (session: Session): void;
 }
 
 interface FetchOptions {
@@ -20,14 +19,9 @@ const DEFAULT_FETCH_CONFIG: FetchOptions = {
 
 
 export function createFetcher (session: Session): Fetcher {
-    let _session = session,
-        fetcher: Fetcher = (url: string, init?: FetchOptions): Promise<any> => {
-            return nodeFetch(url, init, _session);
-        };
-    fetcher.updateSession = (session: Session) => {
-        _session = session;
+    return (url: string, init?: FetchOptions): Promise<any> => {
+        return nodeFetch(url, init, session);
     };
-    return fetcher;
 }
 
 

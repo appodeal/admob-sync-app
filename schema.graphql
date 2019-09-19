@@ -41,6 +41,7 @@ type Mutations {
     endSync(id: ID!): Boolean!
     refreshAccessToken(refreshToken: String!): Session!
     setAdmobAccountCredentials(accountId: ID!, clientId: String!, clientSecret: String!): OAuthParams!
+    setAdmobAccountId(accountEmail: String!, accountId: ID!): Boolean!
     signIn(email: String!, password: String!): Session!
     signOut: Boolean!
     startSync(admobAccountId: ID!, id: ID!): Boolean!

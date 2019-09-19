@@ -1,0 +1,79 @@
+
+.flexCenter {
+  flex-direction: column;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  h1 {
+    margin-bottom: 30px;
+  }
+}
+
+.mainContent {
+  padding: 20px;
+}
+
+footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 0 20px 20px 20px;
+
+  a {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    cursor: pointer;
+    display: inline-flex;
+    box-sizing: border-box;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    height: var(--button-height);
+    border-radius: var(--control-border-radius);
+    border: var(--button-border-width) var(--button-border-style) var(--button-border-color);
+    background-color: var(--button-background);
+    color: var(--button-text-color);
+    font-weight: var(--button-font-weight);
+    font-size: var(--button-font-size);
+    font-stretch: normal;
+    font-family: var(--default-font-family);
+    text-decoration: none;
+    line-height: normal;
+    white-space: nowrap;
+    padding: var(--button-padding);
+    margin: 0;
+    vertical-align: top;
+    touch-action: manipulation;
+    transition: color .2s ease, background-color .2s ease, border .2s ease, transform .1s ease-out;
+
+    &:hover {
+      color: var(--button-text-color-hover);
+      background-color: var(--button-background-hover);
+      border-color: var(--button-border-color-hover);
+      text-decoration: inherit;
+    }
+  }
+}
+
+
+.onlyVersion {
+  justify-content: flex-end;
+}
+
+.version {
+  text-align: right;
+  color: var(--gray-light);
+}
+
+.center {
+  text-align: center;
+}

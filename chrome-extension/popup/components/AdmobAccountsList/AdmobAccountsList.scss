@@ -1,0 +1,30 @@
+ul {
+  padding: 0;
+}
+
+li {
+  padding: 0;
+  margin: 10px;
+  display: flex;
+  height: 32px;
+  line-height: 32px;
+  align-items: center;
+  justify-content: space-between;
+
+  img {
+    width: 20px;
+    margin-top: 5px;
+    position: absolute;
+  }
+}
+
+button.slimBtn {
+  display: inline-flex;
+  height: 24px;
+  line-height: 20px;
+  min-width: 70px;
+}
+
+.email {
+  margin-left: 30px;
+}

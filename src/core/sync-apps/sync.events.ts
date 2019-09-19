@@ -20,6 +20,12 @@ export interface SyncReportProgressEvent extends SyncEvent {
     failed?: number
 }
 
+export interface SyncStopEvent extends SyncEvent {
+    type: SyncEventsTypes.Stopped;
+    terminated: true;
+    hasErrors: true;
+}
+
 export interface SyncEvent {
     type: SyncEventsTypes;
     id: string;
