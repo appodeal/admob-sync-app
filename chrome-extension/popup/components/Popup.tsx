@@ -53,7 +53,7 @@ function PopupContent ({currentUser, updateRequired, minimalVersion}) {
 export function Popup ({state}: { state: ExtensionState }) {
     const {currentUser, isFetchingCurrentUser, updateRequired, minimalVersion} = state;
 
-    if (isFetchingCurrentUser) {
+    if (isFetchingCurrentUser && !currentUser) {
         return <PreloaderIcon/>;
     }
 
