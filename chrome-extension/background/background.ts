@@ -144,6 +144,11 @@ function onMessage (request, sender) {
         return;
     }
 
+    if (request.type === Actions.sendLogs) {
+        app.api.submitLog(app.state.tabAdmobAccountId || "unset", getExtensionVersion(), request.content);
+        return;
+    }
+
     if (request.type === Actions.runJob) {
         return startTabsJob(request.job, request.tabId);
     }
