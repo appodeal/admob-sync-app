@@ -23,7 +23,7 @@ export class AuthContext extends EventEmitter {
 
     static async init (storage: JsonStorage) {
         // @ts-ignore
-        AuthContext.ready = new Promise<void>(async r => {
+        return AuthContext.ready = new Promise<void>(async r => {
             AuthContext.storage = storage;
             AuthContext.TOKENS = new Map(Object.entries(await AuthContext.storage.load(this.TOKENS_FILE, {})));
             r();
