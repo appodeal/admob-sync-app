@@ -145,7 +145,8 @@ function onMessage (request, sender) {
     }
 
     if (request.type === Actions.sendLogs) {
-        app.api.submitLog(app.state.tabAdmobAccountId || "unset", getExtensionVersion(), request.content);
+        const log = typeof request.content === 'string' ? request.content : JSON.stringify(request.content);
+        app.api.submitLog(app.state.tabAdmobAccountId || 'unset', getExtensionVersion(), log);
         return;
     }
 
