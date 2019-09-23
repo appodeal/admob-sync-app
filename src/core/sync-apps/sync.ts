@@ -250,9 +250,16 @@ export class Sync {
             // may be user's action required
             throw new Error('Apps not found');
         }
-        const json = decodeOctString(mathResult.groups.appsJson);
-        const apps = <any[]>JSON.parse(json)[1] || [];
-        return apps.map<AdMobApp>(getTranslator(AppTranslator).decode);
+        let json;
+        try {
+            json = decodeOctString(mathResult.groups.appsJson);
+            const apps = <any[]>JSON.parse(json)[1] || [];
+            return apps.map<AdMobApp>(getTranslator(AppTranslator).decode);
+        } catch (e) {
+            console.log('appsJson', json, body);
+            console.error(e);
+            throw e;
+        }
     }
 
     ejectAdUnitsFromAdmob (body: string) {
@@ -262,9 +269,16 @@ export class Sync {
             // may be user's action required
             throw new Error('AdUnits not found');
         }
-        const json = decodeOctString(mathResult.groups.appsJson);
-        const adUnits = <any[]>JSON.parse(json)[1] || [];
-        return adUnits.map<AdMobAdUnit>(getTranslator(AdUnitTranslator).decode);
+        let json;
+        try {
+            json = decodeOctString(mathResult.groups.appsJson);
+            const adUnits = <any[]>JSON.parse(json)[1] || [];
+            return adUnits.map<AdMobAdUnit>(getTranslator(AdUnitTranslator).decode);
+        } catch (e) {
+            console.log('appsJson', json, body);
+            console.error(e);
+            throw e;
+        }
     }
 
     async* syncApps () {
