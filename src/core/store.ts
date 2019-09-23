@@ -432,6 +432,10 @@ export class Store {
 
     @action
     async addAppodealAccount (account: AppodealAccount) {
+        if (!account) {
+            console.warn('[addAppodealAccount] empty account');
+            return null;
+        }
         let otherAccounts = this.state.preferences.accounts.appodealAccounts.filter(acc => acc.id !== account.id);
         if (!environment.multipleAccountsSupport) {
             await Promise.all(otherAccounts.map(oldAccount => this.appodealApi.signOut(oldAccount, true)));
