@@ -40,7 +40,7 @@ import {cutElectronFromUserAgent} from './lib/user-agent';
 const QUIT_DEADLINE_TIMOUT = 5000;
 
 if (environment.development) {
-    app.setPath('userData', path.join(process.cwd(), 'tmp/userData'));
+    app.setPath('userData', path.join(process.cwd(), '../userData'));
 }
 if (!environment.development) {
     console.debug = () => {};
