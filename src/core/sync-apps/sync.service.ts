@@ -68,8 +68,10 @@ export class SyncService {
             const admobSession = await AdMobSessions.getSession(admobAccount);
 
             if (!admobSession || (await SyncHistory.getHistory(admobAccount)).admobAuthorizationRequired) {
+                await SyncHistory.setAuthorizationRequired(admobAccount, true);
+                await this.store.updateAdMobAccountInfo(admobAccount);
                 console.warn(`[Sync Service] [${admobAccount.id} ${admobAccount.email}] can not run sync. User has to Sign In in account first.`);
-                return reject(new Error(`Can not run sync for ${admobAccount.email}. User has to Sign In in account first.`));
+                return reject(new Error(`Your admob session for ${admobAccount.email} has expired. You have to sign in to Admob once again.`));
             }
 
             const id = uuid.v4();
