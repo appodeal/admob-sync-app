@@ -10,6 +10,7 @@ export async function auth (app) {
 
     const errorLink = onError((errorResponse: ErrorResponse) => {
         const error = app.errorFactory.create(errorResponse);
+        console.log(JSON.stringify(errorResponse));
         return new Observable<FetchResult>((ob) => ob.error(error));
     });
 
