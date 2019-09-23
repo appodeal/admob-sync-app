@@ -4,7 +4,7 @@ import {extLocalStorage} from '../../common/localstorage';
 
 const GOOGLE_CLOUD_CONSOLE = 'https://apps.admob.com/logout?continue=https://apps.admob.com/#home';
 
-const ADMOB_HOME = 'https://accounts.google.com/AddSession?hl=en&continue=https://apps.admob.com/';
+const ADMOB_HOME = 'https://apps.admob.com/logout?continue=https://apps.admob.com/';
 
 async function navigateCurrentTab (url: string): Promise<chrome.tabs.Tab> {
     return new Promise(resolve => {
