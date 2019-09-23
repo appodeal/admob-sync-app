@@ -140,7 +140,6 @@ function onMessage (request, sender) {
     if (!app.state.currentUser) {
         const message = `[onMessage]  no current User for this events`;
         console.warn(message);
-        app.sentry.captureMessage(message);
         return;
     }
 
