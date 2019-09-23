@@ -70,6 +70,7 @@ export class AppodealApiService {
     constructor (errorFactory: ErrorFactoryService, private fetcher: Fetcher) {
         const errorLink = onError((errorResponse: ErrorResponse) => {
             const error = errorFactory.create(errorResponse);
+            console.log(JSON.stringify(errorResponse));
             this.handleError(error);
             return new Observable<FetchResult>((ob) => ob.error(error));
         });
