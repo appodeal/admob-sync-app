@@ -42,6 +42,7 @@ export class RunSyncTabJob implements IJob {
 
     async before () {
         this.app.runningSync = this;
+        this.logger = new Logger();
     }
 
     async after () {
@@ -63,9 +64,12 @@ export class RunSyncTabJob implements IJob {
 
     async run () {
 
+        const logger = this.logger;
         const api = this.app.api;
 
         this.stateSnapshot = deepClone(this.app.state);
+
+        logger.info('stateSnapshot', this.stateSnapshot);
         const currentUser = this.currentUser = this.stateSnapshot.currentUser;
 
         const id = this.id = uuid.v4();
@@ -73,10 +77,8 @@ export class RunSyncTabJob implements IJob {
         const adMobApi = new AdmobApiService(fetch.bind(globalThis), console);
         const extractedAdmobAccount = extractAccountInfo(await adMobApi.fetchHomePage().then(r => r.text()));
         const adMobAccount = this.adMobAccount = currentUser.accounts.find(
-            acc => acc.email.toLowerCase() === extractedAdmobAccount.email.toLowerCase());
+            acc => acc.email.toLowerCase() === this.stateSnapshot.tabAdmobAccountEmail.toLowerCase());
 
-
-        const logger = this.logger = new Logger();
         logger.info(`Sync with extension. Version ${getExtensionVersion()}`);
 
 
