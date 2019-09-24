@@ -1,4 +1,6 @@
 import * as Sentry from '@sentry/browser';
+import {SentryEvent} from '@sentry/browser';
+import {SentryEventHint} from '@sentry/types';
 import {ExtensionState} from '../background/background';
 import {Actions} from './actions';
 
@@ -33,7 +35,17 @@ export function InitSentry (whereTag, listenStateFromBackground: boolean = false
 
     Sentry.init({
         dsn: environment.sentry.dsn,
-        environment: 'extension'
+        environment: 'extension',
+        beforeSend (event: SentryEvent, hint?: SentryEventHint): SentryEvent | Promise<SentryEvent | null> | null {
+            if (hint
+                && hint.originalException
+                && !window.navigator.onLine
+                && typeof hint.originalException === 'object'
+                && hint.originalException.message === 'Network error: Failed to fetch') {
+                return null;
+            }
+            return event;
+        }
     });
 
     if (listenStateFromBackground) {
