@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/browser';
 import {SentryEvent} from '@sentry/browser';
 import {SentryEventHint} from '@sentry/types';
 import {ExtensionState} from '../background/background';
+import {getExtensionVersion} from '../background/utils/minimal-version';
 import {Actions} from './actions';
 
 
@@ -29,6 +30,7 @@ export function InitSentry (whereTag, listenStateFromBackground: boolean = false
         Sentry.configureScope(scope => {
             scope.setExtra('state', extra);
             scope.setTag('where', whereTag);
+            scope.setTag('release', getExtensionVersion());
             scope.setUser(currentUser);
         });
     }
