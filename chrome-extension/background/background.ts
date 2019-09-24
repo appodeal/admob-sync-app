@@ -29,7 +29,8 @@ export interface ExtensionState {
     tabAdmobAccountId: string | null;
     currentUser: AppodealAccount | null;
     minimalVersion: string | null,
-    updateRequired: boolean
+    updateRequired: boolean,
+    appStarted: boolean
 }
 
 export class App {
@@ -47,8 +48,9 @@ export class App {
         tabAdmobAccountId: null,
         currentUser: null,
         minimalVersion: null,
-        updateRequired: false
-    }, ['isFetchingCurrentUser']);
+        updateRequired: false,
+        appStarted: false
+    }, ['isFetchingCurrentUser', 'appStarted']);
 
     public readonly notify = notify;
     public readonly sentry = sentry;
@@ -83,6 +85,7 @@ export class App {
     async start () {
         console.debug('[APP] Starting');
         await AuthContext.init(new LocalStorageJsonStorage());
+        app.api.authContext.init('accountId');
         console.debug('[APP] Auth Context loaded');
         console.log(`[APP] network status ${window.navigator.onLine ? 'online' : 'offline'}`);
         if (!this.state.currentUser && window.navigator.onLine) {
@@ -94,6 +97,7 @@ export class App {
                 app.api.authContext.remove();
             }
         });
+        app.state.appStarted = true;
     }
 
     updateSentry () {
