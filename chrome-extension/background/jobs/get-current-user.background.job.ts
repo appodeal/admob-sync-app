@@ -1,4 +1,5 @@
 import {AuthContext} from 'core/appdeal-api/auth-context';
+import {deepClone} from '../../../src/lib/core';
 import {Actions} from '../../common/actions';
 import {App} from '../background';
 import {auth} from '../utils/auth';
@@ -18,12 +19,15 @@ export class GetCurrentUserBackgroundJob implements IJob {
     before = async () => {
         const {app} = this;
         app.loadingUser = this;
+        app.state.isFetchingCurrentUser = true;
+        return deepClone(app.state);
     };
 
     after = async () => {
         const {app} = this;
         app.loadingUser = null;
-        console.debug('[GetCurrentUserJob] multicast state', JSON.parse(JSON.stringify(app.state)));
+        app.state.isFetchingCurrentUser = false;
+        console.debug('[GetCurrentUserJob] multicast state', deepClone(app.state));
         chrome.runtime.sendMessage({type: Actions.extensionStateUpdated, state: app.state});
         if (app.state.tabId) {
             chrome.tabs.sendMessage(app.state.tabId, {type: Actions.extensionStateUpdated, state: app.state});

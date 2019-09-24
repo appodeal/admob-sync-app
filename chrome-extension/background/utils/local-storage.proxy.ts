@@ -15,10 +15,10 @@ function loadStoredValues (key, value, exclude: string[]) {
 }
 
 export function localStorageProxy<T extends Object> (storageKey, value, exclude: string[]): T {
-    console.debug('[localStorageProxy] start ', value);
+    console.debug('[localStorageProxy] start ', deepClone(value));
 
     loadStoredValues(storageKey, value, exclude);
-    console.debug('[localStorageProxy] stored values loaded ', value);
+    console.debug('[localStorageProxy] stored values loaded ', deepClone(value));
 
     const original = deepClone(value);
     let timeoutID;
@@ -35,6 +35,6 @@ export function localStorageProxy<T extends Object> (storageKey, value, exclude:
             set: setter(key)
         })
     );
-    console.debug('[localStorageProxy] getters & setters updated', value);
+    console.debug('[localStorageProxy] getters & setters updated', deepClone(value));
     return value;
 }

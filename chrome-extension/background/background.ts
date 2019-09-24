@@ -11,6 +11,7 @@ import {EnableReportingTabJob} from './jobs/enable-reporting.tab.job';
 
 import {GetCurrentUserBackgroundJob} from './jobs/get-current-user.background.job';
 import {RunSyncTabJob} from './jobs/run-sync.tab.job';
+import {fetcher} from './utils/fetcher';
 import {localStorageProxy} from './utils/local-storage.proxy';
 import {getExtensionVersion} from './utils/minimal-version';
 import {notify, notifyError} from './utils/notifications';
@@ -34,7 +35,7 @@ export interface ExtensionState {
 export class App {
     public readonly environment = environment;
     public readonly errorFactory = new ErrorFactoryService();
-    public readonly api = new AppodealApiService(this.errorFactory, fetch.bind(globalThis));
+    public readonly api = new AppodealApiService(this.errorFactory, fetcher);
     public loadingUser: GetCurrentUserBackgroundJob;
     public enablingReports: EnableReportingTabJob;
     public runningSync: RunSyncTabJob;
@@ -83,8 +84,10 @@ export class App {
         console.debug('[APP] Starting');
         await AuthContext.init(new LocalStorageJsonStorage());
         console.debug('[APP] Auth Context loaded');
-
-        await app.run(GetCurrentUserBackgroundJob);
+        console.log(`[APP] network status ${window.navigator.onLine ? 'online' : 'offline'}`);
+        if (!this.state.currentUser && window.navigator.onLine) {
+            await app.run(GetCurrentUserBackgroundJob);
+        }
         app.api.onError.subscribe(e => {
             if (e instanceof AuthorizationError) {
                 app.state.currentUser = null;

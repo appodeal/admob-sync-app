@@ -4,6 +4,7 @@ import {ApolloLink, FetchResult, Observable} from 'apollo-link';
 import {BatchHttpLink} from 'apollo-link-batch-http';
 import {ErrorResponse, onError} from 'apollo-link-error';
 import gql from 'graphql-tag';
+import {fetcher} from './fetcher';
 
 
 export async function auth (app) {
@@ -22,7 +23,7 @@ export async function auth (app) {
         },
         link: ApolloLink.from([
             errorLink,
-            new BatchHttpLink({uri: environment.services.appodeal_auth, fetch: this.fetcher})
+            new BatchHttpLink({uri: environment.services.appodeal_auth, fetch: fetcher})
         ]),
         cache: new InMemoryCache()
     });
