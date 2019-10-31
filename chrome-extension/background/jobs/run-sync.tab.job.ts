@@ -1,14 +1,14 @@
 import {AdmobApiService} from 'core/admob-api/admob.api';
-import {extractAccountInfo} from 'core/admob-api/extract-admob-account-info';
 import {Sync} from 'core/sync-apps/sync';
 import {SyncRunner} from 'core/sync-apps/sync-runner';
 import {SyncEventsTypes, SyncReportProgressEvent} from 'core/sync-apps/sync.events';
 import uuid from 'uuid';
+import {ExtractedAdmobAccount} from '../../../src/interfaces/common.interfaces';
 import {deepClone} from '../../../src/lib/core';
 
 import {Actions, TabJobs} from '../../common/actions';
 import {Logger} from '../../common/logger';
-import {App} from '../background';
+import {App, ExtensionState} from '../background';
 import {getExtensionVersion} from '../utils/minimal-version';
 import {notify} from '../utils/notifications';
 import {IJob} from './job.interface';
@@ -21,7 +21,8 @@ export class RunSyncTabJob implements IJob {
     private adMobAccount;
     private sync: Sync;
     private logger: Logger;
-    private stateSnapshot;
+    private logSub;
+    private stateSnapshot: ExtensionState;
     private syncProgress = {
         id: '',
         totalApps: 0,
@@ -43,6 +44,9 @@ export class RunSyncTabJob implements IJob {
     async before () {
         this.app.runningSync = this;
         this.logger = new Logger();
+        this.logSub = this.logger.events.observable.subscribe(logMessage => {
+            chrome.tabs.sendMessage(this.app.state.tabId, {type: Actions.syncLogMessage, message: logMessage});
+        });
     }
 
     async after () {
@@ -56,10 +60,11 @@ export class RunSyncTabJob implements IJob {
 
         logger.info('Admob AdUnits and Apps');
         logger.info(JSON.stringify(sync.context.getAdmobState()));
-        await api.submitLog(adMobAccount.id, id, logger.getAsText()).catch(e => {
+        await api.submitLog(adMobAccount ? adMobAccount.id : this.stateSnapshot.tabAdmobAccountId, id, logger.getAsText()).catch(e => {
             console.error('Failed to submit log', e);
         });
         logger.clean();
+        this.logSub.unsubscribe();
     }
 
     async run () {
@@ -67,7 +72,7 @@ export class RunSyncTabJob implements IJob {
         const logger = this.logger;
         const api = this.app.api;
 
-        this.stateSnapshot = deepClone(this.app.state);
+        const stateSnapshot = this.stateSnapshot = deepClone(this.app.state);
 
         logger.info('stateSnapshot', this.stateSnapshot);
         const currentUser = this.currentUser = this.stateSnapshot.currentUser;
@@ -75,9 +80,13 @@ export class RunSyncTabJob implements IJob {
         const id = this.id = uuid.v4();
 
         const adMobApi = new AdmobApiService(fetch.bind(globalThis), console);
-        const extractedAdmobAccount = extractAccountInfo(await adMobApi.fetchHomePage().then(r => r.text()));
+        const extractedAdmobAccount: ExtractedAdmobAccount = {
+            email: stateSnapshot.tabAdmobAccountEmail,
+            id: stateSnapshot.tabAdmobAccountId
+        };
         const adMobAccount = this.adMobAccount = currentUser.accounts.find(
-            acc => acc.email.toLowerCase() === this.stateSnapshot.tabAdmobAccountEmail.toLowerCase());
+            acc => acc.email.toLowerCase() === extractedAdmobAccount.email.toLowerCase());
+
 
         logger.info(`Sync with extension. Version ${getExtensionVersion()}`);
 

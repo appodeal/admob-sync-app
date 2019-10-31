@@ -66,10 +66,14 @@ $(document).ready(function () {
             return;
         }
         console.debug('[SYNC] onMessage', request);
-        if (request.type === 'syncProgressUpdated') {
+
+        if (request.type === Actions.syncLogMessage) {
+            return console.log(request.message);
+        }
+        if (request.type === Actions.syncProgressUpdated) {
             return onUpdateProgress(request.syncProgress);
         }
-        if (request.type === 'syncProgressFinishMessage') {
+        if (request.type === Actions.syncProgressFinishMessage) {
             return onFinish(request.message);
 
         }
