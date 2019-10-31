@@ -10,6 +10,7 @@ export enum Actions {
     isSyncProgressVisible = 'isSyncProgressVisible',
     syncProgressUpdated = 'syncProgressUpdated',
     syncProgressFinishMessage = 'syncProgressFinishMessage',
+    syncLogMessage = 'syncLogMessage',
     sendLogs = 'sendLogs',
     runJob = 'runJob'
 }

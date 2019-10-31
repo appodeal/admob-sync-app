@@ -180,6 +180,9 @@ function onMessage (request, sender) {
         }
 
         if (app.state.tabsJob === TabJobs.syncAdunits) {
+            if (!request.admobAccount || !request.admobAccount.email || !request.admobAccount.id) {
+                app.sentry.captureMessage('Empty admob account while trying to run sync');
+            }
             app.run(RunSyncTabJob);
             return;
         }
