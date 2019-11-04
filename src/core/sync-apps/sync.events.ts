@@ -17,6 +17,9 @@ export interface SyncReportProgressEvent extends SyncEvent {
     type: SyncEventsTypes.ReportProgress;
     total: number;
     synced: number;
+    percent: number;
+    adUnitsCurrent: number;
+    adUnitsTotal: number;
     failed?: number
 }
 
