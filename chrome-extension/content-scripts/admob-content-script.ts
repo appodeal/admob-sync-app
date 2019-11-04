@@ -3,6 +3,12 @@ import {Actions} from '../common/actions';
 
 
 console.log(`i'm here`, chrome.runtime.id);
+// to prevent background script from suspending
+let pingIntervalId;
+
+function pingBackgroundScript () {
+    chrome.runtime.sendMessage({type: Actions.ping, time: Date.now()});
+}
 
 if (document.location.pathname.startsWith('/v2')) {
     let extractedAccount;
@@ -36,6 +42,8 @@ $(document).ready(function () {
     });
 
     function onStart () {
+        pingBackgroundScript();
+        pingIntervalId = setInterval(pingBackgroundScript, 500);
         // @see legacy/js/modal.js
         modal = new Modal();
         modal.show(title, 'Start sync inventory');
@@ -57,6 +65,7 @@ $(document).ready(function () {
     }
 
     function onFinish (message) {
+        clearInterval(pingIntervalId);
         modal.show(title, message);
     }
 

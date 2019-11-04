@@ -120,6 +120,10 @@ globalThis.app = app;
 
 function onMessage (request, sender) {
 
+    if (request.type === Actions.ping) {
+        return {type: Actions.pong, time: request.time};
+    }
+
     console.log('onMessage', request.type, request, sender);
 
     if (request.type === Actions.fetch) {
