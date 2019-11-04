@@ -249,7 +249,7 @@ export class Store {
                 totalApps: pEvent.total,
                 completedApps: pEvent.synced,
                 failedApps: pEvent.failed,
-                percent: (pEvent.synced + pEvent.failed) / pEvent.total * 100,
+                percent: pEvent.percent,
                 lastEvent: event.type
             };
             this.pushLogs(account);

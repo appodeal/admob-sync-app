@@ -30,6 +30,18 @@ const isObject = (v) => v !== null && typeof v === 'object';
 type AdUnitTemplateId = string;
 type AdUnitId = string;
 
+interface AppodealAppToSync extends AppodealApp {
+    admobApp: AdMobApp
+    subProgressCurrent: number
+    subProgressTotal: number
+    adUnitTemplatesToCreate: Map<AdUnitTemplateId, AdUnitTemplate>
+    adUnitsToDelete: AdUnitId[]
+    appodealAdUnits: any[]
+    oldGoodAdUnits: AdMobAdUnit[]
+    adUnitsToUpdateName: AdMobAdUnit[]
+    synced: boolean
+}
+
 const MAX_APP_NAME_LENGTH = 80;
 
 interface AdUnitTemplate extends Partial<AdMobAdUnit> {
@@ -56,6 +68,10 @@ export class Sync {
     public readonly stats = new SyncStats(this);
 
     public context = new SyncContext();
+
+    private apps: AppodealAppToSync[];
+    private syncedAppCount = 0;
+    private failedAppCount = 0;
 
     /**
      * if user have no permissions to create native adunits we should not try do it many times.
@@ -140,7 +156,20 @@ export class Sync {
         return this.events.emit({type: <SyncEventsTypes>event, id: this.id, accountId: this.adMobAccount.id});
     }
 
-    emitProgress (progress: Partial<SyncReportProgressEvent>) {
+    emitProgress () {
+        const progress: Partial<SyncReportProgressEvent> = {};
+        progress.synced = this.syncedAppCount;
+        progress.failed = this.failedAppCount;
+        progress.total = this.apps.length;
+
+        const currentProgress = this.apps.reduce(
+            (acc, app) => acc + (app.synced ? 2 + app.subProgressTotal : Math.min(app.subProgressCurrent, app.subProgressTotal)),
+            0
+        );
+
+        const totalProgress = this.apps.reduce((acc, app) => acc + 2 + app.subProgressTotal, 0);
+
+        progress.percent = Math.round(currentProgress / totalProgress * 100);
         progress.type = SyncEventsTypes.ReportProgress;
         return this.emit(<SyncReportProgressEvent>progress);
     }
@@ -281,33 +310,78 @@ export class Sync {
         }
     }
 
+    prepareApps (apps) {
+
+        const prepareAppDataToSync = (app: AppodealAppToSync) => {
+
+            app.subProgressCurrent = 0;
+            app.subProgressTotal = 0;
+
+            app.adUnitsToDelete = [];
+            app.appodealAdUnits = [];
+            app.oldGoodAdUnits = [];
+            app.adUnitsToUpdateName = [];
+            app.adUnitTemplatesToCreate = new Map();
+
+            if (app.isDeleted) {
+                return app;
+            }
+
+            const adMobApp = app.admobApp = this.findAdMobApp(app, this.context.getActiveAdmobApps());
+            app.adUnitTemplatesToCreate = this.buildAdUnitsSchema(app);
+
+
+            if (!app.admobApp) {
+                return app;
+            }
+
+            this.getActiveAdmobAdUnitsCreatedByApp(app, adMobApp).forEach((adMobAdUnit: AdMobAdUnit) => {
+                const templateId = Sync.getAdUnitTemplateId(adMobAdUnit);
+                if (app.adUnitTemplatesToCreate.has(templateId)) {
+                    app.oldGoodAdUnits.push(adMobAdUnit);
+                    app.appodealAdUnits.push(this.convertToAppodealAdUnit(adMobAdUnit, app.adUnitTemplatesToCreate.get(templateId)));
+                    app.adUnitTemplatesToCreate.delete(templateId);
+                } else {
+                    app.adUnitsToDelete.push(adMobAdUnit.adUnitId);
+                }
+            });
+            app.adUnitsToUpdateName = app.oldGoodAdUnits.filter(
+                adMobAdUnit => adMobAdUnit.name.substr(0, this.adUnitNamePrefix.length) !== this.adUnitNamePrefix
+            );
+            return app;
+        };
+
+        const calculateTotal = app => {
+            app.subProgressTotal += app.adUnitTemplatesToCreate.size + app.adUnitsToUpdateName.length;
+
+            return app;
+        };
+
+        return apps
+            .map(prepareAppDataToSync)
+            .map(calculateTotal);
+    }
+
     async* syncApps () {
-        let synced = 0,
-            failed = 0;
 
-        this.emitProgress({
-            synced,
-            failed,
-            total: this.context.getAppodealAppsCount()
-        });
+        const apps = this.apps = this.prepareApps(this.context.getAppodealApps());
 
-        for (const app of this.context.getAppodealApps()) {
+        this.emitProgress();
+
+        for (const app of apps) {
             try {
                 this.logger.info('------------------------');
                 yield* this.syncApp(app);
-                synced++;
+                this.syncedAppCount++;
             } catch (e) {
                 this.stats.errorWhileSync(app);
-                failed++;
+                this.failedAppCount++;
                 this.logger.error(e);
                 this.emitError(e);
                 yield `Failed to sync App [${app.id}] ${app.name}`;
             }
-            this.emitProgress({
-                synced,
-                failed,
-                total: this.context.getAppodealAppsCount()
-            });
+            app.synced = true;
+            this.emitProgress();
         }
         this.logger.info('------------------------');
     }
@@ -349,7 +423,7 @@ export class Sync {
 
     }
 
-    async* syncApp (app: AppodealApp) {
+    async* syncApp (app: AppodealAppToSync) {
         yield `Start Sync App [${app.id}] ${app.name}`;
 
         let adMobApp = this.findAdMobApp(app, this.context.getActiveAdmobApps());
@@ -417,32 +491,24 @@ export class Sync {
     }
 
 
-    async* syncAdUnits (app: AppodealApp, adMobApp: AdMobApp) {
-        const templatesToCreate = this.buildAdUnitsSchema(app);
-        const adUnitsToDelete: AdUnitId[] = [];
-        const appodealAdUnits = [];
-        const oldGoodAdUnits: AdMobAdUnit[] = [];
+    async* syncAdUnits (app: AppodealAppToSync, adMobApp: AdMobApp) {
+        const templatesToCreate = app.adUnitTemplatesToCreate;
+        const {adUnitsToDelete, appodealAdUnits, oldGoodAdUnits} = app;
 
-        this.getActiveAdmobAdUnitsCreatedByApp(app, adMobApp).forEach((adMobAdUnit: AdMobAdUnit) => {
-            const templateId = Sync.getAdUnitTemplateId(adMobAdUnit);
-            if (templatesToCreate.has(templateId)) {
-                oldGoodAdUnits.push(adMobAdUnit);
-                appodealAdUnits.push(this.convertToAppodealAdUnit(adMobAdUnit, templatesToCreate.get(templateId)));
-                templatesToCreate.delete(templateId);
-            } else {
-                adUnitsToDelete.push(adMobAdUnit.adUnitId);
-            }
-        });
+
+        this.emitProgress();
+
 
         this.logger.info(`AdUnits to create ${templatesToCreate.size}. AdUnit to Delete ${adUnitsToDelete.length}. Unchanged AdUnits ${appodealAdUnits.length}`);
 
 
         for (const adUnitTemplate of templatesToCreate.values()) {
+            app.subProgressCurrent++;
+            this.emitProgress();
             if (this.skipNativeAdUnits && adUnitTemplate.__metadata.adType === AdType.NATIVE) {
                 this.logger.info(`Creating Native AdUnit is skipped. ${adUnitTemplate.name}`);
                 continue;
             }
-
             const newAdUnit = await this.createAdMobAdUnit({...adUnitTemplate, appId: adMobApp.appId}).catch(e => {
                 this.logger.info(`Failed to create AdUnit`);
                 this.logger.info(e);
@@ -475,6 +541,8 @@ export class Sync {
         // rename adunits if needed
         for (let adMobAdUnit of oldGoodAdUnits) {
             if (adMobAdUnit.name.substr(0, this.adUnitNamePrefix.length) !== this.adUnitNamePrefix) {
+                app.subProgressCurrent++;
+                this.emitProgress();
                 const oldName = adMobAdUnit.name;
                 adMobAdUnit = await this.updateAdMobAdUnitName(adMobAdUnit, this.patchNamePrefix(adMobAdUnit.name));
                 this.context.addAdMobAdUnit(adMobAdUnit);
