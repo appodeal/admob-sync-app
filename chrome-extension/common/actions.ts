@@ -11,6 +11,8 @@ export enum Actions {
     syncProgressUpdated = 'syncProgressUpdated',
     syncProgressFinishMessage = 'syncProgressFinishMessage',
     syncLogMessage = 'syncLogMessage',
+    ping = 'ping',
+    pong = 'pong',
     sendLogs = 'sendLogs',
     runJob = 'runJob'
 }
