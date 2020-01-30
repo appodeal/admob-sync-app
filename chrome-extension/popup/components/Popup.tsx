@@ -69,7 +69,7 @@ export function Popup ({state}: { state: ExtensionState }) {
         </section>
         <footer className={showFooterAddButton ? '' : styles.onlyVersion}>
             {showFooterAddButton &&
-            <a className={styles.addBtn} target="_blank" onClick={onClickStartAdmobAccountSetup}>Add another Admob account</a>}
+            <a className={styles.addBtn} target="_blank" href={"https://www.appodeal.com/apps/linked_networks#AddAdmobAccount"}>Add another Admob account</a>}
             <small className={styles.version}>version {getExtensionVersion()}</small>
         </footer>
     </>;

@@ -1,6 +1,6 @@
 import {AdMobAccount} from 'core/appdeal-api/interfaces/admob-account.interface';
 import {AppState} from 'core/store';
-import {remote} from 'electron';
+import {remote, shell} from 'electron';
 import {action, ActionTypes} from 'lib/actions';
 import {classNames, singleEvent} from 'lib/dom';
 import {sendToMain} from 'lib/messages';
@@ -76,7 +76,7 @@ export function AccountsComponent (
                         <div className={style.accountControls}>
                             <button type="button"
                                     className={style.add}
-                                    onClick={singleEvent(() => addAccount(appodealAccount.id))}
+                                    onClick={() => shell.openExternal('https://www.appodeal.com/apps/linked_networks#AddAdmobAccount')}
                                     disabled={!appodealAccount.email}
                             />
                         </div>
@@ -120,7 +120,9 @@ function selectAccount (account: AdMobAccount) {
         adMobAccount: account
     }));
 }
-
+/**
+ * @deprecated
+ */
 function addAccount (appodealAccountId: string) {
     return sendToMain<{ newAccount: AdMobAccount, existingAccount: AdMobAccount }>(
         'accounts',

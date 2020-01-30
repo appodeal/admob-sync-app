@@ -42,6 +42,9 @@ export async function startAdmobAccountSetup () {
 }
 
 
+/**
+ * @deprecated
+ */
 export async function onClickStartAdmobAccountSetup () {
     await startAdmobAccountSetup();
     setTimeout(() => {window.close();}, 200);
