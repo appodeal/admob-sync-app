@@ -1,3 +1,13 @@
+
+@media (max-width: 991px) {
+  .accounts {
+    max-width: calc(100vw - 220px);
+    .accountDetails {
+      max-width: calc(100vw - 350px);
+    }
+  }
+}
+
 .accounts {
   height: 100%;
   flex: 1 0 auto;
