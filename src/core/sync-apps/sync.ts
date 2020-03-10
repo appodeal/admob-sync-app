@@ -622,7 +622,7 @@ export class Sync {
             format.toLowerCase(),
             cpmFloor ? cpmFloor.toFixed(2) : undefined
         ]
-        // to remove empty values
+            // to remove empty values
             .filter(v => v)
             .join('/');
     }
@@ -826,7 +826,7 @@ export class Sync {
         }
 
         const searchAppResponse: AdMobApp[] = await this.adMobApi.postRaw('AppService', 'Search', <SearchAppRequest>{
-            1: app.bundleId,
+            1: String(app.bundleId).substr(0, 79),
             2: 0,
             3: 100,
             4: Sync.toAdMobPlatform(app)
