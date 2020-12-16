@@ -12,7 +12,7 @@ import styles from './Popup.scss';
 
 function SignInButton () {
     return (<div className={styles.flexCenter}><h1>Sign in to continue</h1>
-        <div><a className="btn" target="_blank" href="https://www.appodeal.com/signin">Sign In</a></div>
+        <div><a className="btn" target="_blank" href="https://app.appodeal.com/signin">Sign In</a></div>
     </div>);
 }
 
@@ -69,7 +69,7 @@ export function Popup ({state}: { state: ExtensionState }) {
         </section>
         <footer className={showFooterAddButton ? '' : styles.onlyVersion}>
             {showFooterAddButton &&
-            <a className={styles.addBtn} target="_blank" href={"https://www.appodeal.com/apps/linked_networks#AddAdmobAccount"}>Add another Admob account</a>}
+            <a className={styles.addBtn} target="_blank" href={"https://app.appodeal.com/apps/linked_networks#AddAdmobAccount"}>Add another Admob account</a>}
             <small className={styles.version}>version {getExtensionVersion()}</small>
         </footer>
     </>;

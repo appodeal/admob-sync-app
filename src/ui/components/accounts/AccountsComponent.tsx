@@ -76,7 +76,7 @@ export function AccountsComponent (
                         <div className={style.accountControls}>
                             <button type="button"
                                     className={style.add}
-                                    onClick={() => shell.openExternal('https://www.appodeal.com/apps/linked_networks#AddAdmobAccount')}
+                                    onClick={() => shell.openExternal('https://app.appodeal.com/apps/linked_networks#AddAdmobAccount')}
                                     disabled={!appodealAccount.email}
                             />
                         </div>
