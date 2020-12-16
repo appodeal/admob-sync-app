@@ -19,10 +19,9 @@ export class AuthContext extends EventEmitter {
 
     private static storage: JsonStorage;
 
-    public static readonly ready: Promise<void> = new Promise(() => {});
+    public static ready: Promise<void> = new Promise(() => {});
 
     static async init (storage: JsonStorage) {
-        // @ts-ignore
         return AuthContext.ready = new Promise<void>(async r => {
             AuthContext.storage = storage;
             AuthContext.TOKENS = new Map(Object.entries(await AuthContext.storage.load(this.TOKENS_FILE, {})));
