@@ -73,18 +73,13 @@
     "cookies",
     "storage",
     "notifications",
-    "webNavigation",
     "identity",
     "*://*.appodeal.com/*",
-    "*://*.admob.com/*",
-    "*://console.developers.google.com/*",
-    "*://chrome.google.com/webstore/detail/appodeal/*"
+    "*://*.admob.com/*"
   ],
   "externally_connectable": {
     "matches": [
-      "*://*.admob.com/*",
-      "*://console.developers.google.com/*",
-      "*://chrome.google.com/webstore/detail/appodeal/*"
+      "*://*.admob.com/*"
     ]
   }
 }
