@@ -1,6 +1,4 @@
 import * as Sentry from '@sentry/browser';
-import {SentryEvent} from '@sentry/browser';
-import {SentryEventHint} from '@sentry/types';
 import {ExtensionState} from '../background/background';
 import {getExtensionVersion} from '../background/utils/minimal-version';
 import {Actions} from './actions';
@@ -10,6 +8,7 @@ export function InitSentry (whereTag, listenStateFromBackground: boolean = false
     console.debug('[SENTRY] Attempt to init sentry');
 
     // we must set it even in case sentry is not initialized
+    // @ts-ignore
     globalThis.Sentry = Sentry;
 
 
@@ -38,7 +37,7 @@ export function InitSentry (whereTag, listenStateFromBackground: boolean = false
     Sentry.init({
         dsn: environment.sentry.dsn,
         environment: 'extension',
-        beforeSend (event: SentryEvent, hint?: SentryEventHint): SentryEvent | Promise<SentryEvent | null> | null {
+        beforeSend (event, hint?) {
             if (hint
                 && hint.originalException
                 && !window.navigator.onLine

@@ -1,21 +1,18 @@
 import * as SentryElectron from '@sentry/electron';
-import {SentryEvent} from '@sentry/electron';
-import {init} from '@sentry/electron/dist/main';
-import {SentryEventHint} from '@sentry/types';
 
 import * as pkgInfo from '../../package.json';
 
 
-export const Sentry = SentryElectron;
+export let Sentry = SentryElectron;
 
 export function initBugTracker (sentryOptions: SentryOptions) {
 
     const useSentry = sentryOptions && sentryOptions.dsn;
 
     if (useSentry) {
-        init({
+        SentryElectron.init({
             ...sentryOptions,
-            beforeSend (event: SentryEvent, hint?: SentryEventHint): SentryEvent {
+            beforeSend (event, hint?) {
 
                 event.release = pkgInfo.version;
                 if (event.contexts.app) {

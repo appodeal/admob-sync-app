@@ -29,7 +29,7 @@ export function nodeFetch<T extends any> (
     url: string,
     options: Partial<FetchOptions> = {},
     session?: Session
-): Promise<{ ok: boolean, status: number, statusText: string, headers: Record<string, string>, text: () => Promise<string>, json: () => Promise<T> }> {
+): Promise<{ ok: boolean, status: number, statusText: string, headers: Record<string, string | string[]>, text: () => Promise<string>, json: () => Promise<T> }> {
     return new Promise(async (resolve, reject) => {
         let config = {
             ...DEFAULT_FETCH_CONFIG,

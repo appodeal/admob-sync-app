@@ -141,15 +141,10 @@ export class Debug {
 
     exec<T = any> (method: string, property: string, args = {}): Promise<T> {
         return new Promise((resolve, reject) => {
-            this.debug.sendCommand(method, args, (error, result) => {
-                setImmediate(() => {
-                    if (error) {
-                        reject(error);
-                    } else {
-                        resolve(property ? result[property] : result);
-                    }
-                });
-            });
+            this.debug.sendCommand(method, args).then(
+                result => resolve(property ? result[property] : result),
+                error => reject(error)
+            );
         });
     }
 

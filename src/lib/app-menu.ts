@@ -36,12 +36,12 @@ class AppMenu {
                     {type: 'normal', label: 'Copy', accelerator: 'CmdOrCtrl+C', role: 'copy'},
                     {type: 'normal', label: 'Paste', accelerator: 'CmdOrCtrl+V', role: 'paste'},
                     {type: 'normal', label: 'Select All', accelerator: 'CmdOrCtrl+A', role: 'selectall'},
-                    ...(environment.development ? <Array<MenuItemConstructorOptions>>[
+                    ...(environment.development ? [
                         {type: 'normal', label: 'Open DevTools', accelerator: 'CmdOrCtrl+Option+I', role: 'toggledevtools'}
                     ] : [])
                 ]
             }
-        ]);
+        ] as MenuItemConstructorOptions[]);
         if (isMacOS()) {
             Menu.setApplicationMenu(this.menu);
         }
