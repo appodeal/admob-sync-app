@@ -3,6 +3,7 @@ import {Debug} from 'lib/debug';
 import * as path from 'path';
 import {isMacOS} from './platform';
 import {getBgColor} from './theme';
+import MessageBoxOptions = Electron.MessageBoxOptions;
 
 
 function getConfig (config: BrowserWindowConstructorOptions, backgroundColor: string): BrowserWindowConstructorOptions {
@@ -19,6 +20,8 @@ function getConfig (config: BrowserWindowConstructorOptions, backgroundColor: st
         show: false,
         webPreferences: {
             nodeIntegration: true,
+            enableRemoteModule: true,
+            contextIsolation: false,
             preload: environment.development ? path.join(process.env.PWD + '/preload.js') : path.join(__dirname, '/preload.js'),
             ...(config.webPreferences || {})
         }
@@ -162,7 +165,7 @@ export async function confirmDialog (message): Promise<boolean> {
     return new Promise(resolve => {
         const OKButton = 0;
         const dialogOptions = {type: 'question', buttons: ['OK', 'Cancel'], message};
-        (dialog || remote.dialog).showMessageBox(dialogOptions, i => resolve(i === OKButton));
+        (dialog || remote.dialog).showMessageBox(dialogOptions as MessageBoxOptions).then(r => resolve(r.response === OKButton));
     });
 }
 
@@ -178,7 +181,7 @@ export async function messageDialog (
     detail: string = undefined,
     buttons: Array<DialogButton> = [{label: 'OK', action: () => {}, primary: true, cancel: true}]
 ): Promise<DialogButton> {
-    let number = await (dialog || remote.dialog).showMessageBox(null, {
+    let {response: number} = await (dialog || remote.dialog).showMessageBox(null, {
         message,
         detail,
         buttons: buttons.map(btn => btn.label),

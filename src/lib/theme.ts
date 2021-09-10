@@ -1,4 +1,4 @@
-import {ipcMain, systemPreferences} from 'electron';
+import {ipcMain, nativeTheme, systemPreferences} from 'electron';
 import {isMacOS} from 'lib/platform';
 
 
@@ -41,7 +41,7 @@ function execThemeListeners (isDark) {
 
 export function isDark () {
     if (isMacOS()) {
-        return systemPreferences.isDarkMode();
+        return nativeTheme.shouldUseDarkColors;
     } else {
         return true;
     }

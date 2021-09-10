@@ -26,7 +26,7 @@ export class LogsConnector extends Connector {
     openLog (account: AdMobAccount, syncId: string) {
         console.info('openLog', syncId);
         try {
-            shell.openItem(logFilePathName(account, syncId));
+            shell.openPath(logFilePathName(account, syncId));
         } catch (e) {
             console.error(e);
         }

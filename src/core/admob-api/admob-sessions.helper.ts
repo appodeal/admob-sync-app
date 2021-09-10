@@ -51,7 +51,7 @@ export namespace AdMobSessions {
         let {id, session} = createAdmobSession();
         let window = await openAdMobSignInWindow(session),
             addedAccount: ExtractedAdmobAccount;
-        await new Promise(resolve => session.clearCache(resolve));
+        await session.clearCache();
         waitForSignIn(window)
             .then(() => getAdmobAccountBySession(session))
             .then((account) => {

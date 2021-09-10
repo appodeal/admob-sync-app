@@ -28,6 +28,7 @@
     margin: 0;
     box-sizing: border-box;
     height: 100vh;
+    overflow: hidden;
     position: relative;
     padding: calc(var(--title-height) + var(--window-padding)) var(--window-padding) var(--window-padding);
     display: flex;
@@ -126,6 +127,7 @@
     justify-content: center;
     background-color: var(--brand-color);
     background-image: linear-gradient(to bottom, var(--brand-color), #d40300);
+    z-index: 1000;
 
     h1 {
       font-family: "Roboto", sans-serif;
