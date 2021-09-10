@@ -1,6 +1,30 @@
 import {AdMobPlatform} from '../admob.constants';
 
 
+export enum Host {
+    UNKNOWN = 0,
+    ADMOB = 1,
+    AD_MANAGER = 2
+}
+
+export interface SessionContext {
+    host: Host.ADMOB,
+    publisherCode: string
+}
+
+export interface RequestHeader {
+    context: SessionContext
+}
+
+export interface AppCreateRequest {
+    requestHeader: RequestHeader
+    app: AdMobApp
+}
+
+export interface AppCreateResponse {
+    app: AdMobApp
+}
+
 export interface AdMobApp {
     appId: string,
     name: string,
