@@ -1,6 +1,8 @@
 import {BooleanTranslator} from './base-translators/boolean.translator';
 import {ObjectTranslator} from './base-translators/object.translator';
-import {AdMobApp, MonetizationEngineInfo, ServingSettings} from './interfaces/admob-app.interface';
+import {
+    AdMobApp, AppCreateRequest, AppCreateResponse, MonetizationEngineInfo, RequestHeader, ServingSettings, SessionContext
+} from './interfaces/admob-app.interface';
 
 
 export class ServingSettingsTranslator extends ObjectTranslator<ServingSettings> {
@@ -20,6 +22,40 @@ export class MonetizationEngineInfoTranslator extends ObjectTranslator<Monetizat
         super({
             1: 'eligible',
             2: 'projectedRevenueUpliftPercent'
+        });
+    }
+}
+
+export class SessionContextTranslator extends ObjectTranslator<SessionContext> {
+    constructor () {
+        super({
+            1: 'host',
+            3: 'publisherCode'
+        });
+    }
+}
+
+export class RequestHeaderTranslator extends ObjectTranslator<RequestHeader> {
+    constructor () {
+        super({
+            1: ['context', SessionContextTranslator]
+        });
+    }
+}
+
+export class AppCreateRequestTranslator extends ObjectTranslator<AppCreateRequest> {
+    constructor () {
+        super({
+            1: ['requestHeader', RequestHeaderTranslator],
+            2: ['app', AppTranslator]
+        });
+    }
+}
+
+export class AppCreateResponseTranslator extends ObjectTranslator<AppCreateResponse> {
+    constructor () {
+        super({
+            2: ['app', AppTranslator]
         });
     }
 }

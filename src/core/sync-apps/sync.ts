@@ -6,11 +6,11 @@ import {getAdUnitTemplate} from 'core/sync-apps/ad-unit-templates';
 import {SyncStats} from 'core/sync-apps/sync-stats';
 import stringify from 'json-stable-stringify';
 import {retryProxy} from 'lib/retry';
-import {AppTranslator} from 'lib/translators/admob-app.translator';
+import {AppCreateRequestTranslator, AppCreateResponseTranslator, AppTranslator} from 'lib/translators/admob-app.translator';
 import {AdMobPlatform} from 'lib/translators/admob.constants';
 import {AdUnitTranslator} from 'lib/translators/admop-ad-unit.translator';
 import {AdMobAdUnit, CpmFloorMode, CpmFloorSettings} from 'lib/translators/interfaces/admob-ad-unit.interface';
-import {AdMobApp, UserMetricsStatus} from 'lib/translators/interfaces/admob-app.interface';
+import {AdMobApp, AppCreateRequest, AppCreateResponse, Host, UserMetricsStatus} from 'lib/translators/interfaces/admob-app.interface';
 import {getTranslator} from 'lib/translators/translator.helpers';
 import uuid from 'uuid';
 import {decodeOctString} from '../../lib/oct-decode';
@@ -225,6 +225,10 @@ export class Sync {
         try {
             pageBody = await this.adMobApi.fetchHomePage().then(response => response.text());
             this.adMobApi.refreshXsrfToken(pageBody);
+
+            const body = await this.adMobApi.fetchCamApiAppsSettings(this.adMobAccount.id).then(response => response.text());
+            this.adMobApi.setCamApiXsrfToken(this.adMobApi.ejectCamApiXsrfToken(body));
+
         } catch (e) {
             if (e instanceof RefreshXsrfTokenError) {
                 // this error is not supposed to be emitted and handler further
@@ -439,7 +443,7 @@ export class Sync {
 
         if (!adMobApp) {
             this.logger.info(`Unable to find App. Try to create new`);
-            adMobApp = await this.createAdMobApp(app);
+            adMobApp = await this.createAdMobApp(app, this.adMobAccount.id);
             this.context.addAdMobApp(adMobApp);
             this.stats.appCreated(app);
             yield `App created`;
@@ -780,16 +784,23 @@ export class Sync {
     }
 
 
-    async createAdMobApp (app: AppodealApp): Promise<AdMobApp> {
+    async createAdMobApp (app: AppodealApp, admobAccountId: string): Promise<AdMobApp> {
 
         const adMobApp: Partial<AdMobApp> = {
             name: [this.adUnitNamePrefix, app.id, app.name].join('/').substr(0, MAX_APP_NAME_LENGTH),
             platform: Sync.toAdMobPlatform(app),
             userMetricsStatus: UserMetricsStatus.DISABLED
         };
-
-        return this.adMobApi.post('AppService', 'Create', getTranslator(AppTranslator).encode(adMobApp))
-            .then(res => getTranslator(AppTranslator).decode(res));
+        return this.adMobApi.postRaw('AppService', 'Create', getTranslator(AppCreateRequestTranslator).encode({
+            app: adMobApp,
+            requestHeader: {
+                context: {
+                    host: Host.ADMOB,
+                    publisherCode: admobAccountId
+                }
+            }
+        } as AppCreateRequest))
+            .then(res => (getTranslator(AppCreateResponseTranslator).decode(res) as AppCreateResponse).app);
     }
 
     async updateAdMobAppName (adMobApp: AdMobApp, newName: string): Promise<AdMobApp> {

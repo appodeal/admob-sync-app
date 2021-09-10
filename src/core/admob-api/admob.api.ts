@@ -2,6 +2,7 @@ import {InternalError} from 'core/error-factory/errors/internal-error';
 import {AdmobErrorTranslator} from 'lib/translators/admop-error.translator';
 import {getTranslator} from 'lib/translators/translator.helpers';
 import trim from 'lodash.trim';
+import {decodeOctString} from '../../lib/oct-decode';
 
 
 export class RefreshXsrfTokenError extends Error {}
@@ -21,11 +22,17 @@ export class AdmobApiService {
 
     private host = trim(environment.services.ad_mob, '/');
     private xsrfToken: string;
+    private camApiXsrfToken: string;
 
     public onError: (e: InternalError) => void;
 
+    // updated api version
+    isCamApi (serviceName: string, method: string) {
+        return serviceName === 'AppService' && method === 'Create';
+    }
+
     private getPostApiEndpoint (serviceName: string, method: string) {
-        return [this.host, 'inventory/_/rpc', serviceName, method].join('/');
+        return [this.host, this.isCamApi(serviceName, method) ? 'cam' : 'inventory', '_/rpc', serviceName, method].join('/');
     }
 
     constructor (private fetcher = fetch, private logger: Partial<Console>) {
@@ -36,7 +43,11 @@ export class AdmobApiService {
         this.xsrfToken = xsrfToken;
     }
 
-    private async fetch<T> (url: string, contentType: string, body: string): Promise<T> {
+    public setCamApiXsrfToken (xsrfToken) {
+        this.camApiXsrfToken = xsrfToken;
+    }
+
+    private async fetch<T> (url: string, contentType: string, body: string, useCamXsrf = false): Promise<T> {
         return this.fetcher(
             url,
             {
@@ -44,7 +55,7 @@ export class AdmobApiService {
                 'headers': {
                     'accept': 'application/json, text/plain, */*',
                     'content-type': contentType,
-                    'x-framework-xsrf-token': this.xsrfToken
+                    'x-framework-xsrf-token': useCamXsrf ? this.camApiXsrfToken : this.xsrfToken
                 },
                 'referrerPolicy': 'no-referrer-when-downgrade',
                 'body': body,
@@ -54,7 +65,7 @@ export class AdmobApiService {
         )
             .then(async r => {
                 try {
-                    return r.json();
+                    return await r.json();
                 } catch (e) {
                     this.logger.info(await r.text());
                     throw e;
@@ -69,6 +80,27 @@ export class AdmobApiService {
             throw new RefreshXsrfTokenError('failed to refresh xsrfToken');
         }
         this.setXrfToken(mathResult[1]);
+
+    }
+
+    ejectCamApiXsrfToken (body: string): string {
+
+        const mathResult = body.match(/var camClientInfo = '(?<camClientInfoJson>[^\']*)';/);
+
+        if (!mathResult || !mathResult.groups || !mathResult.groups.camClientInfoJson) {
+            // may be user's action required
+            throw new RefreshXsrfTokenError('camClientInfoJson not found');
+        }
+        let json;
+        try {
+            json = decodeOctString(mathResult.groups.camClientInfoJson);
+            const camClientInfo = <any[]>JSON.parse(json);
+            return camClientInfo['1'];
+        } catch (e) {
+            console.log('camClientInfo', json, body);
+            console.error(e);
+            throw e;
+        }
     }
 
     fetchHomePage (): Promise<Response> {
@@ -84,6 +116,21 @@ export class AdmobApiService {
                 'referrerPolicy': 'no-referrer-when-downgrade',
                 'body': null,
                 'method': 'GET',
+                'mode': 'cors'
+            }
+        );
+    }
+
+    fetchCamApiAppsSettings (admobAccountId: string): Promise<Response> {
+        return this.fetcher(
+            `https://apps.admob.com/cam/App?host=ADMOB&pubc=${admobAccountId}`,
+            {
+                'credentials': 'include',
+                'headers': {'accept': '*/*', 'accept-language': 'en-US'},
+                'referrer': 'https://apps.admob.com/v2/apps/list',
+                'referrerPolicy': 'no-referrer-when-downgrade',
+                'body': null,
+                'method': 'POST',
                 'mode': 'cors'
             }
         );
@@ -116,9 +163,13 @@ export class AdmobApiService {
         return this.fetch(
             this.getPostApiEndpoint(serviceName, method),
             'application/x-www-form-urlencoded',
-            `__ar=${encodeURIComponent(JSON.stringify(payload))}`
+            `${this.isCamApi(serviceName, method) ? 'f.req' : '__ar'}=${encodeURIComponent(JSON.stringify(payload))}`,
+            this.isCamApi(serviceName, method)
         )
             .then((data) => {
+                if (this.isCamApi(serviceName, method)) {
+                    return data;
+                }
                 if (data[1] !== undefined) {
                     return data;
                 }
