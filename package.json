@@ -134,7 +134,7 @@
     "copy-webpack-plugin": "^5.0.0",
     "css-loader": "^2.1.0",
     "ejs-webpack-loader": "^2.2.2",
-    "electron-builder": "^20.39.0",
+    "electron-builder": "^22.11.7",
     "file-loader": "^3.0.1",
     "generate-json-webpack-plugin": "^0.3.1",
     "github": "~0.2.4",
