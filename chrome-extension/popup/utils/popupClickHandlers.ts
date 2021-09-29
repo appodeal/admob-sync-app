@@ -1,10 +1,8 @@
 import {Actions, TabJobs} from '../../common/actions';
-import {extLocalStorage} from '../../common/localstorage';
 
-
-const GOOGLE_CLOUD_CONSOLE = 'https://apps.admob.com/logout?continue=https://apps.admob.com/#home';
 
 const ADMOB_HOME = 'https://apps.admob.com/logout?continue=https://apps.admob.com/';
+const ADMOB_ACCOUNT_ADD_OR_RECONNECT = 'https://app.appodeal.com/apps/linked_networks#AddAdmobAccount';
 
 async function navigateCurrentTab (url: string): Promise<chrome.tabs.Tab> {
     return new Promise(resolve => {
@@ -33,20 +31,8 @@ async function setCurrentJob (job: TabJobs, tabId: number) {
     );
 }
 
-
-export async function startAdmobAccountSetup () {
-    const tab = await navigateCurrentTab(GOOGLE_CLOUD_CONSOLE);
-    await setCurrentJob(TabJobs.enableReporting, tab.id);
-    // for legacy script to obtain tabId
-    await extLocalStorage.set({'reporting_tab_id': tab.id});
-}
-
-
-/**
- * @deprecated
- */
 export async function onClickStartAdmobAccountSetup () {
-    await startAdmobAccountSetup();
+    await navigateCurrentTab(ADMOB_ACCOUNT_ADD_OR_RECONNECT);
     setTimeout(() => {window.close();}, 200);
 }
 
