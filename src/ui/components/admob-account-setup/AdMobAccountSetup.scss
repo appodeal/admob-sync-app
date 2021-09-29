@@ -6,7 +6,7 @@
   border-radius: 5px;
   overflow: hidden;
   margin-block-end: 10px;
-  flex:  0 0 auto;
+  flex: 0 0 auto;
 
   h1 {
     margin: 0;
@@ -66,5 +66,9 @@
 
   .setupOptions + * {
     margin-top: 14px;
+  }
+
+  b {
+    color: #dedede;
   }
 }

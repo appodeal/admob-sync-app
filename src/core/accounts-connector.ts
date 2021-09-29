@@ -23,6 +23,8 @@ export class AccountsConnector extends Connector {
             return this.store.reSignInAdmob(payload.appodealAccountId, payload.adMobAccount);
         case ActionTypes.appodealSignOut:
             return this.store.appodealSignOut(payload.appodealAccountId);
+        case ActionTypes.appodealFetchUsers:
+            return this.store.fetchAllAppodealUsers();
         case ActionTypes.adMobAddAccount:
             let result = await this.store.addAdMobAccount(payload.appodealAccountId);
             let accountForSelection = result.newAccount || result.existingAccount;
