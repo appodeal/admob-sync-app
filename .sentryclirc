@@ -1,5 +1,5 @@
 [defaults]
-url=https://sentry.appgrowth.com//
+url=https://sentry.appodeal.com//
 project=appodeal-admob-sync
 org=sentry
 [auth]
