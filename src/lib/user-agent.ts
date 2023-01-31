@@ -10,6 +10,5 @@ export function cutElectronFromUserAgent (originalUA: string): string {
         chunks[chunks.length - 1] = chunks[chunks.length - 1].split('_').filter((_, i) => i < 2).join('.');
         platformInfo = chunks.join(' ');
     }
-
-    return `${platformInfo}; rv:68.0) Gecko/20100101 Firefox/68.0`;
+    return `${platformInfo}; rv:109.0) Gecko/20100101 Firefox/109.0`;
 }
