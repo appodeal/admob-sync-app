@@ -31,15 +31,15 @@ type AdUnitTemplateId = string;
 type AdUnitId = string;
 
 interface AppodealAppToSync extends AppodealApp {
-    admobApp: AdMobApp
-    subProgressCurrent: number
-    subProgressTotal: number
-    adUnitTemplatesToCreate: Map<AdUnitTemplateId, AdUnitTemplate>
-    adUnitsToDelete: AdUnitId[]
-    appodealAdUnits: any[]
-    oldGoodAdUnits: AdMobAdUnit[]
-    adUnitsToUpdateName: AdMobAdUnit[]
-    synced: boolean
+    admobApp: AdMobApp;
+    subProgressCurrent: number;
+    subProgressTotal: number;
+    adUnitTemplatesToCreate: Map<AdUnitTemplateId, AdUnitTemplate>;
+    adUnitsToDelete: AdUnitId[];
+    appodealAdUnits: any[];
+    oldGoodAdUnits: AdMobAdUnit[];
+    adUnitsToUpdateName: AdMobAdUnit[];
+    synced: boolean;
 }
 
 const MAX_APP_NAME_LENGTH = 80;
@@ -49,10 +49,11 @@ interface AdUnitTemplate extends Partial<AdMobAdUnit> {
         ecpmFloor: number;
         adType: AdType;
         format: Format;
-    }
+    };
 }
 
 const defaultAdUnitPrefix = 'Appodeal';
+const forcedNewPrefixName = 'AppodealExperimental';
 
 export class Sync {
 
@@ -345,8 +346,6 @@ export class Sync {
                     app.oldGoodAdUnits.push(adMobAdUnit);
                     app.appodealAdUnits.push(this.convertToAppodealAdUnit(adMobAdUnit, app.adUnitTemplatesToCreate.get(templateId)));
                     app.adUnitTemplatesToCreate.delete(templateId);
-                } else {
-                    app.adUnitsToDelete.push(adMobAdUnit.adUnitId);
                 }
             });
             app.adUnitsToUpdateName = app.oldGoodAdUnits.filter(
@@ -404,17 +403,6 @@ export class Sync {
             return;
         }
         yield `found App in Admob Try to delete its AdUnits`;
-
-        const adUnitsToDelete = this.getActiveAdmobAdUnitsCreatedByApp(app, adMobApp).map(adUnit => adUnit.adUnitId);
-        if (adUnitsToDelete.length) {
-            await this.deleteAdMobAdUnits(adUnitsToDelete);
-            this.context.removeAdMobAdUnits(adUnitsToDelete);
-            this.stats.appDeleted(app);
-            yield `${adUnitsToDelete.length} adUnits deleted`;
-        } else {
-            yield `No AdUnits to delete`;
-        }
-
 
         // in case app has at least one active adUnit it should no be hidden
         if (!adMobApp.hidden && !this.context.getAdMobAppActiveAdUnits(adMobApp).length) {
@@ -497,13 +485,13 @@ export class Sync {
 
     async* syncAdUnits (app: AppodealAppToSync, adMobApp: AdMobApp) {
         const templatesToCreate = app.adUnitTemplatesToCreate;
-        const {adUnitsToDelete, appodealAdUnits, oldGoodAdUnits} = app;
+        const {appodealAdUnits, oldGoodAdUnits} = app;
 
 
         this.emitProgress();
 
 
-        this.logger.info(`AdUnits to create ${templatesToCreate.size}. AdUnit to Delete ${adUnitsToDelete.length}. Unchanged AdUnits ${appodealAdUnits.length}`);
+        this.logger.info(`AdUnits to create ${templatesToCreate.size}. Unchanged AdUnits ${appodealAdUnits.length}`);
 
 
         for (const adUnitTemplate of templatesToCreate.values()) {
@@ -532,26 +520,6 @@ export class Sync {
                 this.stats.appUpdated(app);
                 appodealAdUnits.push(this.convertToAppodealAdUnit(newAdUnit, adUnitTemplate));
                 yield `AdUnit Created ${this.adUnitCode(newAdUnit)} ${adUnitTemplate.name}`;
-            }
-        }
-
-        // delete bad AdUnits
-        if (adUnitsToDelete.length) {
-            await this.deleteAdMobAdUnits(adUnitsToDelete);
-            this.context.removeAdMobAdUnits(adUnitsToDelete);
-            yield `Bad AdUnits (${adUnitsToDelete}) was deleted`;
-        }
-
-        // rename adunits if needed
-        for (let adMobAdUnit of oldGoodAdUnits) {
-            if (adMobAdUnit.name.substr(0, this.adUnitNamePrefix.length) !== this.adUnitNamePrefix) {
-                app.subProgressCurrent++;
-                this.emitProgress();
-                const oldName = adMobAdUnit.name;
-                adMobAdUnit = await this.updateAdMobAdUnitName(adMobAdUnit, this.patchNamePrefix(adMobAdUnit.name));
-                this.context.addAdMobAdUnit(adMobAdUnit);
-                this.stats.appUpdated(app);
-                yield `AdUnit Name prefix updated ${this.adUnitCode(adMobAdUnit)} from ${oldName} to ${adMobAdUnit.name}`;
             }
         }
 
@@ -717,7 +685,7 @@ export class Sync {
     }
 
     get adUnitNamePrefix () {
-        return this.appodealAccount.adUnitNamePrefix || defaultAdUnitPrefix;
+        return forcedNewPrefixName;
     }
 
     validateAdmobApp (app: AppodealApp, adMobApp: AdMobApp) {
@@ -828,7 +796,7 @@ export class Sync {
             1: string; // query
             2: number; // offset;
             3: number; // limit
-            4: AdMobPlatform // "platform"
+            4: AdMobPlatform; // "platform"
         }
 
         interface SearchAppResponse {
@@ -861,19 +829,5 @@ export class Sync {
         return this.adMobApi.post('AdUnitService', 'Create', getTranslator(AdUnitTranslator).encode(adUnit))
             .then(res => getTranslator(AdUnitTranslator).decode(res));
     }
-
-    async updateAdMobAdUnitName (adMobAdUnit: AdMobAdUnit, newName: string): Promise<AdMobAdUnit> {
-        adMobAdUnit.name = newName;
-
-        return await this.adMobApi.postRaw('AdUnitService', 'Update', <UpdateRequest>{
-            1: getTranslator(AdUnitTranslator).encode(adMobAdUnit),
-            2: {1: ['name']}
-        }).then((res: UpdateResponse) => getTranslator(AdUnitTranslator).decode(res[1]));
-    }
-
-    async deleteAdMobAdUnits (ids: string[]) {
-        return this.adMobApi.post('AdUnitService', 'BulkRemove', ids);
-    }
-
 
 }
