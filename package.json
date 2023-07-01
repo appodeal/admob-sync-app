@@ -180,7 +180,7 @@
     "react-dom": "^16.8.3",
     "react-tiny-accordion": "^2.0.4",
     "react-tooltip-lite": "^1.9.1",
-    "semver": "^6.0.0",
+    "semver": "^7.5.2",
     "uuid": "^3.3.2",
     "winston": "^3.2.1",
     "zen-push": "^0.2.1"
