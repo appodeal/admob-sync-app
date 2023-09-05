@@ -40,7 +40,7 @@ export function InitSentry (whereTag, listenStateFromBackground: boolean = false
         beforeSend (event, hint?) {
             if (hint
                 && hint.originalException
-                && !window.navigator.onLine
+                && !globalThis.navigator.onLine
                 && typeof hint.originalException === 'object'
                 && hint.originalException.message === 'Network error: Failed to fetch') {
                 return null;
