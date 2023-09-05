@@ -1,8 +1,10 @@
 import {Actions, TabJobs} from '../../common/actions';
 
 
-const ADMOB_HOME = 'https://apps.admob.com/logout?continue=https://apps.admob.com/';
+const ADMOB_HOME_WITH_RELOGIN = 'https://apps.admob.com/logout?continue=https://apps.admob.com/';
 const ADMOB_ACCOUNT_ADD_OR_RECONNECT = 'https://app.appodeal.com/apps/linked_networks#AddAdmobAccount';
+const ADMOB_HOME = 'https://apps.admob.com/v2/home';
+const ADMOB_DASHBOARD_ROOT = 'https://apps.admob.com/';
 
 async function navigateCurrentTab (url: string): Promise<chrome.tabs.Tab> {
     return new Promise(resolve => {
@@ -38,7 +40,13 @@ export async function onClickStartAdmobAccountSetup () {
 
 
 export async function startSyncAdmobAccount () {
-    const tab = await navigateCurrentTab(ADMOB_HOME);
+    const tabs = await chrome.tabs.query({active: true, currentWindow: true});
+    const tab = tabs[0];
+    if (tab.url && tab.url.startsWith(ADMOB_DASHBOARD_ROOT)) {
+        await chrome.tabs.update(tab.id, {url: ADMOB_HOME});
+    } else {
+        await chrome.tabs.update(tab.id, {url: ADMOB_HOME_WITH_RELOGIN});
+    }
     await setCurrentJob(TabJobs.syncAdunits, tab.id);
 }
 
