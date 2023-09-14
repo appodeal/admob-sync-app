@@ -13,6 +13,7 @@ import {createFetcher} from 'lib/fetch';
 import {createSyncLogger, getLogContent, LoggerInstance, rotateSyncLogs} from 'lib/sync-logs/logger';
 import uuid from 'uuid';
 import {SyncRunner} from './sync-runner';
+import {CustomEventApiService} from "../admob-api/custom-event.api";
 
 
 type FinishPromise = Promise<any>;
@@ -78,6 +79,7 @@ export class SyncService {
             const logger = await createSyncLogger(admobAccount, id);
 
             const adMobApi = new AdmobApiService(await createFetcher(admobSession), logger);
+            const customEventApi = new CustomEventApiService(await createFetcher(admobSession), logger);
 
             const sync = new Sync(
                 adMobApi,
@@ -85,8 +87,9 @@ export class SyncService {
                 admobAccount,
                 appodealAccount,
                 logger,
+                customEventApi,
                 id,
-                runner
+                runner,
             );
 
             logger.info(`Sync started by ${runner === SyncRunner.User ? 'User' : 'Schedule'}`);

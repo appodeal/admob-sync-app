@@ -23,6 +23,7 @@ import {SyncEventEmitter} from './sync-event.emitter';
 import {SyncRunner} from './sync-runner';
 import {SyncErrorEvent, SyncEvent, SyncEventsTypes, SyncReportProgressEvent, SyncStopEvent} from './sync.events';
 import escapeStringRegexp = require('escape-string-regexp');
+import {CustomEventApiService} from "core/admob-api/custom-event.api";
 
 
 const isObject = (v) => v !== null && typeof v === 'object';
@@ -50,6 +51,11 @@ interface AdUnitTemplate extends Partial<AdMobAdUnit> {
         adType: AdType;
         format: Format;
     }
+}
+
+enum CustomEventPlatform {
+    'ANDROID' = '12',
+    'IOS' = '13'
 }
 
 const defaultAdUnitPrefix = 'Appodeal';
@@ -86,6 +92,7 @@ export class Sync {
         public adMobAccount: AdMobAccount,
         private appodealAccount: AppodealAccount,
         private logger: Partial<Console>,
+        private customEventApi: CustomEventApiService,
         // some uniq syncId
         public readonly id: string,
         public readonly runner: SyncRunner
@@ -225,9 +232,11 @@ export class Sync {
         try {
             pageBody = await this.adMobApi.fetchHomePage().then(response => response.text());
             this.adMobApi.refreshXsrfToken(pageBody);
+            this.customEventApi.refreshXsrfToken(pageBody);
 
             const body = await this.adMobApi.fetchCamApiAppsSettings(this.adMobAccount.id).then(response => response.text());
             this.adMobApi.setCamApiXsrfToken(this.adMobApi.ejectCamApiXsrfToken(body));
+
 
         } catch (e) {
             if (e instanceof RefreshXsrfTokenError) {
@@ -490,12 +499,121 @@ export class Sync {
         const actualAdUnits = yield* this.syncAdUnits(app, adMobApp);
         yield `AdUnits actualized`;
 
+        yield* this.syncCustomEvents(app, adMobApp);
+        yield `CustomEvents actualized`;
+
         await this.appodealApi.reportAppSynced(app, this.id, this.adMobAccount.id, adMobApp, actualAdUnits);
         yield `End Sync  App [${app.id}] ${app.name}`;
     }
 
+    async* syncCustomEvents(app: AppodealAppToSync, adMobApp: AdMobApp) {
+        let floorsList = app.ecpmFloors.flat();
+        let adUnitsList = floorsList
+            .flatMap(item => item.customEvents)
+            .filter(e => e !== null)
+            .map(e => ({
+                id: '5772174265', // ad unit id
+                isDeleted: false,
+                className: e.className,
+                params: e.params,
+                label: e.label,
+                platform: CustomEventPlatform[app.platform],
+                price: e.price,
+            }));
 
-    async* syncAdUnits (app: AppodealAppToSync, adMobApp: AdMobApp) {
+        let createdEvents = await this.customEventApi.postRaw(
+            'mediationAllocation',
+            'Update',
+            this.adUnitPayload(adUnitsList)
+        );
+
+        let createEventsList = createdEvents[1].map(event => {
+            let adUnit = adUnitsList.find(unit => unit.label === event[15]);
+            return {
+                dynamicId: event[1],
+                ...adUnit,
+            }
+        })
+
+        await this.customEventApi.postRaw(
+            'mediationGroup',
+            'V2Create',
+            this.createV2Param(createEventsList),
+            1
+        )
+    }
+
+    createV2Param(createdEvents: any[]) {
+        return {
+            "1": "Appodeal/111/banner/image_and_text",
+            "2": 1,
+            "3": {"1": 1, "2": 0, "3": ["5772174265"], "6": 1},
+            "4": [
+                {
+                    "2": "1",
+                    "3": 1,
+                    "4": 1,
+                    "5": {"1": "10000", "2": "USD"},
+                    "6": false,
+                    "9": "AdMob+Network",
+                    "11": 1,
+                    "14": "2"
+                },
+                ...createdEvents.map(e => {
+                    let price = e.price * 1000000;
+                    return {
+                        "2": "7",
+                        "3": 1,
+                        "4": 2,
+                        "5": {"1": String(price), "2": "USD"},
+                        "9": e.label,
+                        "11": 1,
+                        "13": [e.dynamicId],
+                        "14": e.platform
+                    }
+                })
+            ]
+        }
+    }
+
+    adUnitPayload(adUnitsList: any[]) {
+        return {
+            "1": adUnitsList.map(adUnit => {
+                return adUnit.isDeleted ? this.removeCustomEvent(adUnit) : this.createCustomEvent(adUnit)
+            }),
+            "2": []
+        }
+    }
+
+    createCustomEvent(event) {
+        return {
+            "1": '-1',
+            "2": !event.isDeleted,
+            "3": "7",
+            "4": [
+                {"1": "class_name", "2": event.className},
+                {"1": "parameter", "2": event.params},
+                {"1": "label", "2": event.label}
+            ],
+            "10": 1,
+            "12": event.id,
+            "15": event.label,
+            "16": event.platform
+        }
+    }
+
+    removeCustomEvent(ev) {
+        return {
+            ...this.createCustomEvent(ev),
+            "1": '',
+            "7": false,
+            "9": false,
+            "11": "1694016045877",
+            "14": 7,
+        }
+    }
+
+    async* syncAdUnits(app: AppodealAppToSync, adMobApp: AdMobApp) {
         const templatesToCreate = app.adUnitTemplatesToCreate;
         const {adUnitsToDelete, appodealAdUnits, oldGoodAdUnits} = app;
 

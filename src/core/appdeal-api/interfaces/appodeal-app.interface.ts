@@ -19,9 +19,18 @@ export interface AppodealApp {
 
 
 export interface EcpmFloors {
-    adType: AdType;
-    format: Format;
+    adType: AdType
+    customEvents: CustomEvent[]
     ecpmFloor: number[]
+    format: Format
+    isThirdPartyBidding: boolean
+}
+
+export interface CustomEvent {
+    className: string
+    label: string
+    params: string
+    price: string
 }
 
 export enum AdType {

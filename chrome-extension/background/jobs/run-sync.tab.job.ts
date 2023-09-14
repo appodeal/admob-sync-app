@@ -12,6 +12,7 @@ import {App, ExtensionState} from '../background';
 import {getExtensionVersion} from '../utils/minimal-version';
 import {notify} from '../utils/notifications';
 import {IJob} from './job.interface';
+import {CustomEventApiService} from "../../../src/core/admob-api/custom-event.api";
 
 
 export class RunSyncTabJob implements IJob {
@@ -87,6 +88,7 @@ export class RunSyncTabJob implements IJob {
         const adMobAccount = this.adMobAccount = currentUser.accounts.find(
             acc => acc.email.toLowerCase() === extractedAdmobAccount.email.toLowerCase());
 
+        const customEventApi = new CustomEventApiService(fetch.bind(globalThis), console);
 
         logger.info(`Sync with extension. Version ${getExtensionVersion()}`);
 
@@ -125,6 +127,7 @@ export class RunSyncTabJob implements IJob {
             adMobAccount,
             currentUser,
             logger,
+            customEventApi,
             id,
             SyncRunner.User
         );
