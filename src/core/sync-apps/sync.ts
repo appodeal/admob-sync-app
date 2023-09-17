@@ -58,6 +58,11 @@ enum CustomEventPlatform {
     'IOS' = '13'
 }
 
+enum PlatformGroup {
+    'IOS' = 1,
+    'ANDROID' = 2,
+}
+
 const defaultAdUnitPrefix = 'Appodeal';
 
 export class Sync {
@@ -336,12 +341,14 @@ export class Sync {
             app.adUnitsToUpdateName = [];
             app.adUnitTemplatesToCreate = new Map();
 
+            app.customEventsList = [];
+
             if (app.isDeleted) {
                 return app;
             }
 
             const adMobApp = app.admobApp = this.findAdMobApp(app, this.context.getActiveAdmobApps());
-            app.adUnitTemplatesToCreate = this.buildAdUnitsSchema(app);
+            app.adUnitTemplatesToCreate = this.buildAdUnitsSchema(app, adMobApp);
 
 
             if (!app.admobApp) {
@@ -507,47 +514,83 @@ export class Sync {
     }
 
     async* syncCustomEvents(app: AppodealAppToSync, adMobApp: AdMobApp) {
-        let floorsList = app.ecpmFloors.flat();
-        let adUnitsList = floorsList
-            .flatMap(item => item.customEvents)
-            .filter(e => e !== null)
-            .map(e => ({
-                id: '5772174265', // ad unit id
-                isDeleted: false,
-                className: e.className,
-                params: e.params,
-                label: e.label,
-                platform: CustomEventPlatform[app.platform],
-                price: e.price,
-            }));
+        let adUnitsForCustomEvents = this.adUnitsForCustomEvents(app);
 
-        let createdEvents = await this.customEventApi.postRaw(
+        //  create events
+        for (const adUnit of adUnitsForCustomEvents) {
+            let resp = await this.createCustomEvents(adUnit);
+
+            resp[1].forEach(createdEvent => {
+                adUnit.customEvents.forEach(event => {
+                    if (createdEvent['15'] !== event.label) {
+                        return;
+                    }
+
+                    event['eventId'] = createdEvent['1'];
+                    event.price = event.price * 1000000;
+                })
+            });
+        }
+
+        //  create groups
+        for (const adUnit of adUnitsForCustomEvents) {
+            await this.createAdUnit(app, adUnit);
+        }
+    }
+
+    adUnitsForCustomEvents(app: AppodealAppToSync): any[] {
+        let adUnitForCustomEventsList: any[] = app.customEventsList;
+        return adUnitForCustomEventsList.map(adUnit => {
+            return {
+                ...adUnit,
+                isDeleted: false,
+                platform: CustomEventPlatform[app.platform],
+            }
+        });
+    }
+
+    async createCustomEvents (adUnit) {
+        return await this.customEventApi.postRaw(
             'mediationAllocation',
             'Update',
-            this.adUnitPayload(adUnitsList)
+            this.adUnitPayload(adUnit)
         );
+    }
 
-        let createEventsList = createdEvents[1].map(event => {
-            let adUnit = adUnitsList.find(unit => unit.label === event[15]);
-            return {
-                dynamicId: event[1],
-                ...adUnit,
-            }
-        })
-
+    async createAdUnit (app, adUnit) {
         await this.customEventApi.postRaw(
             'mediationGroup',
             'V2Create',
-            this.createV2Param(createEventsList),
+            this.createV2Param(app, adUnit),
             1
         )
     }
 
-    createV2Param(createdEvents: any[]) {
+    createV2Param(app: AppodealApp, adUnit: any) {
+        const eventIds = new Set();
+        let eventsList = adUnit.customEvents.map(event => {
+            eventIds.add(event.eventId);
+            return {
+                "2": "7",
+                "3": 1,
+                "4": 2,
+                "5": {"1": event.price, "2": "USD"},
+                "9": event.label,
+                "11": 1,
+                "13": Array.from(eventIds),  // eventID-s
+                "14": event.platform
+            }
+        })
+
         return {
-            "1": "Appodeal/111/banner/image_and_text",
+            "1": adUnit.name,
             "2": 1,
-            "3": {"1": 1, "2": 0, "3": ["5772174265"], "6": 1},
+            "3": {
+                "1": PlatformGroup[app.platform],
+                "2": this.getAdUnitType(adUnit.adType),
+                "3": [adUnit.adUnitId],
+                "6": 1
+            },
             "4": [
                 {
                     "2": "1",
@@ -559,36 +602,22 @@ export class Sync {
                     "11": 1,
                     "14": "2"
                 },
-                ...createdEvents.map(e => {
-                    let price = e.price * 1000000;
-                    return {
-                        "2": "7",
-                        "3": 1,
-                        "4": 2,
-                        "5": {"1": String(price), "2": "USD"},
-                        "9": e.label,
-                        "11": 1,
-                        "13": [e.dynamicId],
-                        "14": e.platform
-                    }
-                })
+                ...eventsList
             ]
         }
     }
 
-    adUnitPayload(adUnitsList: any[]) {
+    adUnitPayload(adUnit: any) {
         return {
-            "1": adUnitsList.map(adUnit => {
-                return adUnit.isDeleted ? this.removeCustomEvent(adUnit) : this.createCustomEvent(adUnit)
-            }),
+            "1": adUnit.isDeleted ? this.removeCustomEvent(adUnit) : this.createCustomEvent(adUnit),
             "2": []
         }
     }
 
-    createCustomEvent(event) {
-        return {
+    createCustomEvent(adUnit): any[] {
+        return adUnit.customEvents.map(event => ({
             "1": '-1',
-            "2": !event.isDeleted,
+            "2": adUnit.isDeleted,
             "3": "7",
             "4": [
                 {"1": "class_name", "2": event.className},
@@ -596,21 +625,31 @@ export class Sync {
                 {"1": "label", "2": event.label}
             ],
             "10": 1,
-            "12": event.id,
+            "12": adUnit.adUnitId,
             "15": event.label,
-            "16": event.platform
-        }
+            "16": adUnit.platform
+        }))
     }
 
-    removeCustomEvent(ev) {
-        return {
-            ...this.createCustomEvent(ev),
+    removeCustomEvent (adUnit): any[] {
+        return adUnit.customEvents.map(event => ({
             "1": '',
+            "2": adUnit.isDeleted,
+            "3": "7",
+            "4": [
+                {"1": "class_name", "2": event.className},
+                {"1": "parameter", "2": event.params},
+                {"1": "label", "2": event.label}
+            ],
             "7": false,
             "9": false,
+            "10": 1,
             "11": "1694016045877",
+            "12": adUnit.adUnitId,
             "14": 7,
-        }
+            "15": event.label,
+            "16": adUnit.platform
+        }));
     }
 
     async* syncAdUnits(app: AppodealAppToSync, adMobApp: AdMobApp) {
@@ -749,12 +788,32 @@ export class Sync {
             .join('/');
     }
 
+    getAdUnitType (adType: AdType) {
+        // 0 - banner or mrec, 1 - interstital, 3 - native advanced, 5 - revarded, 8 - rewarded interstitial
+        switch (adType) {
+            // Mrec & banner have same template
+            case AdType.BANNER:
+            case AdType.MREC:
+                return 0;
+            case AdType.INTERSTITIAL:
+                return 1;
+            case AdType.NATIVE:
+                return 3;
+            case AdType.REWARDED_VIDEO:
+                return 5;
+            case AdType.REWARDED_INTERSTITIAL:
+                return 8;
+            default:
+                return null;
+        }
+    }
+
 
     /**
      * Build map of AdUnits which is supposed to be created
      * @param app
      */
-    buildAdUnitsSchema (app: AppodealApp): Map<AdUnitTemplateId, AdUnitTemplate> {
+    buildAdUnitsSchema (app: AppodealApp, adMobApp: AdMobApp): Map<AdUnitTemplateId, AdUnitTemplate> {
 
         return app.ecpmFloors
             .map(floor => ({floor, template: getAdUnitTemplate(floor.adType)}))
@@ -765,7 +824,16 @@ export class Sync {
                 }
                 return true;
             })
-            .map(({floor, template}) => {
+            .map(({floor, template}, i) => {
+                    if (floor.customEvents !== null) {
+                        app.customEventsList.push({
+                            adType: floor.adType,
+                            adUnitId: this.getActiveAdmobAdUnitsCreatedByApp(app, adMobApp).find(adUnit => adUnit.name === this.adUnitName(app, floor.adType, floor.format)).adUnitId,
+                            customEvents: floor.customEvents,
+                            isThirdPartyBidding: floor.isThirdPartyBidding,
+                            name: this.adUnitName(app, floor.adType, floor.format)
+                        });
+                    }
                     return [
                         // default adUnit with no ecpm
                         {

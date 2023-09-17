@@ -15,6 +15,7 @@ export interface AppodealApp {
     platform: AppodealPlatform;
     admobAppId: string;
     ecpmFloors: EcpmFloors[]
+    customEventsList: any[]
 }
 
 
@@ -39,7 +40,8 @@ export enum AdType {
     BANNER = 'BANNER',
     NATIVE = 'NATIVE',
     MREC = 'MREC',
-    REWARDED_VIDEO = 'REWARDED_VIDEO'
+    REWARDED_VIDEO = 'REWARDED_VIDEO',
+    REWARDED_INTERSTITIAL = 'REWARDED_INTERSTITIAL'
 }
 
 export enum Format {
