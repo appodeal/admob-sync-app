@@ -33,6 +33,11 @@ export const entriesConfig = entries.map(
             module: {
                 rules: [
                     {
+                        test: /\.mjs$/,
+                        include: /node_modules/,
+                        type: 'javascript/auto'
+                    },
+                    {
                         test: /\.ts|\.tsx$/,
                         use: ['ts-loader']
                     },
@@ -105,7 +110,7 @@ export const entriesConfig = entries.map(
                 ]
             },
             resolve: {
-                extensions: ['.tsx', '.json', '.ts', '.js', '.svg'],
+                extensions: ['.tsx', '.json', '.ts', '.js', '.svg', '.mjs', '.gql', '.graphql'],
                 modules: [
                     'node_modules',
                     '@typings',
