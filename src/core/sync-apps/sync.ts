@@ -348,7 +348,10 @@ export class Sync {
             }
 
             const adMobApp = app.admobApp = this.findAdMobApp(app, this.context.getActiveAdmobApps());
-            app.adUnitTemplatesToCreate = this.buildAdUnitsSchema(app, adMobApp);
+
+            if(adMobApp) {
+                app.adUnitTemplatesToCreate = this.buildAdUnitsSchema(app, adMobApp);
+            }
 
 
             if (!app.admobApp) {
@@ -527,6 +530,7 @@ export class Sync {
                     }
 
                     event['eventId'] = createdEvent['1'];
+                    event['removeId'] = createdEvent['11'];
                     event.price = event.price * 1000000;
                 })
             });
@@ -633,7 +637,7 @@ export class Sync {
 
     removeCustomEvent (adUnit): any[] {
         return adUnit.customEvents.map(event => ({
-            "1": '',
+            "1": adUnit.eventId,
             "2": adUnit.isDeleted,
             "3": "7",
             "4": [
@@ -644,7 +648,7 @@ export class Sync {
             "7": false,
             "9": false,
             "10": 1,
-            "11": "1694016045877",
+            "11": adUnit.removeId,
             "12": adUnit.adUnitId,
             "14": 7,
             "15": event.label,
@@ -826,13 +830,17 @@ export class Sync {
             })
             .map(({floor, template}, i) => {
                     if (floor.customEvents !== null) {
-                        app.customEventsList.push({
-                            adType: floor.adType,
-                            adUnitId: this.getActiveAdmobAdUnitsCreatedByApp(app, adMobApp).find(adUnit => adUnit.name === this.adUnitName(app, floor.adType, floor.format)).adUnitId,
-                            customEvents: floor.customEvents,
-                            isThirdPartyBidding: floor.isThirdPartyBidding,
-                            name: this.adUnitName(app, floor.adType, floor.format)
-                        });
+                        const activeAdUnit = this.getActiveAdmobAdUnitsCreatedByApp(app, adMobApp).find(adUnit => adUnit.name === this.adUnitName(app, floor.adType, floor.format));
+
+                        if (activeAdUnit) {
+                            app.customEventsList.push({
+                                adType: floor.adType,
+                                adUnitId: activeAdUnit.adUnitId,
+                                customEvents: floor.customEvents,
+                                isThirdPartyBidding: floor.isThirdPartyBidding,
+                                name: this.adUnitName(app, floor.adType, floor.format)
+                            });
+                        }
                     }
                     return [
                         // default adUnit with no ecpm
