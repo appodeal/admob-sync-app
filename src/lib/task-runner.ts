@@ -55,7 +55,7 @@ export class TaskRunner extends EventEmitter {
     }
 
     break () {
-        return new Promise<void>(resolve => {
+        return new Promise(resolve => {
             if (this.state === TaskRunnerState.running) {
                 this.once('cancel', () => resolve());
             } else {
@@ -92,7 +92,7 @@ export class TaskRunner extends EventEmitter {
     }
 
     private exec () {
-        return new Promise<void>(async (resolve, reject) => {
+        return new Promise(async (resolve, reject) => {
 
             const runNext = () => {
                 if (this.state === TaskRunnerState.cancelled) {
