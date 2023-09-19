@@ -37,7 +37,7 @@ export class SyncService {
 
 
     public async runSync (appodealAccountId: string, admobAccount: AdMobAccount, runner: SyncRunner) {
-        return new Promise(async (resolve, reject) => {
+        return new Promise<void>(async (resolve, reject) => {
             if (this.onlineService.isOffline()) {
                 console.log('[Sync Service] Can not run sync. No Internet Connection');
                 return reject(new Error('Can not run sync. No Internet Connection'));

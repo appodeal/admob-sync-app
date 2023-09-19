@@ -9,6 +9,7 @@ import * as winston from 'winston';
 import {Logger} from 'winston';
 
 
+// @ts-ignore
 export interface LoggerInstance extends Logger {
     /**
      * @deprecated use closeAsync instead
