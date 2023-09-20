@@ -518,28 +518,42 @@ export class Sync {
 
     async* syncCustomEvents(app: AppodealAppToSync, adMobApp: AdMobApp) {
         let adUnitsForCustomEvents = this.adUnitsForCustomEvents(app);
+        let createdEvents = await this.getCreatedCustomEvents();
+        let copyAdUnitsForCustomEvents = [];
 
         //  create events
         for (const adUnit of adUnitsForCustomEvents) {
-            let resp = await this.createCustomEvents(adUnit);
+            let slicedAdUnit = this.sliceCreatedEvents(adUnit, createdEvents);
+            copyAdUnitsForCustomEvents.push(slicedAdUnit);
 
-            resp[1].forEach(createdEvent => {
-                adUnit.customEvents.forEach(event => {
-                    if (createdEvent['15'] !== event.label) {
-                        return;
-                    }
-
-                    event['eventId'] = createdEvent['1'];
-                    event['removeId'] = createdEvent['11'];
-                    event.price = event.price * 1000000;
-                })
-            });
+            if (slicedAdUnit.customEvents.length > 0) {
+                this.prepareAdUnitForCreateGroup(await this.createCustomEvents(slicedAdUnit), slicedAdUnit);
+            }
         }
 
         //  create groups
-        for (const adUnit of adUnitsForCustomEvents) {
-            await this.createAdUnit(app, adUnit);
+        for (const adUnit of copyAdUnitsForCustomEvents) {
+            if (adUnit.customEvents.length) {
+                await this.createAdUnit(app, adUnit);
+            }
         }
+    }
+
+    sliceCreatedEvents(adUnit, createdEvents) {
+        let localAdUnit = JSON.parse(JSON.stringify(adUnit));
+        adUnit.customEvents.forEach((event, i) => {
+            createdEvents[1].forEach(createdAdUnit => {
+                if (!createdAdUnit[5]) {
+                    return;
+                }
+
+                if (createdAdUnit[2] === adUnit.name && createdAdUnit[5].some(e => e[9] === event.label)) {
+                    localAdUnit.customEvents.splice(i, 1);
+                }
+            });
+        });
+
+        return localAdUnit;
     }
 
     adUnitsForCustomEvents(app: AppodealAppToSync): any[] {
@@ -551,6 +565,15 @@ export class Sync {
                 platform: CustomEventPlatform[app.platform],
             }
         });
+    }
+
+    async getCreatedCustomEvents () {
+        return await this.customEventApi.postRaw(
+            'mediationGroup',
+            'List',
+            {},
+            2
+        )
     }
 
     async createCustomEvents (adUnit) {
@@ -609,6 +632,20 @@ export class Sync {
                 ...eventsList
             ]
         }
+    }
+
+    prepareAdUnitForCreateGroup(resp, adUnit) {
+        resp[1].forEach(createdEvent => {
+            adUnit.customEvents.forEach(event => {
+                if (createdEvent['15'] !== event.label) {
+                    return;
+                }
+
+                event['eventId'] = createdEvent['1'];
+                event['removeId'] = createdEvent['11'];
+                event.price = event.price * 1000000;
+            })
+        });
     }
 
     adUnitPayload(adUnit: any) {
