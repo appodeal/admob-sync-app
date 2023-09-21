@@ -141,4 +141,5 @@ input AdUnit {
     "Ad unit's eCPM"
     ecpmFloor: Float!
     format: Format!
+    isThirdPartyBidding: Boolean
 }
