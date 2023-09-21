@@ -59,4 +59,5 @@ export interface AppodealAdUnit {
     adType: AdType;
     format: Format;
     ecpmFloor: number;
+    isThirdPartyBidding: boolean;
 }

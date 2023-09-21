@@ -9,7 +9,7 @@ import {retryProxy} from 'lib/retry';
 import {AppCreateRequestTranslator, AppCreateResponseTranslator, AppTranslator} from 'lib/translators/admob-app.translator';
 import {AdMobPlatform} from 'lib/translators/admob.constants';
 import {AdUnitTranslator} from 'lib/translators/admop-ad-unit.translator';
-import {AdMobAdUnit, CpmFloorMode, CpmFloorSettings} from 'lib/translators/interfaces/admob-ad-unit.interface';
+import {AdMobAdFormat, AdMobAdUnit, CpmFloorMode, CpmFloorSettings} from 'lib/translators/interfaces/admob-ad-unit.interface';
 import {AdMobApp, AppCreateRequest, AppCreateResponse, Host, UserMetricsStatus} from 'lib/translators/interfaces/admob-app.interface';
 import {getTranslator} from 'lib/translators/translator.helpers';
 import uuid from 'uuid';
@@ -758,6 +758,7 @@ export class Sync {
 
     convertToAppodealAdUnit (adMobAdUnit: AdMobAdUnit, template: AdUnitTemplate): AppodealAdUnit {
         return {
+            isThirdPartyBidding: template.isThirdPartyBidding,
             code: this.adUnitCode(adMobAdUnit),
             ...template.__metadata
         };
@@ -857,7 +858,18 @@ export class Sync {
     buildAdUnitsSchema (app: AppodealApp, adMobApp: AdMobApp): Map<AdUnitTemplateId, AdUnitTemplate> {
 
         return app.ecpmFloors
-            .map(floor => ({floor, template: getAdUnitTemplate(floor.adType)}))
+            .map(floor => {
+                if (floor.isThirdPartyBidding) {
+                    return  {
+                        floor,
+                        template: {
+                            adFormat: AdMobAdFormat.FullScreen,
+                            isThirdPartyBidding: false
+                        },
+                    };
+                }
+                return {floor, template: getAdUnitTemplate(floor.adType)};
+            })
             .filter(({floor, template}) => {
                 if (!template) {
                     captureMessage(`Unsupported Ad Type ${floor.adType}`);
@@ -874,7 +886,6 @@ export class Sync {
                                 adType: floor.adType,
                                 adUnitId: activeAdUnit.adUnitId,
                                 customEvents: floor.customEvents,
-                                isThirdPartyBidding: floor.isThirdPartyBidding,
                                 name: this.adUnitName(app, floor.adType, floor.format)
                             });
                         }
@@ -888,12 +899,14 @@ export class Sync {
                                 ecpmFloor: 0,
                                 format: floor.format
                             },
-                            name: this.adUnitName(app, floor.adType, floor.format)
+                            name: this.adUnitName(app, floor.adType, floor.format),
+                            isThirdPartyBidding: floor.isThirdPartyBidding,
                         },
                         // AdUnits for sent ecpm Floors
                         ...floor.ecpmFloor.filter(v => v > 0).map(ecpmFloor => ({
                             ...template,
                             name: this.adUnitName(app, floor.adType, floor.format, ecpmFloor),
+                            isThirdPartyBidding: floor.isThirdPartyBidding,
                             __metadata: {
                                 adType: floor.adType,
                                 ecpmFloor: ecpmFloor,
