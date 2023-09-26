@@ -1,16 +1,37 @@
 import {captureMessage} from '@sentry/core';
 import {AdmobApiService, RefreshXsrfTokenError, UpdateRequest, UpdateResponse} from 'core/admob-api/admob.api';
 import {AppodealApiService} from 'core/appdeal-api/appodeal-api.service';
-import {AdType, AppodealAdUnit, AppodealApp, AppodealPlatform, Format} from 'core/appdeal-api/interfaces/appodeal-app.interface';
+import {
+    AdType,
+    AppodealAdUnit,
+    AppodealApp,
+    AppodealPlatform,
+    Format
+} from 'core/appdeal-api/interfaces/appodeal-app.interface';
 import {getAdUnitTemplate} from 'core/sync-apps/ad-unit-templates';
 import {SyncStats} from 'core/sync-apps/sync-stats';
 import stringify from 'json-stable-stringify';
 import {retryProxy} from 'lib/retry';
-import {AppCreateRequestTranslator, AppCreateResponseTranslator, AppTranslator} from 'lib/translators/admob-app.translator';
+import {
+    AppCreateRequestTranslator,
+    AppCreateResponseTranslator,
+    AppTranslator
+} from 'lib/translators/admob-app.translator';
 import {AdMobPlatform} from 'lib/translators/admob.constants';
 import {AdUnitTranslator} from 'lib/translators/admop-ad-unit.translator';
-import {AdMobAdFormat, AdMobAdUnit, CpmFloorMode, CpmFloorSettings} from 'lib/translators/interfaces/admob-ad-unit.interface';
-import {AdMobApp, AppCreateRequest, AppCreateResponse, Host, UserMetricsStatus} from 'lib/translators/interfaces/admob-app.interface';
+import {
+    AdMobAdFormat,
+    AdMobAdUnit,
+    CpmFloorMode,
+    CpmFloorSettings
+} from 'lib/translators/interfaces/admob-ad-unit.interface';
+import {
+    AdMobApp,
+    AppCreateRequest,
+    AppCreateResponse,
+    Host,
+    UserMetricsStatus
+} from 'lib/translators/interfaces/admob-app.interface';
 import {getTranslator} from 'lib/translators/translator.helpers';
 import uuid from 'uuid';
 import {decodeOctString} from '../../lib/oct-decode';
@@ -89,7 +110,7 @@ export class Sync {
      */
     private skipNativeAdUnits = false;
 
-    constructor (
+    constructor(
         // With retry proxy
         // each failed request will be retried 3 times automatically
         private adMobApi: AdmobApiService,
@@ -106,7 +127,7 @@ export class Sync {
         this.beforeRun();
     }
 
-    async stop (reason: string) {
+    async stop(reason: string) {
         if (this.terminated) {
             this.logger.info(`Sync already stopped. New Stop Reason: ${reason}`);
             return;
@@ -116,7 +137,7 @@ export class Sync {
         this.logger.info(`Stopping Sync Reason: ${reason}`);
     }
 
-    beforeRun () {
+    beforeRun() {
 
         const retryCondition = e =>
             e.message.substring(0, 'net::ERR'.length) === 'net::ERR'
@@ -133,7 +154,7 @@ export class Sync {
         this.appodealApi = retryProxy(this.appodealApi, retryCondition, 3, 5000, terminateIfConnectionLost);
     }
 
-    async run () {
+    async run() {
         this.logger.info(`Sync started`);
         this.terminated = false;
         try {
@@ -153,13 +174,13 @@ export class Sync {
         }
     }
 
-    finish () {
+    finish() {
         this.stats.end();
         this.emitStop();
         this.appodealApi.reportSyncEnd(this.id);
     }
 
-    emit (event: SyncEvent | SyncEventsTypes) {
+    emit(event: SyncEvent | SyncEventsTypes) {
         if (isObject(event)) {
             (<SyncEvent>event).id = this.id;
             (<SyncEvent>event).accountId = this.adMobAccount.id;
@@ -168,7 +189,7 @@ export class Sync {
         return this.events.emit({type: <SyncEventsTypes>event, id: this.id, accountId: this.adMobAccount.id});
     }
 
-    emitProgress () {
+    emitProgress() {
         const progress: Partial<SyncReportProgressEvent> = {};
         progress.synced = this.syncedAppCount;
         progress.failed = this.failedAppCount;
@@ -186,7 +207,7 @@ export class Sync {
         return this.emit(<SyncReportProgressEvent>progress);
     }
 
-    emitError (error: Error) {
+    emitError(error: Error) {
         this.hasErrors = true;
         return this.emit(<SyncErrorEvent>{
             type: SyncEventsTypes.Error,
@@ -198,7 +219,7 @@ export class Sync {
         return this.emit(<SyncStopEvent>{type: SyncEventsTypes.Stopped, terminated: this.terminated, hasErrors: this.hasErrors});
     }
 
-    async* doSync () {
+    async* doSync() {
         this.stats.start();
         this.emit(SyncEventsTypes.Started);
         this.logger.info(`Sync Params
@@ -229,7 +250,7 @@ export class Sync {
         }
     }
 
-    async* fetchDataToSync () {
+    async* fetchDataToSync() {
 
 
         yield `refrech Admob xsrf Token`;
@@ -289,7 +310,7 @@ export class Sync {
 
     }
 
-    ejectAppsAppsFromAdmob (body: string) {
+    ejectAppsAppsFromAdmob(body: string) {
 
         const mathResult = body.match(/var apd = '(?<appsJson>[^\']*)';/);
 
@@ -309,7 +330,7 @@ export class Sync {
         }
     }
 
-    ejectAdUnitsFromAdmob (body: string) {
+    ejectAdUnitsFromAdmob(body: string) {
         const mathResult = body.match(/var aupd = '(?<appsJson>[^\']*)';/);
 
         if (!mathResult || !mathResult.groups || !mathResult.groups.appsJson) {
@@ -328,7 +349,7 @@ export class Sync {
         }
     }
 
-    prepareApps (apps) {
+    prepareApps(apps) {
 
         const prepareAppDataToSync = (app: AppodealAppToSync) => {
 
@@ -349,7 +370,7 @@ export class Sync {
 
             const adMobApp = app.admobApp = this.findAdMobApp(app, this.context.getActiveAdmobApps());
 
-            if(adMobApp) {
+            if (adMobApp) {
                 app.adUnitTemplatesToCreate = this.buildAdUnitsSchema(app, adMobApp);
             }
 
@@ -385,7 +406,7 @@ export class Sync {
             .map(calculateTotal);
     }
 
-    async* syncApps () {
+    async* syncApps() {
 
         const apps = this.apps = this.prepareApps(this.context.getAppodealApps());
 
@@ -410,14 +431,14 @@ export class Sync {
     }
 
 
-    static toAdMobPlatform (app: AppodealApp): AdMobPlatform {
+    static toAdMobPlatform(app: AppodealApp): AdMobPlatform {
         if (app.platform === AppodealPlatform.IOS) {
             return AdMobPlatform.IOS;
         }
         return AdMobPlatform.Android;
     }
 
-    async* syncDeletedApp (app: AppodealApp, adMobApp: AdMobApp) {
+    async* syncDeletedApp(app: AppodealApp, adMobApp: AdMobApp) {
         if (!adMobApp) {
             this.logger.info('deleted App not found in admob');
             return;
@@ -446,7 +467,7 @@ export class Sync {
 
     }
 
-    async* syncApp (app: AppodealAppToSync) {
+    async* syncApp(app: AppodealAppToSync) {
         yield `Start Sync App [${app.id}] ${app.name}`;
 
         let adMobApp = this.findAdMobApp(app, this.context.getActiveAdmobApps());
@@ -518,23 +539,34 @@ export class Sync {
 
     async* syncCustomEvents(app: AppodealAppToSync, adMobApp: AdMobApp) {
         let adUnitsForCustomEvents = this.adUnitsForCustomEvents(app);
+        let createdBiddingAdUnits = await this.getCreatedBiddingAdUnits(app.admobAppId);
         let createdEvents = await this.getCreatedCustomEvents();
         let copyAdUnitsForCustomEvents = [];
 
         //  create events
         for (const adUnit of adUnitsForCustomEvents) {
-            let slicedAdUnit = this.sliceCreatedEvents(adUnit, createdEvents);
-            copyAdUnitsForCustomEvents.push(slicedAdUnit);
+            if (!createdBiddingAdUnits[1].some(unit => unit[1] === adUnit.adUnitId)) {
+                let slicedAdUnit = this.sliceCreatedEvents(adUnit, createdEvents);
+                copyAdUnitsForCustomEvents.push(slicedAdUnit);
 
-            if (slicedAdUnit.customEvents.length > 0) {
-                this.prepareAdUnitForCreateGroup(await this.createCustomEvents(slicedAdUnit), slicedAdUnit);
+                if (slicedAdUnit.customEvents.length > 0) {
+                    try {
+                        this.prepareAdUnitForCreateGroup(await this.createCustomEvents(slicedAdUnit), slicedAdUnit);
+                    } catch (e) {
+                        console.error(e)
+                    }
+                }
             }
         }
 
         //  create groups
         for (const adUnit of copyAdUnitsForCustomEvents) {
             if (adUnit.customEvents.length) {
-                await this.createAdUnit(app, adUnit);
+                try {
+                    await this.createMediationGroup(app, adUnit);
+                } catch (e) {
+                    console.error(e)
+                }
             }
         }
     }
@@ -567,16 +599,21 @@ export class Sync {
         });
     }
 
-    async getCreatedCustomEvents () {
+    async getCreatedBiddingAdUnits(admobAppId: string): Promise<any> {
+        return await this.adMobApi.postRaw('AdUnitService', 'ListGoogleBiddingAdUnits', <UpdateRequest>{
+            1: admobAppId
+        });
+    }
+
+    async getCreatedCustomEvents() {
         return await this.customEventApi.postRaw(
             'mediationGroup',
             'List',
-            {},
-            2
+            {}
         )
     }
 
-    async createCustomEvents (adUnit) {
+    async createCustomEvents(adUnit) {
         return await this.customEventApi.postRaw(
             'mediationAllocation',
             'Update',
@@ -584,12 +621,11 @@ export class Sync {
         );
     }
 
-    async createAdUnit (app, adUnit) {
+    async createMediationGroup(app, adUnit) {
         await this.customEventApi.postRaw(
             'mediationGroup',
             'V2Create',
-            this.createV2Param(app, adUnit),
-            1
+            this.createV2Param(app, adUnit)
         )
     }
 
@@ -605,7 +641,7 @@ export class Sync {
                 "9": event.label,
                 "11": 1,
                 "13": Array.from(eventIds),  // eventID-s
-                "14": event.platform
+                "14": adUnit.platform
             }
         })
 
@@ -635,6 +671,9 @@ export class Sync {
     }
 
     prepareAdUnitForCreateGroup(resp, adUnit) {
+        if (!resp[1]) {
+            return;
+        }
         resp[1].forEach(createdEvent => {
             adUnit.customEvents.forEach(event => {
                 if (createdEvent['15'] !== event.label) {
@@ -672,7 +711,7 @@ export class Sync {
         }))
     }
 
-    removeCustomEvent (adUnit): any[] {
+    removeCustomEvent(adUnit): any[] {
         return adUnit.customEvents.map(event => ({
             "1": adUnit.eventId,
             "2": adUnit.isDeleted,
@@ -756,7 +795,7 @@ export class Sync {
         return appodealAdUnits;
     }
 
-    convertToAppodealAdUnit (adMobAdUnit: AdMobAdUnit, template: AdUnitTemplate): AppodealAdUnit {
+    convertToAppodealAdUnit(adMobAdUnit: AdMobAdUnit, template: AdUnitTemplate): AppodealAdUnit {
         return {
             isThirdPartyBidding: template.isThirdPartyBidding,
             code: this.adUnitCode(adMobAdUnit),
@@ -766,7 +805,7 @@ export class Sync {
 
     // filter adUnits which user created manually
     // we should work only adUnits created automatically during sync
-    getActiveAdmobAdUnitsCreatedByApp (app: AppodealApp, adMobApp: AdMobApp) {
+    getActiveAdmobAdUnitsCreatedByApp(app: AppodealApp, adMobApp: AdMobApp) {
         return this.filterAppAdUnits(app, this.context.getAdMobAppActiveAdUnits(adMobApp));
     }
 
@@ -777,7 +816,7 @@ export class Sync {
     // to
     // "Appodeal/157197/interstitial/image_and_text/25.00"
 
-    static normalizeAdmobAdUnitName (adUnitName: string) {
+    static normalizeAdmobAdUnitName(adUnitName: string) {
 
         if (/\/image$/.test(adUnitName)) {
             return adUnitName.replace(/\/(image)$/, '/image_and_text');
@@ -801,7 +840,7 @@ export class Sync {
     }
 
 
-    filterAppAdUnits (app: AppodealApp, adUnits: AdMobAdUnit[]) {
+    filterAppAdUnits(app: AppodealApp, adUnits: AdMobAdUnit[]) {
         const pattern = new RegExp('^' + [
             `(${escapeStringRegexp(defaultAdUnitPrefix)}|${escapeStringRegexp(this.adUnitNamePrefix)})`,
             app.id,
@@ -813,11 +852,11 @@ export class Sync {
         return adUnits.filter(adUnit => pattern.test(adUnit.name));
     }
 
-    adUnitCode (adUnit: AdMobAdUnit) {
+    adUnitCode(adUnit: AdMobAdUnit) {
         return `ca-app-${this.adMobAccount.id}/${adUnit.adUnitId}`;
     }
 
-    adUnitName (app: AppodealApp, adType: AdType, format: Format, cpmFloor?: number) {
+    adUnitName(app: AppodealApp, adType: AdType, format: Format, cpmFloor?: number) {
         return [
             this.adUnitNamePrefix,
             app.id,
@@ -830,7 +869,7 @@ export class Sync {
             .join('/');
     }
 
-    getAdUnitType (adType: AdType) {
+    getAdUnitType(adType: AdType) {
         // 0 - banner or mrec, 1 - interstital, 3 - native advanced, 5 - revarded, 8 - rewarded interstitial
         switch (adType) {
             // Mrec & banner have same template
@@ -855,20 +894,11 @@ export class Sync {
      * Build map of AdUnits which is supposed to be created
      * @param app
      */
-    buildAdUnitsSchema (app: AppodealApp, adMobApp: AdMobApp): Map<AdUnitTemplateId, AdUnitTemplate> {
+    buildAdUnitsSchema(app: AppodealApp, adMobApp: AdMobApp): Map<AdUnitTemplateId, AdUnitTemplate> {
 
         return app.ecpmFloors
             .map(floor => {
-                if (floor.isThirdPartyBidding) {
-                    return  {
-                        floor,
-                        template: {
-                            adFormat: AdMobAdFormat.FullScreen,
-                            isThirdPartyBidding: false
-                        },
-                    };
-                }
-                return {floor, template: getAdUnitTemplate(floor.adType)};
+                return this.prepareAdUnitTemplate(floor);
             })
             .filter(({floor, template}) => {
                 if (!template) {
@@ -886,7 +916,8 @@ export class Sync {
                                 adType: floor.adType,
                                 adUnitId: activeAdUnit.adUnitId,
                                 customEvents: floor.customEvents,
-                                name: this.adUnitName(app, floor.adType, floor.format)
+                                name: this.adUnitName(app, floor.adType, floor.format),
+                                isThirdPartyBidding: floor.isThirdPartyBidding,
                             });
                         }
                     }
@@ -937,6 +968,19 @@ export class Sync {
             }, new Map());
     }
 
+    prepareAdUnitTemplate(floor) {
+        if (floor.isThirdPartyBidding) {
+            return {
+                floor,
+                template: {
+                    adFormat: AdMobAdFormat.FullScreen,
+                    isThirdPartyBidding: false
+                },
+            };
+        }
+        return {floor, template: getAdUnitTemplate(floor.adType)};
+    }
+
 
     /**
      * build Template ID from which adUnit is created
@@ -945,7 +989,7 @@ export class Sync {
      *  that is why we match adunit only by AdFormat which can not be changed and its name
      * @param adUnit
      */
-    static getAdUnitTemplateId (adUnit: AdMobAdUnit): AdUnitTemplateId {
+    static getAdUnitTemplateId(adUnit: AdMobAdUnit): AdUnitTemplateId {
 
         return stringify([
             // extract prefix. it has no power here
@@ -954,17 +998,17 @@ export class Sync {
         ]);
     }
 
-    patchNamePrefix (name: string): string {
+    patchNamePrefix(name: string): string {
         const chunks = name.split('/');
         chunks[0] = this.adUnitNamePrefix;
         return chunks.join('/');
     }
 
-    get adUnitNamePrefix () {
+    get adUnitNamePrefix() {
         return this.appodealAccount.adUnitNamePrefix || defaultAdUnitPrefix;
     }
 
-    validateAdmobApp (app: AppodealApp, adMobApp: AdMobApp) {
+    validateAdmobApp(app: AppodealApp, adMobApp: AdMobApp) {
         if (!adMobApp) {
             return null;
         }
@@ -988,11 +1032,11 @@ export class Sync {
         return adMobApp;
     }
 
-    appNameRegExp (app: AppodealApp) {
+    appNameRegExp(app: AppodealApp) {
         return new RegExp(`^(${escapeStringRegexp(defaultAdUnitPrefix)}|${escapeStringRegexp(this.adUnitNamePrefix)})/${app.id}/.*$`);
     }
 
-    findAdMobApp (app: AppodealApp, apps: AdMobApp[]): AdMobApp {
+    findAdMobApp(app: AppodealApp, apps: AdMobApp[]): AdMobApp {
         const adMobPlatform = Sync.toAdMobPlatform(app);
 
         let adMobApp = app.platform !== AppodealPlatform.AMAZON && app.bundleId
@@ -1028,7 +1072,7 @@ export class Sync {
     }
 
 
-    async createAdMobApp (app: AppodealApp, admobAccountId: string): Promise<AdMobApp> {
+    async createAdMobApp(app: AppodealApp, admobAccountId: string): Promise<AdMobApp> {
 
         const adMobApp: Partial<AdMobApp> = {
             name: [this.adUnitNamePrefix, app.id, app.name].join('/').substr(0, MAX_APP_NAME_LENGTH),
@@ -1047,7 +1091,7 @@ export class Sync {
             .then(res => (getTranslator(AppCreateResponseTranslator).decode(res) as AppCreateResponse).app);
     }
 
-    async updateAdMobAppName (adMobApp: AdMobApp, newName: string): Promise<AdMobApp> {
+    async updateAdMobAppName(adMobApp: AdMobApp, newName: string): Promise<AdMobApp> {
         adMobApp.name = newName;
         return await this.adMobApi.postRaw('AppService', 'Update', <UpdateRequest>{
             1: getTranslator(AppTranslator).encode(adMobApp),
@@ -1056,17 +1100,17 @@ export class Sync {
     }
 
 
-    async showAdMobApp (adMobApp: AdMobApp): Promise<AdMobApp> {
+    async showAdMobApp(adMobApp: AdMobApp): Promise<AdMobApp> {
         return this.adMobApi.postRaw('AppService', 'BulkUpdateVisibility', {1: [adMobApp.appId], 2: true})
             .then(() => ({...adMobApp, hidden: false}));
     }
 
-    async hideAdMobApp (adMobApp: AdMobApp): Promise<AdMobApp> {
+    async hideAdMobApp(adMobApp: AdMobApp): Promise<AdMobApp> {
         return this.adMobApi.postRaw('AppService', 'BulkUpdateVisibility', {1: [adMobApp.appId], 2: false})
             .then(() => ({...adMobApp, hidden: true}));
     }
 
-    async linkAppWithStore (app: AppodealApp, adMobApp: AdMobApp): Promise<AdMobApp> {
+    async linkAppWithStore(app: AppodealApp, adMobApp: AdMobApp): Promise<AdMobApp> {
 
         interface SearchAppRequest {
             1: string; // query
@@ -1101,12 +1145,12 @@ export class Sync {
         return adMobApp;
     }
 
-    async createAdMobAdUnit (adUnit: Partial<AdMobAdUnit>): Promise<AdMobAdUnit> {
+    async createAdMobAdUnit(adUnit: Partial<AdMobAdUnit>): Promise<AdMobAdUnit> {
         return this.adMobApi.post('AdUnitService', 'Create', getTranslator(AdUnitTranslator).encode(adUnit))
             .then(res => getTranslator(AdUnitTranslator).decode(res));
     }
 
-    async updateAdMobAdUnitName (adMobAdUnit: AdMobAdUnit, newName: string): Promise<AdMobAdUnit> {
+    async updateAdMobAdUnitName(adMobAdUnit: AdMobAdUnit, newName: string): Promise<AdMobAdUnit> {
         adMobAdUnit.name = newName;
 
         return await this.adMobApi.postRaw('AdUnitService', 'Update', <UpdateRequest>{
@@ -1115,7 +1159,7 @@ export class Sync {
         }).then((res: UpdateResponse) => getTranslator(AdUnitTranslator).decode(res[1]));
     }
 
-    async deleteAdMobAdUnits (ids: string[]) {
+    async deleteAdMobAdUnits(ids: string[]) {
         return this.adMobApi.post('AdUnitService', 'BulkRemove', ids);
     }
 
