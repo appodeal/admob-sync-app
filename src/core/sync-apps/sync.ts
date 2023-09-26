@@ -923,16 +923,7 @@ export class Sync {
                     }
                     return [
                         // default adUnit with no ecpm
-                        {
-                            ...template,
-                            __metadata: {
-                                adType: floor.adType,
-                                ecpmFloor: 0,
-                                format: floor.format
-                            },
-                            name: this.adUnitName(app, floor.adType, floor.format),
-                            isThirdPartyBidding: floor.isThirdPartyBidding,
-                        },
+                        this.buildDefaultAdUnitForMediationGroup(app, floor, template),
                         // AdUnits for sent ecpm Floors
                         ...floor.ecpmFloor.filter(v => v > 0).map(ecpmFloor => ({
                             ...template,
@@ -966,6 +957,30 @@ export class Sync {
                 map.set(Sync.getAdUnitTemplateId(<AdMobAdUnit>adUnit), adUnit);
                 return map;
             }, new Map());
+    }
+
+    // build options to create a default ad unit to add to mediation group or options without ecpm
+    buildDefaultAdUnitForMediationGroup (app, floor, template) {
+        debugger;
+        let adUnitParams = {
+            ...template,
+            __metadata: {
+                adType: floor.adType,
+                ecpmFloor: 0,
+                format: floor.format
+            },
+            name: this.adUnitName(app, floor.adType, floor.format),
+            isThirdPartyBidding: floor.isThirdPartyBidding,
+        }
+
+        return floor.isThirdPartyBidding === false ? {
+            ...adUnitParams,
+            googleOptimizedRefreshRate: true,
+            cpmFloorSettings: {
+                floorMode: CpmFloorMode.OptimizedByGoogle,
+                optimized: 3
+            }
+        } : adUnitParams
     }
 
     prepareAdUnitTemplate(floor) {
