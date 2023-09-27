@@ -856,13 +856,14 @@ export class Sync {
         return `ca-app-${this.adMobAccount.id}/${adUnit.adUnitId}`;
     }
 
-    adUnitName(app: AppodealApp, adType: AdType, format: Format, cpmFloor?: number) {
+    adUnitName(app: AppodealApp, adType: AdType, format: Format, cpmFloor?: number, customName: string = '') {
         return [
             this.adUnitNamePrefix,
             app.id,
             adType.toLowerCase(),
             format.toLowerCase(),
-            cpmFloor ? cpmFloor.toFixed(2) : undefined
+            cpmFloor ? cpmFloor.toFixed(2) : undefined,
+            customName
         ]
             // to remove empty values
             .filter(v => v)
@@ -909,14 +910,14 @@ export class Sync {
             })
             .map(({floor, template}, i) => {
                     if (floor.customEvents !== null) {
-                        const activeAdUnit = this.getActiveAdmobAdUnitsCreatedByApp(app, adMobApp).find(adUnit => adUnit.name === this.adUnitName(app, floor.adType, floor.format));
+                        const activeAdUnit = this.getActiveAdmobAdUnitsCreatedByApp(app, adMobApp).find(adUnit => adUnit.name === this.buildAdUnitName(app, floor));
 
                         if (activeAdUnit) {
                             app.customEventsList.push({
                                 adType: floor.adType,
                                 adUnitId: activeAdUnit.adUnitId,
                                 customEvents: floor.customEvents,
-                                name: this.adUnitName(app, floor.adType, floor.format),
+                                name: this.buildAdUnitName(app, floor),
                                 isThirdPartyBidding: floor.isThirdPartyBidding,
                             });
                         }
@@ -927,7 +928,7 @@ export class Sync {
                         // AdUnits for sent ecpm Floors
                         ...floor.ecpmFloor.filter(v => v > 0).map(ecpmFloor => ({
                             ...template,
-                            name: this.adUnitName(app, floor.adType, floor.format, ecpmFloor),
+                            name: this.buildAdUnitName(app, floor, ecpmFloor),
                             isThirdPartyBidding: floor.isThirdPartyBidding,
                             __metadata: {
                                 adType: floor.adType,
@@ -959,6 +960,17 @@ export class Sync {
             }, new Map());
     }
 
+    buildAdUnitName (app, floor, ecpmFloor = null): string {
+        switch (floor.isThirdPartyBidding) {
+            case true:
+                return this.adUnitName(app, floor.adType, floor.format, ecpmFloor, 'partner_bidding');
+            case false:
+                return this.adUnitName(app, floor.adType, floor.format, ecpmFloor, 'mediation_group');
+            default:
+                return this.adUnitName(app, floor.adType, floor.format, ecpmFloor);
+        }
+    }
+
     // build options to create a default ad unit to add to mediation group or options without ecpm
     buildDefaultAdUnitForMediationGroup (app, floor, template) {
         debugger;
@@ -969,7 +981,7 @@ export class Sync {
                 ecpmFloor: 0,
                 format: floor.format
             },
-            name: this.adUnitName(app, floor.adType, floor.format),
+            name: this.buildAdUnitName(app, floor),
             isThirdPartyBidding: floor.isThirdPartyBidding,
         }
 
