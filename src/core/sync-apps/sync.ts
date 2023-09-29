@@ -635,6 +635,18 @@ export class Sync {
         )
     }
 
+    async removeMediationGroup(app, adUnit) {
+        await this.customEventApi.postRaw(
+            'mediationGroup',
+            'BulkStatusChange',
+            // this.createV2Param(app, adUnit)
+            {
+                1: {},
+                2: {}
+            }
+        )
+    }
+
     createV2Param(app: AppodealApp, adUnit: any) {
         const eventIds = new Set();
         let eventsList = adUnit.customEvents.map(event => {
@@ -1168,10 +1180,19 @@ export class Sync {
             this.logger.info(`App found in store`);
             this.stats.appUpdated(app);
             adMobApp = {...adMobApp, ...publishedApp};
-            return await this.adMobApi.postRaw('AppService', 'Update', <UpdateRequest>{
-                1: getTranslator(AppTranslator).encode(adMobApp),
-                2: {1: ['application_store_id', 'vendor']}
-            }).then((res: UpdateResponse) => getTranslator(AppTranslator).decode(res[1]));
+            let copyAdmobApp = {...adMobApp}
+            delete copyAdmobApp.appId;
+            return await this.adMobApi.postRaw(
+                'AppService',
+                'Update',
+                {
+                    "1": {"1": {"1": 1, "3": this.adMobAccount.id}},
+                    "2": [{
+                        "1": getTranslator(AppTranslator).encode(copyAdmobApp),
+                        "2": ["stores", "application_store_id", "name"]
+                    }]
+            }
+            ).then((res: UpdateResponse) => getTranslator(AppTranslator).decode(res[1]));
         }
         this.logger.info(`App NOT found in store`);
         return adMobApp;
