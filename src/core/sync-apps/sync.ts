@@ -545,6 +545,9 @@ export class Sync {
 
         //  create events
         for (const adUnit of adUnitsForCustomEvents) {
+            if (!createdBiddingAdUnits[1]) {
+                return;
+            }
             if (!createdBiddingAdUnits[1].some(unit => unit[1] === adUnit.adUnitId)) {
                 let slicedAdUnit = this.sliceCreatedEvents(adUnit, createdEvents);
                 copyAdUnitsForCustomEvents.push(slicedAdUnit);
@@ -600,6 +603,9 @@ export class Sync {
     }
 
     async getCreatedBiddingAdUnits(admobAppId: string): Promise<any> {
+        if (!admobAppId) {
+            return;
+        }
         return await this.adMobApi.postRaw('AdUnitService', 'ListGoogleBiddingAdUnits', <UpdateRequest>{
             1: admobAppId
         });
