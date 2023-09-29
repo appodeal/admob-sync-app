@@ -973,7 +973,6 @@ export class Sync {
 
     // build options to create a default ad unit to add to mediation group or options without ecpm
     buildDefaultAdUnitForMediationGroup (app, floor, template) {
-        debugger;
         let adUnitParams = {
             ...template,
             __metadata: {
