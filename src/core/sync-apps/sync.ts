@@ -1195,7 +1195,7 @@ export class Sync {
                         "2": ["stores", "application_store_id", "name"]
                     }]
             }
-            ).then((res: UpdateResponse) => getTranslator(AppTranslator).decode(res[2]));
+            ).then((res: UpdateResponse) => getTranslator(AppTranslator).decode(res[2][0]));
         }
         this.logger.info(`App NOT found in store`);
         return adMobApp;
