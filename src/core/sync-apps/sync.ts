@@ -1175,7 +1175,10 @@ export class Sync {
             4: Sync.toAdMobPlatform(app)
         }).then((response: SearchAppResponse) => response[1] ? response[2].map(getTranslator(AppTranslator).decode) : []);
 
-        const publishedApp = searchAppResponse.find(publishedApp => publishedApp.applicationStoreId === app.bundleId);
+
+        const publishedApp = searchAppResponse.find(publishedApp => {
+            return app.platform === AppodealPlatform.IOS ? publishedApp.applicationPackageName === app.bundleId : publishedApp.applicationStoreId === app.bundleId;
+        });
         if (publishedApp) {
             this.logger.info(`App found in store`);
             this.stats.appUpdated(app);
