@@ -556,10 +556,17 @@ export class Sync {
                 copyAdUnitsForCustomEvents.push(slicedAdUnit);
 
                 if (slicedAdUnit.customEvents.length > 0) {
-                    try {
-                        this.prepareAdUnitForCreateGroup(await this.createCustomEvents(slicedAdUnit), slicedAdUnit);
-                    } catch (e) {
-                        console.error(e)
+                    let splitCustomEventsList = this.slicingListCustomEvents(slicedAdUnit.customEvents);
+                    for (const itemEvents of splitCustomEventsList) {
+                        let adUnit = {
+                            ...slicedAdUnit,
+                            customEvents: [...itemEvents]
+                        };
+
+                        this.prepareAdUnitForCreateGroup(
+                            await this.createCustomEvents(adUnit),
+                            adUnit
+                        );
                     }
                 }
             }
@@ -575,6 +582,15 @@ export class Sync {
                 }
             }
         }
+    }
+
+    slicingListCustomEvents (array: any[]): any[] {
+        let size = 50;
+        let subarray = [];
+        for (let i = 0; i < Math.ceil(array.length / size); i++){
+            subarray[i] = array.slice((i*size), (i*size) + size);
+        }
+        return subarray;
     }
 
     sliceCreatedEvents(adUnit, createdEvents) {
