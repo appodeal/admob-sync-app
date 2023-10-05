@@ -573,19 +573,38 @@ export class Sync {
         }
 
         //  create groups
-        for (const adUnit of copyAdUnitsForCustomEvents) {
+        await this.createGroups(app, copyAdUnitsForCustomEvents);
+    }
+
+
+    async createGroups (app, adUnitsForCustomEvents) {
+        for (const adUnit of adUnitsForCustomEvents) {
+
             if (adUnit.customEvents.length) {
-                try {
-                    await this.createMediationGroup(app, adUnit);
-                } catch (e) {
-                    console.error(e)
-                }
+                let splitCustomEventsList = this.slicingListCustomEvents(adUnit.customEvents);
+
+                await this.createMediationGroup(app, adUnit).then(async resp => {
+                    if (resp['2']) {
+                        let list = await this.getCreatedCustomEvents();
+                        resp['1'] = list[1].find(e => e['2'] === adUnit.name);
+                    }
+
+                    let respUpd;
+                    for (const itemEvents of splitCustomEventsList) {
+                        let adUnitSliced = {
+                            ...adUnit,
+                            customEvents: [...itemEvents]
+                        };
+
+                        respUpd = await this.updateMediationGroup(app, adUnitSliced, respUpd ? respUpd : resp);
+                    }
+                });
             }
         }
     }
 
     slicingListCustomEvents (array: any[]): any[] {
-        let size = 50;
+        let size = 37;
         let subarray = [];
         for (let i = 0; i < Math.ceil(array.length / size); i++){
             subarray[i] = array.slice((i*size), (i*size) + size);
@@ -647,10 +666,18 @@ export class Sync {
     }
 
     async createMediationGroup(app, adUnit) {
-        await this.customEventApi.postRaw(
+        return await this.customEventApi.postRaw(
             'mediationGroup',
             'V2Create',
             this.createV2Param(app, adUnit)
+        )
+    }
+
+    async updateMediationGroup(app, adUnit, responseV2Params) {
+        return await this.customEventApi.postRaw(
+            'mediationGroup',
+            'V2Update',
+            this.createV2UpdateParam(app, adUnit, responseV2Params)
         )
     }
 
@@ -667,17 +694,6 @@ export class Sync {
     }
 
     createV2Param(app: AppodealApp, adUnit: any) {
-        let eventsList = adUnit.customEvents.map(event => ({
-            "2": "7",
-            "3": 1,
-            "4": 2,
-            "5": {"1": event.price, "2": "USD"},
-            "9": event.label,
-            "11": 1,
-            "13": [event.eventId],  // eventID-s
-            "14": adUnit.platform
-        }));
-
         return {
             "1": adUnit.name,
             "2": 1,
@@ -698,8 +714,41 @@ export class Sync {
                     "11": 1,
                     "14": "2"
                 },
-                ...eventsList
             ]
+        }
+    }
+
+
+    // save response v2Param
+    createV2UpdateParam(app: AppodealApp, adUnit: any, responseV2Param) {
+        let eventsList = adUnit.customEvents.map(event => ({
+            "2": "7",
+            "3": 1,
+            "4": 2,
+            "5": {"1": Number(event.price), "2": "USD"},
+            "7": [{
+                "1": adUnit.adUnitId, // responseV2Param['4']['3'][0],
+                "2": {"1": [
+                        {"1": "class_name", "2": event.className},
+                        {"1": "parameter", "2": event.params},
+                        {"1": "label", "2": event.label}
+                    ]}
+            }],
+            "9": event.label,
+            "11": 1,
+            "12": {"1": 0},
+            "13": [event.eventId],  // eventID-s
+            "14": adUnit.platform
+        }));
+
+        return {
+            "1": {
+                ...responseV2Param['1'],
+                "5": [
+                    ...responseV2Param['1']['5'],
+                    ...eventsList
+                ],
+            }
         }
     }
 
@@ -1029,7 +1078,7 @@ export class Sync {
                 floor,
                 template: {
                     adFormat: AdMobAdFormat.FullScreen,
-                    isThirdPartyBidding: false
+                    isThirdPartyBidding: floor.isThirdPartyBidding
                 },
             };
         }
