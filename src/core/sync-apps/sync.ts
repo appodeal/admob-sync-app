@@ -560,7 +560,6 @@ export class Sync {
                     );
                 }
             }
-
         }
 
         //  create groups
@@ -571,29 +570,15 @@ export class Sync {
     async createGroups (app, adUnitsForCustomEvents) {
         for (const adUnit of adUnitsForCustomEvents) {
             if (adUnit.customEvents.length) {
-                let splitCustomEventsList = this.slicingListCustomEvents(adUnit.customEvents);
+                let groupList = await this.getCreatedMediationGroup();
+                let adMobMediationGroup = groupList[1].find(e => e['2'] === adUnit.name);
 
-                await this.createMediationGroup(app, adUnit).then(async resp => {
-                    if (resp['2']) {
-                        let list = await this.getCreatedCustomEvents();
-                        delete resp['2'];
-                        resp['1'] = list[1].find(e => e['2'] === adUnit.name);
-                    }
+                if (!adMobMediationGroup) {
+                    let resp = await this.createMediationGroup(app, adUnit);
+                    adMobMediationGroup = resp['1'];
+                }
 
-                    let respUpd;
-                    for (const itemEvents of splitCustomEventsList) {
-                        let adUnitSliced = {
-                            ...adUnit,
-                            customEvents: [...itemEvents]
-                        };
-
-                        if (respUpd && respUpd['2']) {
-                            return;
-                        }
-
-                        respUpd = await this.updateMediationGroup(app, adUnitSliced, respUpd ? respUpd : resp);
-                    }
-                });
+                await this.updateMediationGroup(app, adUnit, adMobMediationGroup);
             }
         }
     }
@@ -626,7 +611,7 @@ export class Sync {
         });
     }
 
-    async getCreatedCustomEvents() {
+    async getCreatedMediationGroup() {
         return await this.customEventApi.postRaw(
             'mediationGroup',
             'List',
@@ -689,7 +674,7 @@ export class Sync {
             "2": "7",
             "3": 1,
             "4": 2,
-            "5": {"1": Number(event.price), "2": "USD"},
+            "5": {"1": event.price, "2": "USD"},
             "7": [{
                 "1": adUnit.adUnitId, // responseV2Param['4']['3'][0],
                 "2": {"1": [
@@ -707,9 +692,9 @@ export class Sync {
 
         return {
             "1": {
-                ...responseV2Param['1'],
+                ...responseV2Param,
                 "5": [
-                    ...responseV2Param['1']['5'],
+                    ...responseV2Param['5'],
                     ...eventsList
                 ],
             }
