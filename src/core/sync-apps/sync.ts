@@ -5,7 +5,7 @@ import {
     AdType,
     AppodealAdUnit,
     AppodealApp,
-    AppodealPlatform,
+    AppodealPlatform, CustomEvent,
     Format
 } from 'core/appdeal-api/interfaces/appodeal-app.interface';
 import {getAdUnitTemplate} from 'core/sync-apps/ad-unit-templates';
@@ -71,6 +71,7 @@ interface AdUnitTemplate extends Partial<AdMobAdUnit> {
         ecpmFloor: number;
         adType: AdType;
         format: Format;
+        customEvents?: CustomEvent[],
     }
 }
 
@@ -243,8 +244,6 @@ export class Sync {
 
         try {
             yield* this.syncApps(1);
-            yield* this.syncApps(2);
-            yield* this.syncApps(3);
         } catch (e) {
             this.logger.error('Failed to syncApps ', e);
             this.emitError(e);
@@ -372,10 +371,7 @@ export class Sync {
             }
 
             const adMobApp = app.admobApp = this.findAdMobApp(app, this.context.getActiveAdmobApps());
-
-            if (adMobApp) {
-                app.adUnitTemplatesToCreate = this.buildAdUnitsSchema(app, adMobApp);
-            }
+            app.adUnitTemplatesToCreate = this.buildAdUnitsSchema(app);
 
 
             if (!app.admobApp) {
@@ -395,6 +391,9 @@ export class Sync {
             app.adUnitsToUpdateName = app.oldGoodAdUnits.filter(
                 adMobAdUnit => adMobAdUnit.name.substr(0, this.adUnitNamePrefix.length) !== this.adUnitNamePrefix
             );
+
+            // fill customEventsList
+
             return app;
         };
 
@@ -541,35 +540,31 @@ export class Sync {
     }
 
     async* syncCustomEvents(app: AppodealAppToSync, adMobApp: AdMobApp) {
+
         let adUnitsForCustomEvents = this.adUnitsForCustomEvents(app);
-        let createdBiddingAdUnits = await this.getCreatedBiddingAdUnits(app.admobAppId);
+        // let createdBiddingAdUnits = await this.getCreatedBiddingAdUnits(app.admobAppId);
         let createdEvents = await this.getCreatedCustomEvents();
-        let copyAdUnitsForCustomEvents = [];
 
         //  create events
         for (const adUnit of adUnitsForCustomEvents) {
-            if (!createdBiddingAdUnits[1]) {
-                return;
-            }
-            if (!createdBiddingAdUnits[1].some(unit => unit[1] === adUnit.adUnitId)) {
-                let slicedAdUnit = this.sliceCreatedEvents(adUnit, createdEvents);
-                copyAdUnitsForCustomEvents.push(slicedAdUnit);
 
-                if (slicedAdUnit.customEvents.length > 0) {
-                    let splitCustomEventsList = this.slicingListCustomEvents(slicedAdUnit.customEvents);
-                    for (const itemEvents of splitCustomEventsList) {
-                        let adUnit = {
-                            ...slicedAdUnit,
-                            customEvents: [...itemEvents]
-                        };
+            if (adUnit.customEvents.length > 0) {
+                // split to chunks by 50 event in each request
+                let splitCustomEventsList = this.slicingListCustomEvents(adUnit.customEvents);
+                for (const itemEvents of splitCustomEventsList) {
+                    let payload = {
+                        ...adUnit,
+                        adUnitId: adUnit.internalAdmobAdUnitId,
+                        customEvents: [...itemEvents]
+                    };
 
-                        this.prepareAdUnitForCreateGroup(
-                            await this.createCustomEvents(adUnit),
-                            adUnit
-                        );
-                    }
+                    this.prepareAdUnitForCreateGroup(
+                        await this.createCustomEvents(payload),
+                        adUnit
+                    );
                 }
             }
+
         }
 
         //  create groups
@@ -579,7 +574,6 @@ export class Sync {
 
     async createGroups (app, adUnitsForCustomEvents) {
         for (const adUnit of adUnitsForCustomEvents) {
-
             if (adUnit.customEvents.length) {
                 let splitCustomEventsList = this.slicingListCustomEvents(adUnit.customEvents);
 
@@ -617,31 +611,13 @@ export class Sync {
         return subarray;
     }
 
-    sliceCreatedEvents(adUnit, createdEvents) {
-        let localAdUnit = JSON.parse(JSON.stringify(adUnit));
-        adUnit.customEvents.forEach((event, i) => {
-            createdEvents[1].forEach(createdAdUnit => {
-                if (!createdAdUnit[5]) {
-                    return;
-                }
-
-                if (createdAdUnit[2] === adUnit.name && createdAdUnit[5].some(e => e[9] === event.label)) {
-                    localAdUnit.customEvents.splice(i, 1);
-                }
-            });
-        });
-
-        return localAdUnit;
-    }
-
-    adUnitsForCustomEvents(app: AppodealAppToSync): any[] {
-        let adUnitForCustomEventsList: any[] = app.customEventsList;
-        return adUnitForCustomEventsList.map(adUnit => {
+    adUnitsForCustomEvents(app: AppodealAppToSync): Array<AppodealAdUnit & Record<string, any>> {
+        return app.appodealAdUnits.filter(u=>u.customEvents ).map((adUnit) => {
             return {
                 ...adUnit,
                 isDeleted: false,
                 platform: CustomEventPlatform[app.platform],
-            }
+            }  as (AppodealAdUnit & Record<string, any>)
         });
     }
 
@@ -882,6 +858,9 @@ export class Sync {
         return {
             isThirdPartyBidding: template.isThirdPartyBidding,
             code: this.adUnitCode(adMobAdUnit),
+            internalAdmobAdUnitId: adMobAdUnit.adUnitId,
+            adUnitId: adMobAdUnit.adUnitId,
+            name:adMobAdUnit.name,
             ...template.__metadata
         };
     }
@@ -978,12 +957,10 @@ export class Sync {
      * Build map of AdUnits which is supposed to be created
      * @param app
      */
-    buildAdUnitsSchema(app: AppodealApp, adMobApp: AdMobApp): Map<AdUnitTemplateId, AdUnitTemplate> {
+    buildAdUnitsSchema(app: AppodealApp): Map<AdUnitTemplateId, AdUnitTemplate> {
 
         return app.ecpmFloors
-            .map(floor => {
-                return this.prepareAdUnitTemplate(floor);
-            })
+            .map(floor => ({floor, template: getAdUnitTemplate(floor.adType)}))
             .filter(({floor, template}) => {
                 if (!template) {
                     captureMessage(`Unsupported Ad Type ${floor.adType}`);
@@ -992,19 +969,6 @@ export class Sync {
                 return true;
             })
             .map(({floor, template}, i) => {
-                    if (floor.customEvents !== null) {
-                        const activeAdUnit = this.getActiveAdmobAdUnitsCreatedByApp(app, adMobApp).find(adUnit => adUnit.name === this.buildAdUnitName(app, floor));
-
-                        if (activeAdUnit) {
-                            app.customEventsList.push({
-                                adType: floor.adType,
-                                adUnitId: activeAdUnit.adUnitId,
-                                customEvents: floor.customEvents,
-                                name: this.buildAdUnitName(app, floor),
-                                isThirdPartyBidding: floor.isThirdPartyBidding,
-                            });
-                        }
-                    }
                     return [
                         // default adUnit with no ecpm
                         this.buildDefaultAdUnitForMediationGroup(app, floor, template),
@@ -1016,6 +980,7 @@ export class Sync {
                             __metadata: {
                                 adType: floor.adType,
                                 ecpmFloor: ecpmFloor,
+                                customEvents: floor.customEvents,
                                 format: floor.format
                             },
                             cpmFloorSettings: <CpmFloorSettings>{
@@ -1061,6 +1026,7 @@ export class Sync {
             __metadata: {
                 adType: floor.adType,
                 ecpmFloor: 0,
+                customEvents: floor.customEvents,
                 format: floor.format
             },
             name: this.buildAdUnitName(app, floor),
@@ -1075,19 +1041,6 @@ export class Sync {
                 optimized: 3
             }
         } : adUnitParams
-    }
-
-    prepareAdUnitTemplate(floor) {
-        if (floor.isThirdPartyBidding) {
-            return {
-                floor,
-                template: {
-                    adFormat: AdMobAdFormat.FullScreen,
-                    isThirdPartyBidding: floor.isThirdPartyBidding
-                },
-            };
-        }
-        return {floor, template: getAdUnitTemplate(floor.adType)};
     }
 
 

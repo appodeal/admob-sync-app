@@ -60,4 +60,7 @@ export interface AppodealAdUnit {
     format: Format;
     ecpmFloor: number;
     isThirdPartyBidding: boolean;
+    internalAdmobAdUnitId: string;
+    adUnitId: string;
+    name: string;
 }
