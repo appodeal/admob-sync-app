@@ -586,6 +586,7 @@ export class Sync {
                 await this.createMediationGroup(app, adUnit).then(async resp => {
                     if (resp['2']) {
                         let list = await this.getCreatedCustomEvents();
+                        delete resp['2'];
                         resp['1'] = list[1].find(e => e['2'] === adUnit.name);
                     }
 
@@ -595,6 +596,10 @@ export class Sync {
                             ...adUnit,
                             customEvents: [...itemEvents]
                         };
+
+                        if (respUpd && respUpd['2']) {
+                            return;
+                        }
 
                         respUpd = await this.updateMediationGroup(app, adUnitSliced, respUpd ? respUpd : resp);
                     }
