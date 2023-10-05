@@ -156,7 +156,6 @@ export class RunSyncTabJob implements IJob {
             this.syncProgress.completedApps = event.synced;
             this.syncProgress.failedApps = event.failed;
             this.syncProgress.percent = pEvent.percent;
-            this.syncProgress.step = event.step;
             this.reportProgressToTab();
             break;
         case SyncEventsTypes.Stopped:

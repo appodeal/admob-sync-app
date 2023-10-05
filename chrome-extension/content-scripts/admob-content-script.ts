@@ -57,8 +57,6 @@ $(document).ready(function () {
         modal.show(
             title,
             `
-            ${syncProgress.step ? 'Step of sync: ' + syncProgress.step + ' of 3 ...' : ''}
-            <br>
             Syncing ${
                 Number(syncProgress.percent).toFixed(0)
             }% ${
