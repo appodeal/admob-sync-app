@@ -4,7 +4,11 @@ import {JsonStorage} from './json-storage.interface';
 export class LocalStorageJsonStorage implements JsonStorage {
 
     async save (key: string, value: any): Promise<void> {
-        localStorage.setItem(key, JSON.stringify(value));
+        try {
+            localStorage.setItem(key, JSON.stringify(value));
+        } catch (e) {
+            console.warn(`[LocalStorageJsonStorage] failed to save json`, e);
+        }
     }
 
     async load (key: string, defaultValue?: any): Promise<any> {

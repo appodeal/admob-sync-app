@@ -3,6 +3,7 @@ import {MicrosToUSDTranslator} from './base-translators/micros-to-usd.translator
 
 import {ObjectTranslator} from './base-translators/object.translator';
 import {AdMobAdUnit, CpmFloorSettings, CpmValue, ManualFloorSettings, RewardsSettings} from './interfaces/admob-ad-unit.interface';
+import {BiddingTranslator} from "./base-translators/bidding.translator";
 
 
 export class RewardsSettingsTranslator extends ObjectTranslator<RewardsSettings> {
@@ -70,9 +71,10 @@ export class AdUnitTranslator extends ObjectTranslator<AdMobAdUnit> {
             17: ['enableRewardsAds', BooleanTranslator],
             18: ['rewardsSettings', RewardsSettingsTranslator],
             19: 'frequencyCap',
-            21: ['googleOptimizedRefreshRate', BooleanTranslator],
+            21: 'googleOptimizedRefreshRate',
             22: 'usageSummary',
-            23: ['cpmFloorSettings', CpmFloorSettingsTranslator]
+            23: ['cpmFloorSettings', CpmFloorSettingsTranslator],
+            27: ['isThirdPartyBidding', BiddingTranslator],
         });
     }
 

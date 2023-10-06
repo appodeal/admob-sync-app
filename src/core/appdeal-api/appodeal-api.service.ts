@@ -260,7 +260,13 @@ export class AppodealApiService {
                 syncSessionId: syncId,
                 admobAppId: adMobApp.appId,
                 admobAccountId,
-                adUnits: adUnits
+                adUnits: adUnits.map(v => ({
+                    adType: v.adType,
+                    code: v.code,
+                    ecpmFloor: v.ecpmFloor,
+                    format: v.format,
+                    isThirdPartyBidding: v.isThirdPartyBidding
+                }))
             }
         });
     }

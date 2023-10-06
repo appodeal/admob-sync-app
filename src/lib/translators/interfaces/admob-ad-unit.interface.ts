@@ -16,6 +16,7 @@ export interface AdMobAdUnit {
     googleOptimizedRefreshRate: boolean,
     usageSummary: any,
     cpmFloorSettings: CpmFloorSettings,
+    isThirdPartyBidding: boolean,
 }
 
 export enum AdMobAdFormat {

@@ -28,7 +28,7 @@ export class AdmobApiService {
 
     // updated api version
     isCamApi (serviceName: string, method: string) {
-        return serviceName === 'AppService' && method === 'Create';
+        return serviceName === 'AppService' && method === 'Create' || serviceName === 'AppService' && method === 'Update';
     }
 
     private getPostApiEndpoint (serviceName: string, method: string) {
