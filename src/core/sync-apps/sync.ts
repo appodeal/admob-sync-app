@@ -670,33 +670,38 @@ export class Sync {
 
     // save response v2Param
     createV2UpdateParam(app: AppodealApp, adUnit: any, responseV2Param) {
-        let eventsList = adUnit.customEvents.map(event => ({
-            "2": "7",
-            "3": 1,
-            "4": 2,
-            "5": {"1": event.price, "2": "USD"},
-            "7": [{
-                "1": adUnit.adUnitId, // responseV2Param['4']['3'][0],
-                "2": {"1": [
-                        {"1": "class_name", "2": event.className},
-                        {"1": "parameter", "2": event.params},
-                        {"1": "label", "2": event.label}
-                    ]}
-            }],
-            "9": event.label,
-            "11": 1,
-            "12": {"1": 0},
-            "13": [event.eventId],  // eventID-s
-            "14": adUnit.platform
-        }));
+        let map = new Map();
+        responseV2Param['5'].forEach(e => map.set(e['9'], e));
+
+        adUnit.customEvents.forEach(event => {
+            if (!map.has(event.label)) {
+                map.set(event.label, {
+                    "2": "7",
+                    "3": 1,
+                    "4": 2,
+                    "5": {"1": event.price, "2": "USD"},
+                    "7": [{
+                        "1": adUnit.adUnitId,
+                        "2": {"1": [
+                                {"1": "class_name", "2": event.className},
+                                {"1": "parameter", "2": event.params},
+                                {"1": "label", "2": event.label}
+                            ]}
+                    }],
+                    "9": event.label,
+                    "11": 1,
+                    "12": {"1": 0},
+                    "13": [event.eventId],
+                    "14": adUnit.platform,
+                    "15": 0
+                })
+            }
+        });
 
         return {
             "1": {
                 ...responseV2Param,
-                "5": [
-                    ...responseV2Param['5'],
-                    ...eventsList
-                ],
+                "5": [...map.values()],
             }
         }
     }
@@ -711,9 +716,13 @@ export class Sync {
                     return;
                 }
 
+                if (event['eventId']) {
+                    return;
+                }
+
                 event['eventId'] = createdEvent['1'];
                 event['removeId'] = createdEvent['11'];
-                event.price = event.price * 1000000;
+                event.price = String(event.price * 1000000);
             })
         });
     }
