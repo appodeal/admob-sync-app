@@ -232,7 +232,7 @@ export class Store {
         switch (event.type) {
         case SyncEventsTypes.Started:
             this.pushLogs(account);
-        case SyncEventsTypes.CalculatingProgress:
+            case SyncEventsTypes.CalculatingProgress:
             this.state.syncProgress[event.accountId] = {
                 id: event.id,
                 totalApps: 0,
@@ -250,7 +250,7 @@ export class Store {
                 completedApps: pEvent.synced,
                 failedApps: pEvent.failed,
                 percent: pEvent.percent,
-                lastEvent: event.type
+                lastEvent: event.type,
             };
             this.pushLogs(account);
             return this.fireSyncUpdated();

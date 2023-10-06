@@ -20,7 +20,8 @@ export interface SyncReportProgressEvent extends SyncEvent {
     percent: number;
     adUnitsCurrent: number;
     adUnitsTotal: number;
-    failed?: number
+    failed?: number;
+    step: number
 }
 
 export interface SyncStopEvent extends SyncEvent {

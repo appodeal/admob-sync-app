@@ -56,7 +56,8 @@ $(document).ready(function () {
         }
         modal.show(
             title,
-            `Syncing ${
+            `
+            Syncing ${
                 Number(syncProgress.percent).toFixed(0)
             }% ${
                 Math.min(syncProgress.completedApps + syncProgress.failedApps + 1, syncProgress.totalApps)

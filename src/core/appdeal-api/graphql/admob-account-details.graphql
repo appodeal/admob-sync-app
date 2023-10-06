@@ -12,8 +12,15 @@ query currentUser ($id: ID!, $page: Int, $pageSize: Int) {
                     isDeleted
                     ecpmFloors {
                         adType
-                        format
+                        customEvents {
+                            className
+                            label
+                            params
+                            price
+                        }
                         ecpmFloor
+                        format
+                        isThirdPartyBidding
                     }
                 }
                 pageInfo {
