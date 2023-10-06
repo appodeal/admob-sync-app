@@ -40,7 +40,8 @@ export async function onClickStartAdmobAccountSetup () {
 
 
 export async function startSyncAdmobAccount () {
-    const tabs = await chrome.tabs.query({active: true, currentWindow: true});
+
+    const tabs = await new Promise(resolve => chrome.tabs.query({active: true, currentWindow: true}, resolve));
     const tab = tabs[0];
     if (tab.url && tab.url.startsWith(ADMOB_DASHBOARD_ROOT)) {
         await chrome.tabs.update(tab.id, {url: ADMOB_HOME});
