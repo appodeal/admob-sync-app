@@ -61,7 +61,16 @@ $(document).ready(function () {
                 Number(syncProgress.percent).toFixed(0)
             }% ${
                 Math.min(syncProgress.completedApps + syncProgress.failedApps + 1, syncProgress.totalApps)
-            }/${syncProgress.totalApps} apps...`
+            }/${syncProgress.totalApps} apps...
+            <div style="max-height: 200px; width: 100%; min-width: 0; margin: 10px 0; white-space: pre;
+    overflow: auto;
+    background: #4d4d4d;
+    color: #fff;
+    padding: 0 10px;
+    box-sizing: border-box;">
+             <div style="display: flex; align-items: flex-start"> ${syncProgress.log} </div>
+             </div>
+            `
         );
     }
 
