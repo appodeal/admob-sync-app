@@ -538,9 +538,6 @@ export class Sync {
         yield* this.syncCustomEvents(app);
         yield `CustomEvents actualized`;
 
-        yield* this.syncCustomEvents(app);
-        yield `Repeat start sync customEvents. This case is important because adMob does not create the group immediately after creating events.`;
-
         await this.appodealApi.reportAppSynced(app, this.id, this.adMobAccount.id, adMobApp, actualAdUnits);
         yield `End Sync  App [${app.id}] ${app.name}`;
     }
