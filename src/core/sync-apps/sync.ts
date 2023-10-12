@@ -730,7 +730,7 @@ export class Sync {
                         }
                     }],
                     "9": event.label,
-                    "11": 1,
+                    "11": event.removeEvent ? 3 : 1,
                     "13": [event.eventId],
                     "14": adUnit.platform,
                 })
@@ -768,7 +768,7 @@ export class Sync {
 
     removingGroup;
     customEventPayload(adUnit: any): any[] {
-        let groupId;
+        let groupIdx;
         return adUnit.customEvents.map(event => {
             if (!this.isObjectEmpty(this.createdCustomEvents)) {
                 const createdEvents = this.createdCustomEvents['1'].filter(e => e['15'] === event.label);
@@ -780,12 +780,18 @@ export class Sync {
                 return createdEvents.map(ee => {
                     if (ee['4'].some(cr => cr['1'] === 'class_name' && cr['2'] !== event.className)) {
                         if (!this.isObjectEmpty(this.createdGroupList)) {
-                            groupId = this.createdGroupList['1'].find(group => group['2'] === adUnit.name);
+                            groupIdx = this.createdGroupList['1'].findIndex(group => group['2'] === adUnit.name);
 
-                            if (groupId) {
-                                this.removeMediationGroup([groupId['1']]);
+                            if (groupIdx !== -1) {
+                                this.removeMediationGroup([this.createdGroupList['1'][groupIdx]['1']]);
+                                this.createdGroupList['1'].splice(groupIdx, 1);
                             }
                         }
+
+                        event['eventId'] = ee['1'];
+                        event['removeId'] = ee['11'];
+                        event['removeEvent'] = true;
+                        event.price = String(event.price * 1000000);
 
                         return {
                             ...ee,
@@ -797,7 +803,13 @@ export class Sync {
                         }
                     }
 
-                    return ee;
+
+                    event['eventId'] = ee['1'];
+                    event['removeId'] = ee['11'];
+                    event['removeEvent'] = false;
+                    event.price = ee['15'].split(' $')[1] * 1000000;
+
+                    return null;
                 })[0];
             }
 
