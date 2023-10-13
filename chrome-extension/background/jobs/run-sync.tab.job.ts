@@ -146,7 +146,6 @@ export class RunSyncTabJob implements IJob {
     }
 
     updateSyncProgress (event) {
-
         this.syncProgress.lastEvent = event;
         switch (event.type) {
         case SyncEventsTypes.ReportProgress:

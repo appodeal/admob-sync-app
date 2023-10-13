@@ -61,7 +61,10 @@ $(document).ready(function () {
                 Number(syncProgress.percent).toFixed(0)
             }% ${
                 Math.min(syncProgress.completedApps + syncProgress.failedApps + 1, syncProgress.totalApps)
-            }/${syncProgress.totalApps} apps...`
+            }/${syncProgress.totalApps} <div class="loading">apps...</div>
+            <div style="height: 200px; width: 100%; min-width: 0; margin: 10px 0; background: #4d4d4d; color: #fff; display: flex; flex-direction: column; justify-content: flex-end;">
+                 <div id="console-area" style="overflow: auto; padding: 10px;"></div>       
+            </div><style>.loading {display:inline-block;clip-path: inset(0 1.5ch 0 0);animation: l 1s steps(5) infinite;}@keyframes l {to {clip-path: inset(0 -1ch 0 0)}}</style>`
         );
     }
 
@@ -70,12 +73,17 @@ $(document).ready(function () {
         modal.show(title, message);
     }
 
-
     function onMessage (request) {
         if (!modal) {
             return;
         }
         console.debug('[SYNC] onMessage', request);
+
+        let logBlock = window.document.getElementById('console-area');
+        if (logBlock) {
+            logBlock.innerHTML = `${logBlock.innerHTML} <p>${request.message}</p>`;
+            logBlock.scrollTop = logBlock.scrollHeight;
+        }
 
         if (request.type === Actions.syncLogMessage) {
             return console.log(request.message);
@@ -85,7 +93,6 @@ $(document).ready(function () {
         }
         if (request.type === Actions.syncProgressFinishMessage) {
             return onFinish(request.message);
-
         }
     }
 

@@ -216,8 +216,12 @@ export class Sync {
         });
     }
 
-    emitStop () {
-        return this.emit(<SyncStopEvent>{type: SyncEventsTypes.Stopped, terminated: this.terminated, hasErrors: this.hasErrors});
+    emitStop() {
+        return this.emit(<SyncStopEvent>{
+            type: SyncEventsTypes.Stopped,
+            terminated: this.terminated,
+            hasErrors: this.hasErrors
+        });
     }
 
     async* doSync() {
@@ -538,8 +542,17 @@ export class Sync {
         yield `End Sync  App [${app.id}] ${app.name}`;
     }
 
+    createdCustomEvents;
+    createdGroupList;
+
     async* syncCustomEvents(app: AppodealAppToSync) {
         let adUnitsForCustomEvents = this.adUnitsForCustomEvents(app);
+
+        // events
+        this.createdCustomEvents = await this.getCustomEventsList();
+
+        // groups
+        this.createdGroupList = await this.getCreatedMediationGroup();
 
         //  create events
         for (const adUnit of adUnitsForCustomEvents) {
@@ -554,24 +567,18 @@ export class Sync {
                         customEvents: [...itemEvents]
                     };
 
-                    this.prepareAdUnitForCreateGroup(
-                        await this.createCustomEvents(payload),
-                        adUnit
-                    );
+                    this.prepareAdUnitForCreateGroup(await this.createCustomEvents(payload), adUnit);
                 }
             }
         }
 
-        //  create groups
         await this.createGroups(app, adUnitsForCustomEvents);
     }
 
-
-    async createGroups (app, adUnitsForCustomEvents) {
+    async createGroups(app, adUnitsForCustomEvents) {
         for (const adUnit of adUnitsForCustomEvents) {
             if (adUnit.customEvents.length) {
-                let groupList = await this.getCreatedMediationGroup();
-                let adMobMediationGroup = groupList[1].find(e => e['2'] === adUnit.name);
+                let adMobMediationGroup = this.createdGroupList[1].find(e => e['2'] === adUnit.name);
 
                 if (!adMobMediationGroup) {
                     let resp = await this.createMediationGroup(app, adUnit);
@@ -583,22 +590,22 @@ export class Sync {
         }
     }
 
-    slicingListCustomEvents (array: any[]): any[] {
+    slicingListCustomEvents(array: any[]): any[] {
         let size = 37;
         let subarray = [];
-        for (let i = 0; i < Math.ceil(array.length / size); i++){
-            subarray[i] = array.slice((i*size), (i*size) + size);
+        for (let i = 0; i < Math.ceil(array.length / size); i++) {
+            subarray[i] = array.slice((i * size), (i * size) + size);
         }
         return subarray;
     }
 
     adUnitsForCustomEvents(app: AppodealAppToSync): Array<AppodealAdUnit & Record<string, any>> {
-        return app.appodealAdUnits.filter(u=>u.customEvents ).map((adUnit) => {
+        return app.appodealAdUnits.filter(u => u.customEvents).map((adUnit) => {
             return {
                 ...adUnit,
                 isDeleted: false,
                 platform: CustomEventPlatform[app.platform],
-            }  as (AppodealAdUnit & Record<string, any>)
+            } as (AppodealAdUnit & Record<string, any>)
         });
     }
 
@@ -612,6 +619,7 @@ export class Sync {
     }
 
     async getCreatedMediationGroup() {
+        this.logger.info(`Getting mediation groups...`);
         return await this.customEventApi.postRaw(
             'mediationGroup',
             'List',
@@ -619,15 +627,43 @@ export class Sync {
         )
     }
 
+    async removeMediationGroup(ids: string[]) {
+        this.logger.info(`Getting mediation groups...`);
+        return await this.customEventApi.postRaw(
+            'mediationGroup',
+            'BulkStatusChange',
+            {"1": ids, "2": 3}
+        )
+    }
+
+    async getCustomEventsList() {
+        this.logger.info(`Getting a list of custom events`);
+        return await this.customEventApi.postRaw(
+            'mediationAllocation',
+            'List',
+            {}
+        );
+    }
+
     async createCustomEvents(adUnit) {
+        this.logger.info(`Creating a customEvent named ${adUnit.name}`);
+        let payload = this.customEventPayload(adUnit);
+        if (!payload.length) {
+            return;
+        }
+
         return await this.customEventApi.postRaw(
             'mediationAllocation',
             'Update',
-            this.adUnitPayload(adUnit)
+            {
+                '1': payload,
+                '2': []
+            }
         );
     }
 
     async createMediationGroup(app, adUnit) {
+        this.logger.info(`Creating of a mediation group named ${adUnit.name}`);
         return await this.customEventApi.postRaw(
             'mediationGroup',
             'V2Create',
@@ -682,18 +718,18 @@ export class Sync {
                     "5": {"1": event.price, "2": "USD"},
                     "7": [{
                         "1": adUnit.adUnitId,
-                        "2": {"1": [
+                        "2": {
+                            "1": [
                                 {"1": "class_name", "2": event.className},
                                 {"1": "parameter", "2": event.params},
                                 {"1": "label", "2": event.label}
-                            ]}
+                            ]
+                        }
                     }],
                     "9": event.label,
-                    "11": 1,
-                    "12": {"1": 0},
+                    "11": event.removeEvent ? 3 : 1,
                     "13": [event.eventId],
                     "14": adUnit.platform,
-                    "15": 0
                 })
             }
         });
@@ -707,7 +743,7 @@ export class Sync {
     }
 
     prepareAdUnitForCreateGroup(resp, adUnit) {
-        if (!resp[1]) {
+        if (!resp || !resp[1]) {
             return;
         }
         resp[1].forEach(createdEvent => {
@@ -727,17 +763,66 @@ export class Sync {
         });
     }
 
-    adUnitPayload(adUnit: any) {
+    removingGroup;
+    customEventPayload(adUnit: any): any[] {
+        let groupIdx;
+        return adUnit.customEvents.map(event => {
+            if (!this.isObjectEmpty(this.createdCustomEvents)) {
+                const createdEvents = this.createdCustomEvents['1'].filter(e => e['15'] === event.label);
+
+                if (!Boolean(createdEvents.length)) {
+                    return this.buildCustomEventsList(adUnit, event);
+                }
+
+                return createdEvents.map(ee => {
+                    if (ee['4'].some(cr => cr['1'] === 'class_name' && cr['2'] !== event.className)) {
+                        if (!this.isObjectEmpty(this.createdGroupList)) {
+                            groupIdx = this.createdGroupList['1'].findIndex(group => group['2'] === adUnit.name);
+
+                            if (groupIdx !== -1) {
+                                this.removeMediationGroup([this.createdGroupList['1'][groupIdx]['1']]);
+                                this.createdGroupList['1'].splice(groupIdx, 1);
+                            }
+                        }
+
+                        event['eventId'] = ee['1'];
+                        event['removeId'] = ee['11'];
+                        event['removeEvent'] = true;
+                        event.price = String(event.price * 1000000);
+
+                        return {
+                            ...ee,
+                            '4': [
+                                {"1": "class_name", "2": event.className},
+                                {"1": "parameter", "2": event.params},
+                                {"1": "label", "2": event.label}
+                            ]
+                        }
+                    }
+
+
+                    event['eventId'] = ee['1'];
+                    event['removeId'] = ee['11'];
+                    event['removeEvent'] = false;
+                    event.price = ee['15'].split(' $')[1] * 1000000;
+
+                    return null;
+                })[0];
+            }
+
+            return this.buildCustomEventsList(adUnit, event);
+        }).filter(Boolean);
+    }
+
+    isObjectEmpty(obj): boolean {
+        return Object.keys(obj).length === 0
+    }
+
+    buildCustomEventsList(adUnit, event): any {
+        this.logger.info(`Create a customEvent named ${event.label}`);
         return {
-            "1": adUnit.isDeleted ? this.removeCustomEvent(adUnit) : this.createCustomEvent(adUnit),
-            "2": []
-        }
-    }
-
-    createCustomEvent(adUnit): any[] {
-        return adUnit.customEvents.map(event => ({
             "1": '-1',
-            "2": adUnit.isDeleted,
+            "2": true,
             "3": "7",
             "4": [
                 {"1": "class_name", "2": event.className},
@@ -748,28 +833,7 @@ export class Sync {
             "12": adUnit.adUnitId,
             "15": event.label,
             "16": adUnit.platform
-        }))
-    }
-
-    removeCustomEvent(adUnit): any[] {
-        return adUnit.customEvents.map(event => ({
-            "1": adUnit.eventId,
-            "2": adUnit.isDeleted,
-            "3": "7",
-            "4": [
-                {"1": "class_name", "2": event.className},
-                {"1": "parameter", "2": event.params},
-                {"1": "label", "2": event.label}
-            ],
-            "7": false,
-            "9": false,
-            "10": 1,
-            "11": adUnit.removeId,
-            "12": adUnit.adUnitId,
-            "14": 7,
-            "15": event.label,
-            "16": adUnit.platform
-        }));
+        }
     }
 
     async* syncAdUnits(app: AppodealAppToSync, adMobApp: AdMobApp) {
@@ -837,7 +901,7 @@ export class Sync {
             code: this.adUnitCode(adMobAdUnit),
             internalAdmobAdUnitId: adMobAdUnit.adUnitId,
             adUnitId: adMobAdUnit.adUnitId,
-            name:adMobAdUnit.name,
+            name: adMobAdUnit.name,
             ...template.__metadata
         };
     }
@@ -985,7 +1049,7 @@ export class Sync {
             }, new Map());
     }
 
-    buildAdUnitName (app, floor, ecpmFloor = null): string {
+    buildAdUnitName(app, floor, ecpmFloor = null): string {
         switch (floor.isThirdPartyBidding) {
             case true:
                 return this.adUnitName(app, floor.adType, floor.format, ecpmFloor, 'partner_bidding');
@@ -997,7 +1061,7 @@ export class Sync {
     }
 
     // build options to create a default ad unit to add to mediation group or options without ecpm
-    buildDefaultAdUnitForMediationGroup (app, floor, template) {
+    buildDefaultAdUnitForMediationGroup(app, floor, template) {
         let adUnitParams = {
             ...template,
             __metadata: {
@@ -1189,7 +1253,7 @@ export class Sync {
                         "1": getTranslator(AppTranslator).encode(copyAdmobApp),
                         "2": ["stores", "application_store_id", "name"]
                     }]
-            }
+                }
             ).then((res: UpdateResponse) => getTranslator(AppTranslator).decode(res[2][0]));
         }
         this.logger.info(`App NOT found in store`);
