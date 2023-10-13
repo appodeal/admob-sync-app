@@ -554,6 +554,9 @@ export class Sync {
         // groups
         this.createdGroupList = await this.getCreatedMediationGroup();
 
+        // removing groups before updating the event class_name
+        await this.removeMediationGroups(adUnitsForCustomEvents);
+
         //  create events
         for (const adUnit of adUnitsForCustomEvents) {
 
@@ -575,6 +578,28 @@ export class Sync {
         await this.createGroups(app, adUnitsForCustomEvents);
     }
 
+    async removeMediationGroups(adUnitsForCustomEvents) {
+        for await (const adUnit of adUnitsForCustomEvents) {
+            if (adUnit.customEvents.length > 0) {
+                for (const itemEvents of adUnit.customEvents) {
+                    if (!this.isObjectEmpty(this.createdCustomEvents)) {
+                        const createdEvents = this.createdCustomEvents['1'].filter(e => e['15'] === itemEvents.label);
+
+                        for (let createdEvent of createdEvents) {
+                            if (createdEvent['4'].some(cr => cr['1'] === 'class_name' && cr['2'] !== itemEvents.className)) {
+                                const groupIdx = this.createdGroupList['1'].findIndex(group => group['2'] === adUnit.name);
+                                if (groupIdx !== -1) {
+                                    await this.removeMediationGroup([this.createdGroupList['1'][groupIdx]['1']]);
+                                    this.createdGroupList['1'].splice(groupIdx, 1);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     async createGroups(app, adUnitsForCustomEvents) {
         for (const adUnit of adUnitsForCustomEvents) {
             if (adUnit.customEvents.length) {
@@ -583,6 +608,10 @@ export class Sync {
                 if (!adMobMediationGroup) {
                     let resp = await this.createMediationGroup(app, adUnit);
                     adMobMediationGroup = resp['1'];
+
+                    if (!resp['1']) {
+                        return;
+                    }
                 }
 
                 await this.updateMediationGroup(app, adUnit, adMobMediationGroup);
@@ -727,7 +756,7 @@ export class Sync {
                         }
                     }],
                     "9": event.label,
-                    "11": event.removeEvent ? 3 : 1,
+                    "11": Boolean(event.removeEvent) ? 3 : 1,
                     "13": [event.eventId],
                     "14": adUnit.platform,
                 })
@@ -763,9 +792,7 @@ export class Sync {
         });
     }
 
-    removingGroup;
     customEventPayload(adUnit: any): any[] {
-        let groupIdx;
         return adUnit.customEvents.map(event => {
             if (!this.isObjectEmpty(this.createdCustomEvents)) {
                 const createdEvents = this.createdCustomEvents['1'].filter(e => e['15'] === event.label);
@@ -776,19 +803,10 @@ export class Sync {
 
                 return createdEvents.map(ee => {
                     if (ee['4'].some(cr => cr['1'] === 'class_name' && cr['2'] !== event.className)) {
-                        if (!this.isObjectEmpty(this.createdGroupList)) {
-                            groupIdx = this.createdGroupList['1'].findIndex(group => group['2'] === adUnit.name);
-
-                            if (groupIdx !== -1) {
-                                this.removeMediationGroup([this.createdGroupList['1'][groupIdx]['1']]);
-                                this.createdGroupList['1'].splice(groupIdx, 1);
-                            }
-                        }
-
                         event['eventId'] = ee['1'];
                         event['removeId'] = ee['11'];
                         event['removeEvent'] = true;
-                        event.price = String(event.price * 1000000);
+                        event.price = String(Math.round(ee['15'].split(' $')[1] * 1000000));
 
                         return {
                             ...ee,
@@ -804,7 +822,7 @@ export class Sync {
                     event['eventId'] = ee['1'];
                     event['removeId'] = ee['11'];
                     event['removeEvent'] = false;
-                    event.price = ee['15'].split(' $')[1] * 1000000;
+                    event.price = String(Math.round(ee['15'].split(' $')[1] * 1000000));
 
                     return null;
                 })[0];
