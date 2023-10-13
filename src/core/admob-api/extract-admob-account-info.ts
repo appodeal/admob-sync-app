@@ -2,6 +2,23 @@ import {ExtractedAdmobAccount} from '../../interfaces/common.interfaces';
 import {decodeOctString} from '../../lib/oct-decode';
 
 
+function extractObjectFromJsonString (str) {
+    let open = 0;
+    let close = 0;
+    for (let i = 0; i < str.length; i++) {
+        if (str[i] === '{') {
+            open++;
+        }
+        if (str[i] === '}') {
+            close++;
+        }
+        if (open > 0 && close === open) {
+            return str.substr(0, i+1);
+        }
+    }
+    return false;
+}
+
 export function extractAccountInfo (responseBody: string): ExtractedAdmobAccount {
     let amrpdSource;
     try {
@@ -14,8 +31,11 @@ export function extractAccountInfo (responseBody: string): ExtractedAdmobAccount
         let email;
         result = /var amrpd = '(?<emailSource>.*?)';/.exec(responseBody);
         amrpdSource = decodeOctString(result.groups.emailSource);
-        const amrpd = JSON.parse(amrpdSource);
-        email = amrpd[32][3][1];
+
+        const shortObj =  extractObjectFromJsonString(/(.*)"32":(?<emailSource>.*)/.exec(amrpdSource).groups.emailSource)
+
+        const amrpd = JSON.parse(shortObj);
+        email = amrpd[3][1];
 
         return {
             id,

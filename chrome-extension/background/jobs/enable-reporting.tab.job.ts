@@ -44,7 +44,7 @@ export class EnableReportingTabJob implements IJob {
 
 
     async run () {
-        return new Promise(resolve => {
+        return new Promise<void>(resolve => {
             if (this.isDone) {
                 resolve();
             }

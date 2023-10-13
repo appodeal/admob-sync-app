@@ -23,7 +23,7 @@ export class TrayIcon {
 
     listenStatusChanges () {
         this.sub = observe(this.store.state, (change) => {
-            if (['account', 'history', 'syncProgress', 'selectedAppodealAccount'].includes(change.name)) {
+            if (['account', 'history', 'syncProgress', 'selectedAppodealAccount'].includes(<string>change.name)) {
                 this.checkIcon();
             }
         });

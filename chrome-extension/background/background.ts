@@ -87,8 +87,8 @@ export class App {
         await AuthContext.init(new LocalStorageJsonStorage());
         app.api.authContext.init('accountId');
         console.debug('[APP] Auth Context loaded');
-        console.log(`[APP] network status ${window.navigator.onLine ? 'online' : 'offline'}`);
-        if (!this.state.currentUser && window.navigator.onLine) {
+        console.log(`[APP] network status ${globalThis.navigator.onLine ? 'online' : 'offline'}`);
+        if (!this.state.currentUser && globalThis.navigator.onLine) {
             await app.run(GetCurrentUserBackgroundJob);
         }
         app.api.onError.subscribe(e => {
