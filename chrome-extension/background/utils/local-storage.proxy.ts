@@ -14,6 +14,15 @@ function loadStoredValues (key, value, exclude: string[]) {
     }
 }
 
+function storeValues (key, values) {
+    try {
+        localStorage.setItem(key, JSON.stringify(values));
+    } catch (e) {
+        console.warn(e);
+    }
+
+}
+
 export function localStorageProxy<T extends Object> (storageKey, value, exclude: string[]): T {
     console.debug('[localStorageProxy] start ', deepClone(value));
 
@@ -22,7 +31,7 @@ export function localStorageProxy<T extends Object> (storageKey, value, exclude:
 
     const original = deepClone(value);
     let timeoutID;
-    const save = () => localStorage.setItem(storageKey, JSON.stringify(original));
+    const save = () => storeValues(storageKey, original);
     const getter = key => () => original[key];
     const setter = key => value => {
         original[key] = value;

@@ -2,6 +2,7 @@ import CopyPlugin from 'copy-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import * as path from 'path';
 import webpack from 'webpack';
+// @ts-ignore
 import * as dist from '../dist/app/dist-info.json';
 
 

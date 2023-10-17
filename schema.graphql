@@ -30,10 +30,19 @@ type AppPaginatableCollection {
     totalCount: Int!
 }
 
+type CustomEvent {
+    className: String!
+    label: String!
+    params: String!
+    price: String!
+}
+
 type EcpmFloors {
     adType: AdType!
+    customEvents: [CustomEvent!]
     ecpmFloor: [Float!]!
     format: Format!
+    isThirdPartyBidding: Boolean
 }
 
 type Mutations {
@@ -74,7 +83,7 @@ type Session {
 
 type User {
     account(
-        #Admob AccountId - `pub-\\d+`
+        "Admob AccountId - `pub-\\d+`"
         id: ID!
     ): AdmobAccount!
     accounts: [AdmobAccount!]
@@ -85,43 +94,43 @@ type User {
 }
 
 enum AdType {
-    #Banners
+    "Banners"
     BANNER
-    #Interstitials
+    "Interstitials"
     INTERSTITIAL
-    #MREC
+    "MREC"
     MREC
-    #Native Ads
+    "Native Ads"
     NATIVE
-    #Rewarded Videos
+    "Rewarded Videos"
     REWARDED_VIDEO
-    #Videos
+    "Videos"
     VIDEO
 }
 
 enum Format {
-    #Image
+    "Image"
     IMAGE
-    #Image and text
+    "Image and text"
     IMAGE_AND_TEXT
-    #Rewarded
+    "Rewarded"
     REWARDED
-    #Rich media
+    "Rich media"
     RICHMEDIA
-    #Simple video
+    "Simple video"
     SIMPLE_VIDEO
-    #Text
+    "Text"
     TEXT
-    #Undefined
+    "Undefined"
     UNDEFINED
 }
 
 enum Platform {
-    #Amazon
+    "Amazon"
     AMAZON
-    #Android
+    "Android"
     ANDROID
-    #iOS
+    "iOS"
     IOS
 }
 
@@ -132,4 +141,5 @@ input AdUnit {
     "Ad unit's eCPM"
     ecpmFloor: Float!
     format: Format!
+    isThirdPartyBidding: Boolean
 }

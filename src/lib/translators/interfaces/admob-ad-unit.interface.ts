@@ -16,6 +16,7 @@ export interface AdMobAdUnit {
     googleOptimizedRefreshRate: boolean,
     usageSummary: any,
     cpmFloorSettings: CpmFloorSettings,
+    isThirdPartyBidding: boolean,
 }
 
 export enum AdMobAdFormat {
@@ -41,7 +42,7 @@ export interface CpmValue {
 export interface ManualFloorSettings {
     globalFloorValue?: CpmValue;
     // we dont use it
-    regionFloorValue?: any[]
+    regionFloorValue?: any[];
 }
 
 export interface CpmFloorSettings {
@@ -60,4 +61,17 @@ export interface RewardsSettings {
 export interface AdmobError {
     message: string;
     code: number;
+}
+
+
+export interface AdmobCustomEventParam {
+    key: string;
+    value: string;
+}
+
+export interface AdmobCustomEvent {
+    eventId: string;
+    params: AdmobCustomEventParam[];
+    label: string,
+    adUnitId: string
 }
