@@ -62,10 +62,12 @@ interface AdUnitTemplate extends Partial<AdMobAdUnit> {
     }
 }
 
-enum CustomEventPlatform {
-    'ANDROID' = '12',
-    'IOS' = '13'
-}
+const CustomEventPlatform = {
+    [AppodealPlatform.IOS]: '13',
+    [AppodealPlatform.ANDROID]: '12',
+    // same as ANDROID
+    [AppodealPlatform.AMAZON]: '12'
+};
 
 enum PlatformGroup {
     'IOS' = 1,
@@ -536,7 +538,7 @@ export class Sync {
 
         // events
         const createdCustomEvents  = await this.getCustomEventsList();
-        const allEventEventsForAllApps:AdmobCustomEvent[] = createdCustomEvents[1].map(x=>getTranslator(AdmobCustomEventTranslator).decode(x) as AdmobCustomEvent)
+        const allEventEventsForAllApps:AdmobCustomEvent[] = (createdCustomEvents[1] || []).map(x=>getTranslator(AdmobCustomEventTranslator).decode(x) as AdmobCustomEvent)
 
         // groups
         this.createdGroupList = await this.getCreatedMediationGroup();
