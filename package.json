@@ -25,7 +25,7 @@
     "postbuild:ext": "mkdir -p dist/extension && zip -r ./dist/extension/extension-$npm_package_version.zip ./build/extension",
     "dist": "electron-builder",
     "dist:all": "node tools/dist.js",
-    "postdist:all": "node --max_old_space_size=4096 node_modules/.bin/webpack -p --config=download-page/webpack.config.ts",
+    "postdist:all": "node --max_old_space_size=4096 node_modules/.bin/webpack --watch -p --config=download-page/webpack.config.ts",
     "release:github": "node tools/release.js",
     "release:sentry": "sentry-cli releases new $npm_package_version && sentry-cli releases files $npm_package_version upload-sourcemaps build/app/*.{map,js} && sentry-cli releases finalize $npm_package_version",
     "release:deploy": "sentry-cli releases deploys $npm_package_version new"
@@ -156,6 +156,7 @@
     "yargs": "^13.2.4"
   },
   "dependencies": {
+    "@cspotcode/source-map-support": "^0.8.1",
     "@sentry/electron": "^2.5.3",
     "@types/chrome": "0.0.200",
     "apollo-cache-inmemory": "^1.5.1",
