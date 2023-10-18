@@ -134,24 +134,34 @@ export function openDialogWindow<T = any> (
     });
 }
 
+function cleanupWindow (window: BrowserWindow) {
+    window.webContents.removeAllListeners('new-window');
+    window.webContents.removeAllListeners('did-navigate');
+    window.webContents.removeAllListeners('closed');
+}
+
 export function waitForNavigation (window: BrowserWindow, urlFragment: RegExp = null): Promise<void> {
+
     return new Promise((resolve, reject) => {
-        let resolver = () => {
-            window.webContents.once('dom-ready', () => {
-                window.removeListener('closed', closeListener);
-                resolve();
+        let resolver = (win) => {
+            win.webContents.once('dom-ready', () => {
+                cleanupWindow(win);
+                setTimeout(() => resolve(), 2 * 1000);
             });
         };
         if (urlFragment) {
+            window.webContents.on('new-window', (event, url) => {
+                event.preventDefault();
+                return window.loadURL(url);
+            });
             window.webContents.on('did-navigate', (_, address) => {
                 if (urlFragment.test(address)) {
-                    window.webContents.removeAllListeners('did-navigate');
-                    resolver();
+                    resolver(window);
                 }
             });
         } else {
             window.webContents.once('did-navigate', () => {
-                resolver();
+                resolver(window);
             });
         }
         let closeListener = () => {
