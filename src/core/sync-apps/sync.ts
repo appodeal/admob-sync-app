@@ -32,6 +32,7 @@ import {SyncEventEmitter} from './sync-event.emitter';
 import {SyncRunner} from './sync-runner';
 import {SyncErrorEvent, SyncEvent, SyncEventsTypes, SyncReportProgressEvent, SyncStopEvent} from './sync.events';
 import escapeStringRegexp = require('escape-string-regexp');
+import {reloadPageAdMobAccount} from "../../../chrome-extension/popup/utils/popupClickHandlers";
 
 
 const isObject = (v) => v !== null && typeof v === 'object';
@@ -161,6 +162,7 @@ export class Sync {
             throw e;
         } finally {
             this.finish();
+            setTimeout(async () => await reloadPageAdMobAccount(), 2000);
         }
     }
 
