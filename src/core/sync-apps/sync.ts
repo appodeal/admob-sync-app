@@ -87,6 +87,7 @@ const CustomEventPlatform = {
 enum PlatformGroup {
     'IOS' = 1,
     'ANDROID' = 2,
+    'AMAZON' = 2,
 }
 
 const defaultAdUnitPrefix = 'Appodeal';
