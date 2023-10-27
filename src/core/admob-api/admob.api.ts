@@ -150,7 +150,7 @@ export class AdmobApiService {
      * @param payload
      */
     post (serviceName: string, method: string, payload: any) {
-        return this.postRaw(serviceName, method, {'1': payload}).then((data) => data[1]);
+        return this.postRaw(serviceName, method, payload).then((data) => data[1]);
     }
 
     /**

@@ -14,12 +14,27 @@ import {getAdUnitTemplate} from 'core/sync-apps/ad-unit-templates';
 import {SyncStats} from 'core/sync-apps/sync-stats';
 import stringify from 'json-stable-stringify';
 import {retryProxy} from 'lib/retry';
-import {AppCreateRequestTranslator, AppCreateResponseTranslator, AppTranslator} from 'lib/translators/admob-app.translator';
+import {
+    AppCreateRequestTranslator,
+    AppCreateResponseTranslator,
+    AppTranslator
+} from 'lib/translators/admob-app.translator';
 import {AdmobCustomEventTranslator} from 'lib/translators/admob-event-translator';
 import {AdMobPlatform} from 'lib/translators/admob.constants';
 import {AdUnitTranslator} from 'lib/translators/admop-ad-unit.translator';
-import {AdMobAdUnit, AdmobCustomEvent, CpmFloorMode, CpmFloorSettings} from 'lib/translators/interfaces/admob-ad-unit.interface';
-import {AdMobApp, AppCreateRequest, AppCreateResponse, Host, UserMetricsStatus} from 'lib/translators/interfaces/admob-app.interface';
+import {
+    AdMobAdUnit,
+    AdmobCustomEvent,
+    CpmFloorMode,
+    CpmFloorSettings
+} from 'lib/translators/interfaces/admob-ad-unit.interface';
+import {
+    AdMobApp,
+    AppCreateRequest,
+    AppCreateResponse,
+    Host,
+    UserMetricsStatus
+} from 'lib/translators/interfaces/admob-app.interface';
 import {getTranslator} from 'lib/translators/translator.helpers';
 import uuid from 'uuid';
 import {decodeOctString} from '../../lib/oct-decode';
@@ -72,6 +87,7 @@ const CustomEventPlatform = {
 enum PlatformGroup {
     'IOS' = 1,
     'ANDROID' = 2,
+    'AMAZON' = 2,
 }
 
 const defaultAdUnitPrefix = 'Appodeal';
@@ -439,7 +455,19 @@ export class Sync {
         }
         yield `found App in Admob Try to delete its AdUnits`;
 
-        const adUnitsToDelete = this.getActiveAdmobAdUnitsCreatedByApp(app, adMobApp).map(adUnit => adUnit.adUnitId);
+        const adUnitsToDelete = [];
+        const adUnitsBiddingToDelete = [];
+
+        this.getActiveAdmobAdUnitsCreatedByApp(app, adMobApp).map(adUnit => {
+            if (!adUnit.isThirdPartyBidding) {
+                adUnitsToDelete.push(adUnit.adUnitId);
+            }
+
+            if (adUnit.isThirdPartyBidding) {
+                adUnitsBiddingToDelete.push(adUnit.adUnitId);
+            }
+        });
+
         if (adUnitsToDelete.length) {
             await this.deleteAdMobAdUnits(adUnitsToDelete);
             this.context.removeAdMobAdUnits(adUnitsToDelete);
@@ -449,6 +477,14 @@ export class Sync {
             yield `No AdUnits to delete`;
         }
 
+        if (adUnitsBiddingToDelete.length) {
+            await this.deleteAdMobAdUnitsBidding(adUnitsBiddingToDelete);
+            this.context.removeAdMobAdUnits(adUnitsBiddingToDelete);
+            this.stats.appDeleted(app);
+            yield `${adUnitsBiddingToDelete.length} adUnits deleted`;
+        } else {
+            yield `No AdUnits to delete`;
+        }
 
         // in case app has at least one active adUnit it should no be hidden
         if (!adMobApp.hidden && !this.context.getAdMobAppActiveAdUnits(adMobApp).length) {
@@ -458,7 +494,6 @@ export class Sync {
             this.stats.appDeleted(app);
             yield `App Hidden`;
         }
-
     }
 
     async* syncApp(app: AppodealAppToSync) {
@@ -537,8 +572,8 @@ export class Sync {
         let adUnitsForCustomEvents = this.adUnitsForCustomEvents(app);
 
         // events
-        const createdCustomEvents  = await this.getCustomEventsList();
-        const allEventEventsForAllApps:AdmobCustomEvent[] = (createdCustomEvents[1] || []).map(x=>getTranslator(AdmobCustomEventTranslator).decode(x) as AdmobCustomEvent)
+        const createdCustomEvents = await this.getCustomEventsList();
+        const allEventEventsForAllApps: AdmobCustomEvent[] = (createdCustomEvents[1] || []).map(x => getTranslator(AdmobCustomEventTranslator).decode(x) as AdmobCustomEvent)
 
         // groups
         this.createdGroupList = await this.getCreatedMediationGroup();
@@ -569,7 +604,7 @@ export class Sync {
         await this.createGroups(app, adUnitsForCustomEvents);
     }
 
-    async removeMediationGroups (adUnit: { admobExistingCustomEvents: AdmobCustomEvent[]; isThirdPartyBidding: boolean; adType: AdType; code: string; customEvents: any[]; format: Format; internalAdmobAdUnitId: string; name: string; ecpmFloor: number; adUnitId: string }) {
+    async removeMediationGroups(adUnit: { admobExistingCustomEvents: AdmobCustomEvent[]; isThirdPartyBidding: boolean; adType: AdType; code: string; customEvents: any[]; format: Format; internalAdmobAdUnitId: string; name: string; ecpmFloor: number; adUnitId: string }) {
         if (adUnit.customEvents.length > 0) {
             for (const itemEvents of adUnit.customEvents) {
                 if (adUnit.admobExistingCustomEvents.length) {
@@ -663,7 +698,7 @@ export class Sync {
         );
     }
 
-    async createCustomEvents(adUnit: {  admobExistingCustomEvents: AdmobCustomEvent[]; isThirdPartyBidding: boolean; adType: AdType; code: string; customEvents: any[]; format: Format; internalAdmobAdUnitId: string; name: string; ecpmFloor: number; adUnitId: string }) {
+    async createCustomEvents(adUnit: { admobExistingCustomEvents: AdmobCustomEvent[]; isThirdPartyBidding: boolean; adType: AdType; code: string; customEvents: any[]; format: Format; internalAdmobAdUnitId: string; name: string; ecpmFloor: number; adUnitId: string }) {
         this.logger.info(`Creating a customEvent named ${adUnit.name}`);
         let payload = this.customEventPayload(adUnit);
         if (!payload.length) {
@@ -733,7 +768,7 @@ export class Sync {
                     "2": "7",
                     "3": 1,
                     "4": 2,
-                    "5": {"1": Math.round(parseFloat( event.price) * 1000000).toString(10), "2": "USD"},
+                    "5": {"1": Math.round(parseFloat(event.price) * 1000000).toString(10), "2": "USD"},
                     "7": [{
                         "1": adUnit.adUnitId,
                         "2": {
@@ -780,7 +815,7 @@ export class Sync {
         });
     }
 
-    customEventPayload(adUnit: {  admobExistingCustomEvents: AdmobCustomEvent[]; isThirdPartyBidding: boolean; adType: AdType; code: string; customEvents: any[]; format: Format; internalAdmobAdUnitId: string; name: string; ecpmFloor: number; adUnitId: string }): any[] {
+    customEventPayload(adUnit: { admobExistingCustomEvents: AdmobCustomEvent[]; isThirdPartyBidding: boolean; adType: AdType; code: string; customEvents: any[]; format: Format; internalAdmobAdUnitId: string; name: string; ecpmFloor: number; adUnitId: string }): any[] {
 
         const eventTranslator = <AdmobCustomEventTranslator>getTranslator(AdmobCustomEventTranslator);
 
@@ -807,7 +842,7 @@ export class Sync {
                     apdEvent['removeId'] = ee['11'];
                     apdEvent['removeEvent'] = true;
 
-                    return eventTranslator.encode( {
+                    return eventTranslator.encode({
                         ...ee,
                         params: [
                             {key: 'class_name', value: apdEvent.className},
@@ -1220,12 +1255,24 @@ export class Sync {
 
 
     async showAdMobApp(adMobApp: AdMobApp): Promise<AdMobApp> {
-        return this.adMobApi.postRaw('AppService', 'BulkUpdateVisibility', {1: [adMobApp.appId], 2: true})
+        return this.adMobApi.postRaw(
+            'AppService',
+            'Update',
+            {
+                "1": {"1": {"1": 1, "3": `${this.adMobAccount.id}`}},
+                "2": [{"1": {"19": false, "36": adMobApp['36']}, "2": ["hidden"]}]
+            })
             .then(() => ({...adMobApp, hidden: false}));
     }
 
     async hideAdMobApp(adMobApp: AdMobApp): Promise<AdMobApp> {
-        return this.adMobApi.postRaw('AppService', 'BulkUpdateVisibility', {1: [adMobApp.appId], 2: false})
+        return this.adMobApi.postRaw(
+            'AppService',
+            'Update',
+            {
+                "1": {"1": {"1": 1, "3": `${this.adMobAccount.id}`}},
+                "2": [{"1": {"19": true, "36": adMobApp['36']}, "2": ["hidden"]}]
+            })
             .then(() => ({...adMobApp, hidden: true}));
     }
 
@@ -1277,7 +1324,10 @@ export class Sync {
     }
 
     async createAdMobAdUnit(adUnit: Partial<AdMobAdUnit>): Promise<AdMobAdUnit> {
-        return this.adMobApi.post('AdUnitService', 'Create', getTranslator(AdUnitTranslator).encode(adUnit))
+        return this.adMobApi.post(
+            'AdUnitService',
+            'Create',
+            {"1": getTranslator(AdUnitTranslator).encode(adUnit)})
             .then(res => getTranslator(AdUnitTranslator).decode(res));
     }
 
@@ -1291,7 +1341,11 @@ export class Sync {
     }
 
     async deleteAdMobAdUnits(ids: string[]) {
-        return this.adMobApi.post('AdUnitService', 'BulkRemove', ids);
+        return this.adMobApi.post('AdUnitService', 'BulkRemove', {"1": ids, "2": 1});
+    }
+
+    async deleteAdMobAdUnitsBidding(ids: string[]) {
+        return this.adMobApi.post('AdUnitService', 'BulkRemove', {"1": ids, "2": 2});
     }
 
 

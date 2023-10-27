@@ -79,6 +79,7 @@ export class CustomEventApiService {
             `f.req=${encodeURIComponent(JSON.stringify(payload))}`
         )
             .then((data) => {
+                this.logger.info(`Success to Post to AdMob '${mediation}Service' '${method}'.`, data);
                 return data;
             })
             .catch(e => {
