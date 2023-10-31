@@ -9,7 +9,7 @@ import compareVersions from 'compare-versions';
  */
 export function patchMinimalVersion (original: string) {
     const chunks = original.split('.');
-    chunks[0] = String(parseInt(chunks[0], 10) + 20);
+    chunks[0] = String(parseInt(chunks[0], 10));
     return chunks.join('.');
 }
 
