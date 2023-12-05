@@ -901,7 +901,11 @@ export class Sync {
                 this.logger.info(`Creating Native AdUnit is skipped. ${adUnitTemplate.name}`);
                 continue;
             }
-            const newAdUnit = await this.createAdMobAdUnit({...adUnitTemplate, appId: adMobApp.appId}).catch(e => {
+            const newAdUnit = await this.createAdMobAdUnit({
+                ...adUnitTemplate,
+                appId: adMobApp.appId,
+                googleOptimizedRefreshRate: adUnitTemplate.__metadata.adType === AdType.BANNER ? false : adUnitTemplate.googleOptimizedRefreshRate
+            }).catch(e => {
                 this.logger.info(`Failed to create AdUnit`);
                 this.logger.info(e);
                 if (adUnitTemplate.__metadata.adType === AdType.NATIVE) {
