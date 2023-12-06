@@ -946,7 +946,11 @@ export class Sync {
                 yield `AdUnit Name prefix updated ${this.adUnitCode(adMobAdUnit)} from ${oldName} to ${adMobAdUnit.name}`;
             }
 
-            const isBanner = adMobAdUnit.name.split('/').find(n => n.toUpperCase() === AdType.BANNER);
+            // Set Automatic refresh: disable for banner and mrec adUnits
+            const isBanner = adMobAdUnit.name.split('/').find(n => {
+                const name = n.toUpperCase();
+                return name === AdType.BANNER || name === AdType.MREC
+            });
             if (isBanner && (adMobAdUnit.googleOptimizedRefreshRate === true || adMobAdUnit.refreshPeriodSeconds)) {
                 app.subProgressCurrent++;
                 delete adMobAdUnit.refreshPeriodSeconds;
