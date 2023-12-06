@@ -945,6 +945,19 @@ export class Sync {
                 this.stats.appUpdated(app);
                 yield `AdUnit Name prefix updated ${this.adUnitCode(adMobAdUnit)} from ${oldName} to ${adMobAdUnit.name}`;
             }
+
+            const isBanner = adMobAdUnit.name.split('/').find(n => n.toUpperCase() === AdType.BANNER);
+            if (isBanner && (adMobAdUnit.googleOptimizedRefreshRate === true || adMobAdUnit.refreshPeriodSeconds)) {
+                app.subProgressCurrent++;
+                delete adMobAdUnit.refreshPeriodSeconds;
+                adMobAdUnit = await this.updateAdMobAdUnitAutomaticRefresh({
+                    ...adMobAdUnit,
+                    googleOptimizedRefreshRate: false,
+                });
+                this.context.addAdMobAdUnit(adMobAdUnit);
+                this.stats.appUpdated(app);
+                yield `The 'Automatic Update' field in AdUnit ${this.adUnitCode(adMobAdUnit)} has been changed to 'disabled'`;
+            }
         }
 
         return appodealAdUnits;
@@ -1341,6 +1354,13 @@ export class Sync {
         return await this.adMobApi.postRaw('AdUnitService', 'Update', <UpdateRequest>{
             1: getTranslator(AdUnitTranslator).encode(adMobAdUnit),
             2: {1: ['name']}
+        }).then((res: UpdateResponse) => getTranslator(AdUnitTranslator).decode(res[1]));
+    }
+
+    async updateAdMobAdUnitAutomaticRefresh(adMobAdUnit: AdMobAdUnit): Promise<AdMobAdUnit> {
+        return await this.adMobApi.postRaw('AdUnitService', 'Update', <UpdateRequest>{
+            1: getTranslator(AdUnitTranslator).encode(adMobAdUnit),
+            2: {1: ['refresh_period_seconds', 'google_optimized_refresh_rate']}
         }).then((res: UpdateResponse) => getTranslator(AdUnitTranslator).decode(res[1]));
     }
 
