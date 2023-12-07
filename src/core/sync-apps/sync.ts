@@ -901,7 +901,11 @@ export class Sync {
                 this.logger.info(`Creating Native AdUnit is skipped. ${adUnitTemplate.name}`);
                 continue;
             }
-            const newAdUnit = await this.createAdMobAdUnit({...adUnitTemplate, appId: adMobApp.appId}).catch(e => {
+            const newAdUnit = await this.createAdMobAdUnit({
+                ...adUnitTemplate,
+                appId: adMobApp.appId,
+                googleOptimizedRefreshRate: adUnitTemplate.__metadata.adType === AdType.BANNER ? false : adUnitTemplate.googleOptimizedRefreshRate
+            }).catch(e => {
                 this.logger.info(`Failed to create AdUnit`);
                 this.logger.info(e);
                 if (adUnitTemplate.__metadata.adType === AdType.NATIVE) {
@@ -940,6 +944,23 @@ export class Sync {
                 this.context.addAdMobAdUnit(adMobAdUnit);
                 this.stats.appUpdated(app);
                 yield `AdUnit Name prefix updated ${this.adUnitCode(adMobAdUnit)} from ${oldName} to ${adMobAdUnit.name}`;
+            }
+
+            // Set Automatic refresh: disable for banner and mrec adUnits
+            const isBanner = adMobAdUnit.name.split('/').find(n => {
+                const name = n.toUpperCase();
+                return name === AdType.BANNER || name === AdType.MREC
+            });
+            if (isBanner && (adMobAdUnit.googleOptimizedRefreshRate === true || adMobAdUnit.refreshPeriodSeconds)) {
+                app.subProgressCurrent++;
+                delete adMobAdUnit.refreshPeriodSeconds;
+                adMobAdUnit = await this.updateAdMobAdUnitAutomaticRefresh({
+                    ...adMobAdUnit,
+                    googleOptimizedRefreshRate: false,
+                });
+                this.context.addAdMobAdUnit(adMobAdUnit);
+                this.stats.appUpdated(app);
+                yield `The 'Automatic Update' field in AdUnit ${this.adUnitCode(adMobAdUnit)} has been changed to 'disabled'`;
             }
         }
 
@@ -1337,6 +1358,13 @@ export class Sync {
         return await this.adMobApi.postRaw('AdUnitService', 'Update', <UpdateRequest>{
             1: getTranslator(AdUnitTranslator).encode(adMobAdUnit),
             2: {1: ['name']}
+        }).then((res: UpdateResponse) => getTranslator(AdUnitTranslator).decode(res[1]));
+    }
+
+    async updateAdMobAdUnitAutomaticRefresh(adMobAdUnit: AdMobAdUnit): Promise<AdMobAdUnit> {
+        return await this.adMobApi.postRaw('AdUnitService', 'Update', <UpdateRequest>{
+            1: getTranslator(AdUnitTranslator).encode(adMobAdUnit),
+            2: {1: ['refresh_period_seconds', 'google_optimized_refresh_rate']}
         }).then((res: UpdateResponse) => getTranslator(AdUnitTranslator).decode(res[1]));
     }
 
