@@ -2,6 +2,3 @@
 url=https://sentry.appodeal.com//
 project=appodeal-admob-sync
 org=sentry
-[auth]
-#TODO replace with jenkins auth token or api_key
-token=172503ab711d4cd1be72095f525cb2564694018d963840fa83f28e4331227f55
