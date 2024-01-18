@@ -136,6 +136,15 @@ export class AdmobApiService {
         );
     }
 
+    async getApps(): Promise<string> {
+        return this.fetch(
+            'https://apps.admob.com/inventory/_/rpc/InventoryEntityCollectionService/GetApps?authuser=0&authuser=0',
+            'application/x-www-form-urlencoded',
+            'f.req={}',
+            false,
+        )
+    }
+
     private handleError (e: InternalError) {
         if (e && this.onError) {
             return this.onError(e);
@@ -176,8 +185,12 @@ export class AdmobApiService {
                 if (data[2]) {
                     throw getTranslator(AdmobErrorTranslator).decode(data);
                 }
-                throw new InternalError('Unknow Admob Response', data);
 
+                if (method === 'ListGoogleBiddingAdUnits' && Object.keys(data).length === 0) {
+                    return {1: []};
+                }
+
+                throw new InternalError('Unknow Admob Response', data);
             })
             .catch(e => {
                 this.logger.error(`Failed to Post to AdMob '${serviceName}' '${method}'`);

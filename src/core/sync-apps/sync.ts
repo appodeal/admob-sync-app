@@ -37,7 +37,6 @@ import {
 } from 'lib/translators/interfaces/admob-app.interface';
 import {getTranslator} from 'lib/translators/translator.helpers';
 import uuid from 'uuid';
-import {decodeOctString} from '../../lib/oct-decode';
 import {AdMobAccount} from '../appdeal-api/interfaces/admob-account.interface';
 import {AppodealAccount} from '../appdeal-api/interfaces/appodeal.account.interface';
 import {NoConnectionError} from '../error-factory/errors/network/no-connection-error';
@@ -296,8 +295,8 @@ export class Sync {
         yield `Fetch Admob Apps and AdUnits`;
 
         this.context.loadAdMob({
-            apps: this.ejectAppsAppsFromAdmob(pageBody),
-            adUnits: this.ejectAdUnitsFromAdmob(pageBody)
+            apps: await this.ejectAppsAppsFromAdmob(),
+            adUnits: await this.ejectAdUnitsFromAdmob()
         });
         yield 'Admob Apps and AdUnits fetched';
 
@@ -320,40 +319,35 @@ export class Sync {
 
     }
 
-    ejectAppsAppsFromAdmob(body: string) {
-
-        const mathResult = body.match(/var apd = '(?<appsJson>[^\']*)';/);
-
-        if (!mathResult || !mathResult.groups || !mathResult.groups.appsJson) {
+    async ejectAppsAppsFromAdmob(): Promise<AdMobApp[]> {
+        let appsListJson: string = JSON.stringify(await this.adMobApi.getApps());
+        if (!appsListJson) {
             // may be user's action required
             throw new Error('Apps not found');
         }
-        let json;
+
         try {
-            json = decodeOctString(mathResult.groups.appsJson);
-            const apps = <any[]>JSON.parse(json)[1] || [];
+            const apps = <any[]>JSON.parse(appsListJson)[1] || [];
             return apps.map<AdMobApp>(getTranslator(AppTranslator).decode);
         } catch (e) {
-            console.log('appsJson', json, body);
+            console.log('appsJson', appsListJson);
             console.error(e);
             throw e;
         }
     }
 
-    ejectAdUnitsFromAdmob(body: string) {
-        const mathResult = body.match(/var aupd = '(?<appsJson>[^\']*)';/);
+    async ejectAdUnitsFromAdmob(): Promise<AdMobAdUnit[]> {
+        let adMobAdUnitJson = JSON.stringify(await this.getCreatedAdUnitsList([]));
 
-        if (!mathResult || !mathResult.groups || !mathResult.groups.appsJson) {
+        if (!adMobAdUnitJson) {
             // may be user's action required
             throw new Error('AdUnits not found');
         }
-        let json;
         try {
-            json = decodeOctString(mathResult.groups.appsJson);
-            const adUnits = <any[]>JSON.parse(json)[1] || [];
+            const adUnits = <any[]>JSON.parse(adMobAdUnitJson)[1] || [];
             return adUnits.map<AdMobAdUnit>(getTranslator(AdUnitTranslator).decode);
         } catch (e) {
-            console.log('appsJson', json, body);
+            console.log('appsJson', adMobAdUnitJson);
             console.error(e);
             throw e;
         }
@@ -662,13 +656,19 @@ export class Sync {
         });
     }
 
-    async getCreatedBiddingAdUnits(admobAppId: string): Promise<any> {
+    async getCreatedAdUnitsList(admobAppIds: string[]): Promise<any> {
+        return await this.adMobApi.postRaw('AdUnitService', 'List', <UpdateRequest>{
+            1: admobAppIds
+        });
+    }
+
+    async getCreatedBiddingAdUnits(admobAppId: string): Promise<any[]> {
         if (!admobAppId) {
             return;
         }
         return await this.adMobApi.postRaw('AdUnitService', 'ListGoogleBiddingAdUnits', <UpdateRequest>{
             1: admobAppId
-        });
+        }).then(r => r[1]);
     }
 
     async getCreatedMediationGroup() {
@@ -888,6 +888,15 @@ export class Sync {
     }
 
     async* syncAdUnits(app: AppodealAppToSync, adMobApp: AdMobApp) {
+        const createdBiddingAdUnits = await this.getCreatedBiddingAdUnits(adMobApp.appId);
+        if (createdBiddingAdUnits.length) {
+            app.adUnitTemplatesToCreate.forEach((uTemplate, uName) => {
+                if (createdBiddingAdUnits.some(unit => unit[3] === uTemplate.name)) {
+                    app.adUnitTemplatesToCreate.delete(uName);
+                }
+            });
+        }
+
         const templatesToCreate = app.adUnitTemplatesToCreate;
         const {adUnitsToDelete, appodealAdUnits, oldGoodAdUnits} = app;
 
