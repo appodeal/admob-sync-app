@@ -186,7 +186,7 @@ export class AdmobApiService {
                     throw getTranslator(AdmobErrorTranslator).decode(data);
                 }
 
-                if (method === 'ListGoogleBiddingAdUnits' && Object.keys(data).length === 0) {
+                if ((method === 'List' || method === 'ListGoogleBiddingAdUnits') && Object.keys(data).length === 0) {
                     return {1: []};
                 }
 
