@@ -632,7 +632,15 @@ export class Sync {
                     }
                 }
 
-                await this.updateMediationGroup(app, adUnit, adMobMediationGroup);
+                if (adMobMediationGroup) {
+                    let mediationGroupId = adMobMediationGroup['1'];
+                    let customEventsListOfMediationGroup = await this.getCustomEventsListInMediationGroup(mediationGroupId);
+
+                    if (customEventsListOfMediationGroup['1']['5'].length < adUnit.customEvents.length) {
+                        await this.updateMediationGroup(app, adUnit, customEventsListOfMediationGroup['1']);
+                        this.logger.info(`Update list of events in the mediation group. Group name is ${adUnit.name}...`);
+                    }
+                }
             }
         }
     }
@@ -680,8 +688,17 @@ export class Sync {
         )
     }
 
+    async getCustomEventsListInMediationGroup(id: string) {
+        this.logger.info(`Getting a list of custom events in mediation group...`);
+        return await this.customEventApi.postRaw(
+            'mediationGroup',
+            'Get',
+            {"1": id, "2":false}
+        )
+    }
+
     async removeMediationGroup(ids: string[]) {
-        this.logger.info(`Getting mediation groups...`);
+        this.logger.info(`Getting mediation groups for removal...`);
         return await this.customEventApi.postRaw(
             'mediationGroup',
             'BulkStatusChange',
@@ -859,14 +876,7 @@ export class Sync {
 
                 return null;
             })[0];
-
-
-            return this.buildCustomEventsList(adUnit, apdEvent);
         }).filter(Boolean);
-    }
-
-    isObjectEmpty(obj): boolean {
-        return Object.keys(obj).length === 0
     }
 
     buildCustomEventsList(adUnit, event): any {
