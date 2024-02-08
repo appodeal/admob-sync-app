@@ -167,8 +167,8 @@ export class RunSyncTabJob implements IJob {
                 this.notify('Sync has been canceled', `${adMobAccount.email} sync has been canceled.`);
             } else {
                 this.notify(
-                    'Sync has finished',
-                    `Appodeal's ${currentUser.email} and Admob ${adMobAccount.email} accounts are in sync.`
+                    '<h4>Sync has finished!</h4>',
+                    `<p>Appodeal's <b>${currentUser.email}</b> and Admob <b>${adMobAccount.email}</b> accounts are in sync.</p>`
                 );
             }
             break;

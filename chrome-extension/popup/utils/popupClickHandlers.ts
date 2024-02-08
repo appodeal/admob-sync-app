@@ -38,8 +38,7 @@ export async function onClickStartAdmobAccountSetup () {
     setTimeout(() => {window.close();}, 200);
 }
 
-
-export async function startSyncAdmobAccount () {
+export async function reloadPageAdMobAccount () {
     const tabs = await chrome.tabs.query({active: true, currentWindow: true});
     const tab = tabs[0];
     if (tab.url && tab.url.startsWith(ADMOB_DASHBOARD_ROOT)) {
@@ -47,6 +46,12 @@ export async function startSyncAdmobAccount () {
     } else {
         await chrome.tabs.update(tab.id, {url: ADMOB_HOME_WITH_RELOGIN});
     }
+
+    return tab;
+}
+
+export async function startSyncAdmobAccount () {
+    let tab = await reloadPageAdMobAccount();
     await setCurrentJob(TabJobs.syncAdunits, tab.id);
 }
 
