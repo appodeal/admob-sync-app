@@ -1,0 +1,14 @@
+// Variables
+@import "variables/mixin";
+@import "variables/font";
+@import "variables/base-styles";
+
+// Plagins
+@import "libs/normalize.min.css";
+
+// Components
+@import "components/header";
+@import "components/footer";
+
+// Pages
+@import "pages/amsa";

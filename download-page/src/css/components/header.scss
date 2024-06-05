@@ -1,0 +1,23 @@
+.header {
+  padding: 16px 0;
+  box-sizing: border-box;
+  background-color: var(--gray-light);
+  @include max-media768 {
+    padding: 0;
+    position: sticky;
+    top: 0;
+  }
+
+  .row {
+    @include flexCenter;
+    @include max-media768 {
+      justify-content: flex-start;
+    }
+  }
+}
+
+.header__logo {
+  max-width: 190px;
+  width: 100%;
+  padding: 30px 0;
+}

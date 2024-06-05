@@ -1,0 +1,53 @@
+@import "variable";
+
+// media
+@mixin max-media600 {
+  @media (max-width: #{599px}) {
+    @content;
+  }
+}
+@mixin max-media768 {
+  @media (max-width: #{767px}) {
+    @content;
+  }
+}
+@mixin max-media991 {
+  @media (max-width: #{991px}) {
+    @content;
+  }
+}
+
+// other mixins
+@mixin flex($aitem, $jcontent) {
+  display: flex;
+  align-items: $aitem;
+  justify-content: $jcontent;
+}
+@mixin flexCenter() {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin square($size) {
+  width: $size;
+  height: $size;
+}
+
+// Common styles for headers
+@mixin title-h1 {
+  font: 64px/64px var(--font-bold);
+}
+
+@mixin title-h4 {
+  font: 24px/36px var(--font-medium);
+}
+
+// font size for paragraphs
+@mixin p-normal {
+  font: 20px/30px var(--font-regular);
+}
+
+@mixin p-small {
+  font: 16px/24px var(--font-regular);
+}

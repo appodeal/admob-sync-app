@@ -1,0 +1,30 @@
+.footer {
+  padding: var(--gap-double) 0;
+  background-color: var(--white);
+
+  .row {
+    @include flex(flex-start, flex-start);
+    flex-direction: column;
+  }
+
+  .title-h4 {
+    color: var(--black);
+  }
+}
+
+.footer__info {
+  margin-top: 30px;
+  color: var(--gray-dark);
+
+  a {
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  * {
+    color: inherit;
+  }
+}
