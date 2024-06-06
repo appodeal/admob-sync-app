@@ -64,10 +64,6 @@ export default (env: webpack.Configuration): webpack.Configuration => {
                 {
                     from: path.join(SRC_PATH + '/images'),
                     to: 'html/images/'
-                },
-                {
-                    from: path.join(SRC_PATH + '/font'),
-                    to: 'html/font/'
                 }
             ])
         ]
