@@ -16,8 +16,7 @@ html, body {
 
 body {
   background-color: var(--white);
-  font-family: var(--font-regular), sans-serif;
-  font-size: 20px;
+  font: 20px var(--font), sans-serif;
   color: var(--black);
   margin: 0;
   padding: 0;
@@ -42,7 +41,7 @@ img {
   width: 100%;
   margin: 0 auto;
   padding: 0 var(--gap);
-  @include max-media768 {
+  @include max-media1023 {
     padding: 0 calc(var(--gap) / 2);;
   }
 }

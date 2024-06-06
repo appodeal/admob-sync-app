@@ -16,6 +16,16 @@
     @content;
   }
 }
+@mixin max-media1023 {
+  @media (max-width: #{1023px}) {
+    @content;
+  }
+}
+@mixin max-media1199 {
+  @media (max-width: #{1199px}) {
+    @content;
+  }
+}
 
 // other mixins
 @mixin flex($aitem, $jcontent) {
@@ -36,18 +46,16 @@
 
 // Common styles for headers
 @mixin title-h1 {
-  font: 64px/64px var(--font-bold);
+  font: 700 64px/64px var(--font);
 }
-
 @mixin title-h4 {
-  font: 24px/36px var(--font-medium);
+  font: 500 24px/36px var(--font);
 }
 
 // font size for paragraphs
 @mixin p-normal {
-  font: 20px/30px var(--font-regular);
+  font: 20px/30px var(--font);
 }
-
 @mixin p-small {
-  font: 16px/24px var(--font-regular);
+  font: 16px/24px var(--font);
 }

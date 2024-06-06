@@ -50,11 +50,11 @@
 .button__list {
   @include flex(center, space-between);
   gap: 20px;
-  @include max-media991 {
-    flex-wrap: wrap;
-  }
-  @include max-media600 {
+  @include max-media1199 {
     gap: 10px;
+  }
+  @include max-media1023 {
+    flex-wrap: wrap;
   }
 
   .button {
@@ -68,8 +68,9 @@
     text-decoration: none;
     @include title-h4;
     color: var(--black);
-    @include max-media991 {
-      max-width: calc(50% - 20px);
+    white-space: nowrap;
+    @include max-media1023 {
+      max-width: calc(50% - 5px);
     }
     @include max-media600 {
       max-width: none;
