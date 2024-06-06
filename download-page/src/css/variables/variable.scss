@@ -1,0 +1,19 @@
+:root {
+  // font Rubik
+  --font: 'Rubik';
+
+  // colors and another vars
+  --white: #fff;
+  --black: #1F2126;
+  --blue: #1666EF;
+
+  --gray-light: #F1F2F4;
+  --gray: #454954;
+  --gray-dark: #2E3138;
+
+  --border-color: var(--black);
+  --border-color-hover: var(--blue);
+
+  --gap: 40px;
+  --gap-double: calc(var(--gap) * 2);
+}

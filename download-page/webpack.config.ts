@@ -1,5 +1,6 @@
 import CopyPlugin from 'copy-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
+import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import * as path from 'path';
 import webpack from 'webpack';
 // @ts-ignore
@@ -34,27 +35,35 @@ export default (env: webpack.Configuration): webpack.Configuration => {
                         }
                     ]
 
+                },
+                {
+                    test: /\.(css|scss)$/,
+                    use: [
+                        MiniCssExtractPlugin.loader,
+                        'css-loader',
+                        'sass-loader'
+                    ]
                 }
-            ]
+            ],
         },
         plugins: [
+            new MiniCssExtractPlugin({filename: 'html/style.css'}),
             new HtmlWebpackPlugin({
                 template: path.join(SRC_PATH, 'index.ejs'),
                 filename: 'html/index.html',
                 htmlmin: true,
-                inject: false
+                inject: true
             }),
             new HtmlWebpackPlugin({
                 hash: false,
                 inject: false,
                 template: path.join(NGINX_PATH, 'nginx.conf.ejs'),
                 filename: 'nginx/nginx.conf'
-
             }),
             new CopyPlugin([
                 {
-                    from: path.join(SRC_PATH, 'logo.png'),
-                    to: 'html/logo.png'
+                    from: path.join(SRC_PATH + '/images'),
+                    to: 'html/images/'
                 }
             ])
         ]
