@@ -52,7 +52,7 @@ export default (env: webpack.Configuration): webpack.Configuration => {
                 template: path.join(SRC_PATH, 'index.ejs'),
                 filename: 'html/index.html',
                 htmlmin: true,
-                inject: true
+                inject: false
             }),
             new HtmlWebpackPlugin({
                 hash: false,
