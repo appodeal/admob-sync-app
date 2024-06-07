@@ -15,7 +15,7 @@ jobs:
     runs-on: [macos-latest]
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Defining multiline Environment Variable
         run: |
@@ -56,10 +56,13 @@ jobs:
           echo "CONFIG<<EOF" >> $GITHUB_ENV
           echo "$CONFIG" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
+          echo "SENTRY=${{ secrets.SENTRY_DSN_APPODEAL_ADMOB_SYNC }}" >> $GITHUB_ENV
         #id: my_string
       - name: display string
         run: |
           echo "The string is: ${{ env.CONFIG }}"
+          echo "1 ${{ secrets.SENTRY_DSN_APPODEAL_ADMOB_SYNC }}"
+          echo "2 ${{ env.SENTRY }}"
 
       - name: Install node
         uses: actions/setup-node@v4
