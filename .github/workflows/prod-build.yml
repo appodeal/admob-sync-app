@@ -1,0 +1,33 @@
+name: Prod build
+on:
+  push:
+    branches:
+      - "master"
+#  release:
+#    types: [published]
+
+concurrency:
+  group: ${{ github.workflow }}
+
+jobs:
+  deploy:
+    name: Prod Build
+    runs-on: [macos-latest]
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Install node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 12.2.0 #16.14
+          cache: npm
+
+      - name: Install dependencies
+        run: npm i
+
+      #- name: Build
+      #  run: npm run build
+
+      #- name: Copy _headers
+      #  run: cp _headers ./build/
