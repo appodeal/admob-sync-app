@@ -17,14 +17,29 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
 
+      - name: Defining a new Environment Variable
+        run: |
+          MULTI_LINES_TEXT="this is line one \n
+                            this is line two \n
+                            this is line three \n"
+
+          echo "MULTI_LINES_TEXT_ENV_VAR<<EOF" >> $GITHUB_ENV
+          # here we can place the command that will generate multi-line text
+          echo $MULTI_LINES_TEXT >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Using the previously defined environment variable
+        run: |
+          echo ${{ env.MULTI_LINES_TEXT_ENV_VAR }}
+
       - name: Install node
         uses: actions/setup-node@v4
         with:
           node-version: 16.13.0
           cache: npm
 
-      - name: Install dependencies
-        run: npm i
+      #- name: Install dependencies
+      #  run: npm i
 
       #- name: Build
       #  run: npm run build
