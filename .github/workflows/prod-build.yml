@@ -17,20 +17,22 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: Defining a new Environment Variable
+      - name: Defining multiline Environment Variable
         run: |
-          MULTI_LINES_TEXT="this is line one \n
-                            this is line two \n
-                            this is line three \n"
-
-          echo "MULTI_LINES_TEXT_ENV_VAR<<EOF" >> $GITHUB_ENV
-          # here we can place the command that will generate multi-line text
-          echo $MULTI_LINES_TEXT >> $GITHUB_ENV
+          MY_STRING=$(cat << EOF
+          first line
+          second line
+          third line
+          EOF
+          )
+          echo "MY_STRING<<EOF" >> $GITHUB_ENV
+          echo "$MY_STRING" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
-
-      - name: Using the previously defined environment variable
+        id: my_string
+      - name: display string
         run: |
-          echo ${{ env.MULTI_LINES_TEXT_ENV_VAR }}
+          echo "The string is: ${{ env.MY_STRING }}"
+
 
       - name: Install node
         uses: actions/setup-node@v4
