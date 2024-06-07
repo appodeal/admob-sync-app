@@ -19,27 +19,26 @@ jobs:
 
       - name: Defining multiline Environment Variable
         run: |
-          MY_STRING=$(cat << EOF
+          CONFIG=$(cat << EOF
           first line
           second line
           third line
           EOF
           )
-          echo "MY_STRING<<EOF" >> $GITHUB_ENV
-          echo "$MY_STRING" >> $GITHUB_ENV
+          echo "CONFIG<<EOF" >> $GITHUB_ENV
+          echo "$CONFIG" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
         id: my_string
       - name: display string
         run: |
-          echo "The string is: ${{ env.MY_STRING }}"
-          echo $GITHUB_ENV
-
+          echo "The string is: ${{ env.CONFIG }}"
+          cat $GITHUB_ENV
 
       - name: Install node
         uses: actions/setup-node@v4
         with:
           node-version: 16.13.0
-          cache: npm
+          #cache: npm
 
       #- name: Install dependencies
       #  run: npm i
