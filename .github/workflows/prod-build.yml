@@ -20,9 +20,37 @@ jobs:
       - name: Defining multiline Environment Variable
         run: |
           CONFIG=$(cat << EOF
-          first line
-          second line
-          third line
+          {
+            "environment": {
+              "services": {
+                "appodeal": "https://api-services.appodeal.com/admob_plugin/api/v3/graphql",
+                "appodeal_auth": "https://app.appodeal.com/graphql",
+                "ad_mob": "https://apps.admob.com"
+              },
+              "updates": {
+                "updatesServerUrl": "https://amsa-updates.appodeal.com"
+              },
+              "multipleAccountsSupport": false,
+              "sentry": {
+                "dsn": "${{ secrets.SENTRY_DSN_APPODEAL_ADMOB_SYNC }}"
+              },
+              "setupOptions": {
+                "tutorialUrl": "https://wiki.appodeal.com/en/admob-sync",
+                "projectName": "Appodeal",
+                "appName": "Appodeal Revenue",
+                "clientName": "Appodeal AdMob Sync App",
+                "domains": [
+                  "appodeal.com"
+                ],
+                "allowedJs": [
+                  "https://api-services.appodeal.com"
+                ],
+                "allowedCallbacks": [
+                  "https://api-services.appodeal.com/admob_plugin/api/v3/oauth/callback"
+                ]
+              }
+            }
+          }
           EOF
           )
           echo "CONFIG<<EOF" >> $GITHUB_ENV
