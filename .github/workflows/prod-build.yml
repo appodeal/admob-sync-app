@@ -20,7 +20,7 @@ jobs:
       - name: Install node
         uses: actions/setup-node@v4
         with:
-          node-version: 16.14
+          node-version: 14.20.1
           cache: npm
 
       - name: Install dependencies
