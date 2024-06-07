@@ -32,6 +32,7 @@ jobs:
       - name: display string
         run: |
           echo "The string is: ${{ env.MY_STRING }}"
+          echo $GITHUB_ENV
 
 
       - name: Install node
