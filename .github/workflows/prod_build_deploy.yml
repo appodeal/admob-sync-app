@@ -2,7 +2,7 @@ name: Admob-sync-app Prod Build and Deploy
 on:
   push:
     branches:
-      - DO-2271/Move_to_github_action
+      - DO-2271/Build_deploy_workflows
 
 jobs:
   manage_consumers:
