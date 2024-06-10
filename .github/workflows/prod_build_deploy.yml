@@ -7,7 +7,7 @@ on:
 jobs:
   manage_consumers:
     name: Run Admob-sync-app Prod Build and Deploy
-    runs-on: [self-hosted, main]
+    runs-on: ubuntu-latest
 
     steps:
       - name: Trigger Prod Build and Deploy
