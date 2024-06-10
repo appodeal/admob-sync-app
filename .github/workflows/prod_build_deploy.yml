@@ -13,4 +13,3 @@ jobs:
       - name: Trigger Prod Build and Deploy
         run: |
           curl -i -XPOST -u "${{ secrets.USER_APPODEAL_RUNNER }}:${{ secrets.PAT_APPODEAL_RUNNER }}" -H "Accept: application/vnd.github.everest-preview+json" -H "Content-Type: application/json" https://api.github.com/repos/appodeal/devops/actions/workflows/admob-sync-app-prod-build-deploy.yml/dispatches --data '{"ref": "master"}'
-#
