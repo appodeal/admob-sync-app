@@ -57,6 +57,26 @@
     flex-wrap: wrap;
   }
 
+  .button:first-child {
+    background-color: var(--blue);
+    border-color: var(--blue);
+    color: var(--white);
+
+    svg {
+      fill: var(--white);
+    }
+
+    &:hover {
+      background-color: transparent;
+      border-color: var(--black);
+      color: var(--black);
+
+      svg {
+        fill: var(--black);
+      }
+    }
+  }
+
   .button {
     border: 3px solid var(--black);
     border-radius: 12px;
