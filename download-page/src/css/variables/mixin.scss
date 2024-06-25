@@ -47,14 +47,26 @@
 // Common styles for headers
 @mixin title-h1 {
   font: 700 64px/64px var(--font);
+  @include max-media991 {
+    font-size: 40px;
+    line-height: 40px;
+  }
 }
 @mixin title-h4 {
   font: 500 24px/36px var(--font);
+  @include max-media991 {
+    font-size: 18px;
+    line-height: 28px;
+  }
 }
 
 // font size for paragraphs
 @mixin p-normal {
   font: 20px/30px var(--font);
+  @include max-media991 {
+    font-size: 16px;
+    line-height: 24px;
+  }
 }
 @mixin p-small {
   font: 16px/24px var(--font);
