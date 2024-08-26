@@ -129,7 +129,7 @@ export namespace AdMobSessions {
     }
 
     function openAdMobSignInWindow (session): Promise<BrowserWindow> {
-        return openWindow('https://apps.admob.com/v2/home', {
+        return openWindow('https://admob.google.com/v2/home', {
             frame: true,
             show: true,
             titleBarStyle: 'default',
@@ -150,7 +150,7 @@ export namespace AdMobSessions {
 
     function getAdmobAccountBySession (session): Promise<ExtractedAdmobAccount> {
         return retry(
-            () => nodeFetch('https://apps.admob.com/v2/home', {}, session)
+            () => nodeFetch('https://admob.google.com/v2/home', {}, session)
                 .then(r => r.text())
                 .then(responseText => extractAccountInfo(responseText))
             , 2)

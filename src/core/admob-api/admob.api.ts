@@ -32,7 +32,13 @@ export class AdmobApiService {
     }
 
     private getPostApiEndpoint (serviceName: string, method: string) {
-        return [this.host, this.isCamApi(serviceName, method) ? 'cam' : 'inventory', '_/rpc', serviceName, method].join('/');
+        return [
+            serviceName === 'AppService' ? 'https://apps.admob.com' : this.host,
+            this.isCamApi(serviceName, method) ? 'cam' : 'inventory',
+            '_/rpc',
+            serviceName,
+            method
+        ].join('/');
     }
 
     constructor (private fetcher = fetch, private logger: Partial<Console>) {
@@ -105,7 +111,7 @@ export class AdmobApiService {
 
     fetchHomePage (): Promise<Response> {
         return this.fetcher(
-            'https://apps.admob.com/v2/home',
+            'https://admob.google.com/v2/home',
             {
                 'credentials': 'include',
                 'headers': {
@@ -123,11 +129,11 @@ export class AdmobApiService {
 
     fetchCamApiAppsSettings (admobAccountId: string): Promise<Response> {
         return this.fetcher(
-            `https://apps.admob.com/cam/App?host=ADMOB&pubc=${admobAccountId}`,
+            `https://admob.google.com/cam/App?authuser=0&host=ADMOB&pubc=${admobAccountId}`,
             {
                 'credentials': 'include',
                 'headers': {'accept': '*/*', 'accept-language': 'en-US'},
-                'referrer': 'https://apps.admob.com/v2/apps/list',
+                'referrer': 'https://admob.google.com/v2/apps/list',
                 'referrerPolicy': 'no-referrer-when-downgrade',
                 'body': null,
                 'method': 'POST',
@@ -138,7 +144,7 @@ export class AdmobApiService {
 
     async getApps(): Promise<string> {
         return this.fetch(
-            'https://apps.admob.com/inventory/_/rpc/InventoryEntityCollectionService/GetApps?authuser=0&authuser=0',
+            'https://admob.google.com/v2/inventory/_/rpc/InventoryEntityCollectionService/GetApps?authuser=0&authuser=0',
             'application/x-www-form-urlencoded',
             'f.req={}',
             false,
