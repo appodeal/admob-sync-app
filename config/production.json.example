@@ -3,7 +3,7 @@
     "services": {
       "appodeal": "https://api-services.appodeal.com/admob_plugin/api/v3/graphql",
       "appodeal_auth": "https://app.appodeal.com/graphql",
-      "ad_mob": "https://apps.admob.com"
+      "ad_mob": "https://admob.google.com/v2"
     },
     "sentry": {
       "dsn": ""

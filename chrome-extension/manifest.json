@@ -43,7 +43,8 @@
     },
     {
       "matches": [
-        "https://apps.admob.com/*"
+        "https://apps.admob.com/*",
+        "https://admob.google.com/*"
       ],
       "js": [
         "sentry.js",
@@ -67,11 +68,13 @@
   ],
   "host_permissions": [
     "*://*.appodeal.com/*",
-    "*://*.admob.com/*"
+    "*://*.admob.com/*",
+    "*://admob.google.com/*"
   ],
   "externally_connectable": {
     "matches": [
-      "*://*.admob.com/*"
+      "*://*.admob.com/*",
+      "*://admob.google.com/*"
     ]
   }
 }
