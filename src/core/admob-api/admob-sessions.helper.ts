@@ -53,7 +53,7 @@ export namespace AdMobSessions {
             addedAccount: ExtractedAdmobAccount;
         await session.clearCache();
         waitForSignIn(window)
-            .then(() => getAdmobAccountBySession(session))
+            .then((w) => getAdmobAccountBySession(w.webContents.session))
             .then((account) => {
                 if (account) {
                     if (SESSIONS.has(account.id)) {
