@@ -73,7 +73,7 @@ export class AdmobApiService {
                 try {
                     return await r.json();
                 } catch (e) {
-                    this.logger.info(await r.text());
+                    this.logger.error(await r.text());
                     throw e;
                 }
             });
@@ -105,6 +105,7 @@ export class AdmobApiService {
         } catch (e) {
             console.log('camClientInfo', json, body);
             console.error(e);
+            this.logger.error('Failed to ejectCamApiXsrfToken', e);
             throw e;
         }
     }

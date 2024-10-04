@@ -46,6 +46,8 @@ import {SyncEventEmitter} from './sync-event.emitter';
 import {SyncRunner} from './sync-runner';
 import {SyncErrorEvent, SyncEvent, SyncEventsTypes, SyncReportProgressEvent, SyncStopEvent} from './sync.events';
 import escapeStringRegexp = require('escape-string-regexp');
+import {Simulate} from 'react-dom/test-utils';
+import error = Simulate.error;
 
 
 const isObject = (v) => v !== null && typeof v === 'object';
@@ -143,7 +145,6 @@ export class Sync {
     }
 
     beforeRun() {
-
         const retryCondition = e =>
             e.message.substring(0, 'net::ERR'.length) === 'net::ERR'
             || e instanceof NoConnectionError
@@ -180,36 +181,48 @@ export class Sync {
     }
 
     finish() {
-        this.stats.end();
-        this.emitStop();
-        this.appodealApi.reportSyncEnd(this.id);
+        try {
+            this.stats.end();
+            this.emitStop();
+            this.appodealApi.reportSyncEnd(this.id);
+        } catch (e) {
+            this.logger.error('Failed to finish ', e);
+        }
     }
 
     emit(event: SyncEvent | SyncEventsTypes) {
-        if (isObject(event)) {
-            (<SyncEvent>event).id = this.id;
-            (<SyncEvent>event).accountId = this.adMobAccount.id;
-            return this.events.emit(<SyncEvent>event);
+        try {
+            if (isObject(event)) {
+                (<SyncEvent>event).id = this.id;
+                (<SyncEvent>event).accountId = this.adMobAccount.id;
+                return this.events.emit(<SyncEvent>event);
+            }
+            return this.events.emit({type: <SyncEventsTypes>event, id: this.id, accountId: this.adMobAccount.id});
+        } catch (e) {
+            this.logger.error('Failed to emit ', e);
         }
-        return this.events.emit({type: <SyncEventsTypes>event, id: this.id, accountId: this.adMobAccount.id});
     }
 
     emitProgress() {
-        const progress: Partial<SyncReportProgressEvent> = {};
-        progress.synced = this.syncedAppCount;
-        progress.failed = this.failedAppCount;
-        progress.total = this.apps.length;
+        try {
+            const progress: Partial<SyncReportProgressEvent> = {};
+            progress.synced = this.syncedAppCount;
+            progress.failed = this.failedAppCount;
+            progress.total = this.apps.length;
 
-        const currentProgress = this.apps.reduce(
-            (acc, app) => acc + (app.synced ? 2 + app.subProgressTotal : Math.min(app.subProgressCurrent, app.subProgressTotal)),
-            0
-        );
+            const currentProgress = this.apps.reduce(
+                (acc, app) => acc + (app.synced ? 2 + app.subProgressTotal : Math.min(app.subProgressCurrent, app.subProgressTotal)),
+                0
+            );
 
-        const totalProgress = this.apps.reduce((acc, app) => acc + 2 + app.subProgressTotal, 0);
+            const totalProgress = this.apps.reduce((acc, app) => acc + 2 + app.subProgressTotal, 0);
 
-        progress.percent = Math.round(currentProgress / totalProgress * 100);
-        progress.type = SyncEventsTypes.ReportProgress;
-        return this.emit(<SyncReportProgressEvent>progress);
+            progress.percent = Math.round(currentProgress / totalProgress * 100);
+            progress.type = SyncEventsTypes.ReportProgress;
+            return this.emit(<SyncReportProgressEvent>progress);
+        } catch (e) {
+            this.logger.error('Failed to emitProgress ', e);
+        }
     }
 
     emitError(error: Error) {
@@ -229,9 +242,10 @@ export class Sync {
     }
 
     async* doSync() {
-        this.stats.start();
-        this.emit(SyncEventsTypes.Started);
-        this.logger.info(`Sync Params
+        try {
+            this.stats.start();
+            this.emit(SyncEventsTypes.Started);
+            this.logger.info(`Sync Params
         uuid: ${this.id}
         AppodealAccount: 
             id: ${this.appodealAccount.id}
@@ -239,7 +253,11 @@ export class Sync {
             id: ${this.adMobAccount.id}
             email: ${this.adMobAccount.email}
         `);
-        await this.appodealApi.reportSyncStart(this.id, this.adMobAccount.id);
+            await this.appodealApi.reportSyncStart(this.id, this.adMobAccount.id);
+        } catch (e) {
+            this.logger.error('Failed to doSync ', e);
+        }
+
         try {
             yield* this.fetchDataToSync();
         } catch (e) {
@@ -287,36 +305,39 @@ export class Sync {
             return;
         }
 
-        yield `Admob xsrf Token Updated`;
+        try {
+            yield `Admob xsrf Token Updated`;
 
-        this.emit(SyncEventsTypes.CalculatingProgress);
-
-
-        yield `Fetch Admob Apps and AdUnits`;
-
-        this.context.loadAdMob({
-            apps: await this.ejectAppsAppsFromAdmob(),
-            adUnits: await this.ejectAdUnitsFromAdmob()
-        });
-        yield 'Admob Apps and AdUnits fetched';
+            this.emit(SyncEventsTypes.CalculatingProgress);
 
 
-        const accountDetails = await this.appodealApi.fetchApps(this.adMobAccount.id);
-        this.context.addAppodealApps(accountDetails.apps.nodes);
-        yield `Appodeal Apps page 1/${accountDetails.apps.pageInfo.totalPages} fetched`;
+            yield `Fetch Admob Apps and AdUnits`;
 
-        if (accountDetails.apps.pageInfo.totalPages) {
-            for (let pageNumber = 2; pageNumber <= accountDetails.apps.pageInfo.totalPages; pageNumber++) {
-                const page = await this.appodealApi.fetchApps(this.adMobAccount.id, pageNumber);
-                this.context.addAppodealApps(page.apps.nodes);
-                yield `Appodeal Apps page ${pageNumber}/${page.apps.pageInfo.totalPages} fetched`;
+            this.context.loadAdMob({
+                apps: await this.ejectAppsAppsFromAdmob(),
+                adUnits: await this.ejectAdUnitsFromAdmob()
+            });
+            yield 'Admob Apps and AdUnits fetched';
+
+
+            const accountDetails = await this.appodealApi.fetchApps(this.adMobAccount.id);
+            this.context.addAppodealApps(accountDetails.apps.nodes);
+            yield `Appodeal Apps page 1/${accountDetails.apps.pageInfo.totalPages} fetched`;
+
+            if (accountDetails.apps.pageInfo.totalPages) {
+                for (let pageNumber = 2; pageNumber <= accountDetails.apps.pageInfo.totalPages; pageNumber++) {
+                    const page = await this.appodealApi.fetchApps(this.adMobAccount.id, pageNumber);
+                    this.context.addAppodealApps(page.apps.nodes);
+                    yield `Appodeal Apps page ${pageNumber}/${page.apps.pageInfo.totalPages} fetched`;
+                }
             }
+
+            this.logger.info(`Total Appodeal apps to Sync ${this.context.getAppodealApps().length}`);
+
+            yield `All Appodeal Apps fetched`;
+        } catch (e) {
+            this.logger.error('Failed to fetchDataToSync ', e);
         }
-
-        this.logger.info(`Total Appodeal apps to Sync ${this.context.getAppodealApps().length}`);
-
-        yield `All Appodeal Apps fetched`;
-
     }
 
     async ejectAppsAppsFromAdmob(): Promise<AdMobApp[]> {
@@ -356,47 +377,50 @@ export class Sync {
     prepareApps(apps) {
 
         const prepareAppDataToSync = (app: AppodealAppToSync) => {
+            try {
+                app.subProgressCurrent = 0;
+                app.subProgressTotal = 0;
 
-            app.subProgressCurrent = 0;
-            app.subProgressTotal = 0;
+                app.adUnitsToDelete = [];
+                app.appodealAdUnits = [];
+                app.oldGoodAdUnits = [];
+                app.adUnitsToUpdateName = [];
+                app.adUnitTemplatesToCreate = new Map();
 
-            app.adUnitsToDelete = [];
-            app.appodealAdUnits = [];
-            app.oldGoodAdUnits = [];
-            app.adUnitsToUpdateName = [];
-            app.adUnitTemplatesToCreate = new Map();
+                app.customEventsList = [];
 
-            app.customEventsList = [];
-
-            if (app.isDeleted) {
-                return app;
-            }
-
-            const adMobApp = app.admobApp = this.findAdMobApp(app, this.context.getActiveAdmobApps());
-            app.adUnitTemplatesToCreate = this.buildAdUnitsSchema(app);
-
-
-            if (!app.admobApp) {
-                return app;
-            }
-
-            this.getActiveAdmobAdUnitsCreatedByApp(app, adMobApp).forEach((adMobAdUnit: AdMobAdUnit) => {
-                const templateId = Sync.getAdUnitTemplateId(adMobAdUnit);
-                if (app.adUnitTemplatesToCreate.has(templateId)) {
-                    app.oldGoodAdUnits.push(adMobAdUnit);
-                    app.appodealAdUnits.push(this.convertToAppodealAdUnit(adMobAdUnit, app.adUnitTemplatesToCreate.get(templateId)));
-                    app.adUnitTemplatesToCreate.delete(templateId);
-                } else {
-                    app.adUnitsToDelete.push(adMobAdUnit.adUnitId);
+                if (app.isDeleted) {
+                    return app;
                 }
-            });
-            app.adUnitsToUpdateName = app.oldGoodAdUnits.filter(
-                adMobAdUnit => adMobAdUnit.name.substr(0, this.adUnitNamePrefix.length) !== this.adUnitNamePrefix
-            );
 
-            // fill customEventsList
+                const adMobApp = app.admobApp = this.findAdMobApp(app, this.context.getActiveAdmobApps());
+                app.adUnitTemplatesToCreate = this.buildAdUnitsSchema(app);
 
-            return app;
+
+                if (!app.admobApp) {
+                    return app;
+                }
+
+                this.getActiveAdmobAdUnitsCreatedByApp(app, adMobApp).forEach((adMobAdUnit: AdMobAdUnit) => {
+                    const templateId = Sync.getAdUnitTemplateId(adMobAdUnit);
+                    if (app.adUnitTemplatesToCreate.has(templateId)) {
+                        app.oldGoodAdUnits.push(adMobAdUnit);
+                        app.appodealAdUnits.push(this.convertToAppodealAdUnit(adMobAdUnit, app.adUnitTemplatesToCreate.get(templateId)));
+                        app.adUnitTemplatesToCreate.delete(templateId);
+                    } else {
+                        app.adUnitsToDelete.push(adMobAdUnit.adUnitId);
+                    }
+                });
+                app.adUnitsToUpdateName = app.oldGoodAdUnits.filter(
+                    adMobAdUnit => adMobAdUnit.name.substr(0, this.adUnitNamePrefix.length) !== this.adUnitNamePrefix
+                );
+
+                // fill customEventsList
+
+                return app;
+            } catch (e) {
+                this.logger.error('Failed to prepareAppDataToSync ', e);
+            }
         };
 
         const calculateTotal = app => {
@@ -405,9 +429,14 @@ export class Sync {
             return app;
         };
 
-        return apps
-            .map(prepareAppDataToSync)
-            .map(calculateTotal);
+
+        try {
+            return apps
+                .map(prepareAppDataToSync)
+                .map(calculateTotal);
+        } catch (e) {
+            this.logger.error('Failed to prepareApps ', e);
+        }
     }
 
     async* syncApps() {
@@ -424,7 +453,7 @@ export class Sync {
             } catch (e) {
                 this.stats.errorWhileSync(app);
                 this.failedAppCount++;
-                this.logger.error(e);
+                this.logger.error('Failed to syncApps ', e);
                 this.emitError(e);
                 yield `Failed to sync App [${app.id}] ${app.name}`;
             }
@@ -463,30 +492,45 @@ export class Sync {
         });
 
         if (adUnitsToDelete.length) {
-            await this.deleteAdMobAdUnits(adUnitsToDelete);
-            this.context.removeAdMobAdUnits(adUnitsToDelete);
-            this.stats.appDeleted(app);
-            yield `${adUnitsToDelete.length} adUnits deleted`;
+            try {
+                await this.deleteAdMobAdUnits(adUnitsToDelete);
+                this.context.removeAdMobAdUnits(adUnitsToDelete);
+                this.stats.appDeleted(app);
+                yield `${adUnitsToDelete.length} adUnits deleted`;
+            } catch (e) {
+                this.logger.error('Failed to adUnitsToDelete ', e);
+                yield `Failed to adUnitsToDelete ${e}`;
+            }
         } else {
             yield `No AdUnits to delete`;
         }
 
         if (adUnitsBiddingToDelete.length) {
-            await this.deleteAdMobAdUnitsBidding(adUnitsBiddingToDelete);
-            this.context.removeAdMobAdUnits(adUnitsBiddingToDelete);
-            this.stats.appDeleted(app);
-            yield `${adUnitsBiddingToDelete.length} adUnits deleted`;
+            try {
+                await this.deleteAdMobAdUnitsBidding(adUnitsBiddingToDelete);
+                this.context.removeAdMobAdUnits(adUnitsBiddingToDelete);
+                this.stats.appDeleted(app);
+                yield `${adUnitsBiddingToDelete.length} adUnits deleted`;
+            } catch (e) {
+                this.logger.error('Failed to adUnitsBiddingToDelete ', e);
+                yield `Failed to adUnitsBiddingToDelete ${e}`;
+            }
         } else {
             yield `No AdUnits to delete`;
         }
 
         // in case app has at least one active adUnit it should no be hidden
         if (!adMobApp.hidden && !this.context.getAdMobAppActiveAdUnits(adMobApp).length) {
-            yield `Hide App. All its adUnits are archived`;
-            adMobApp = await this.hideAdMobApp(adMobApp);
-            this.context.updateAdMobApp(adMobApp);
-            this.stats.appDeleted(app);
-            yield `App Hidden`;
+            try {
+                yield `Hide App. All its adUnits are archived`;
+                adMobApp = await this.hideAdMobApp(adMobApp);
+                this.context.updateAdMobApp(adMobApp);
+                this.stats.appDeleted(app);
+                yield `App Hidden`;
+            } catch (e) {
+                this.logger.error('Failed to adUnitsBiddingToDelete ', e);
+                yield `Failed to Hide App ${e}`;
+            }
         }
     }
 
@@ -665,88 +709,125 @@ export class Sync {
     }
 
     async getCreatedAdUnitsList(admobAppIds: string[]): Promise<any> {
-        return await this.adMobApi.postRaw('AdUnitService', 'List', <UpdateRequest>{
-            1: admobAppIds
-        });
+        try {
+            return await this.adMobApi.postRaw('AdUnitService', 'List', <UpdateRequest>{
+                1: admobAppIds
+            });
+        } catch (e) {
+            this.logger.error('Failed to getCreatedAdUnitsList ', e);
+        }
     }
 
     async getCreatedBiddingAdUnits(admobAppId: string): Promise<any[]> {
-        if (!admobAppId) {
-            return;
+        try {
+            if (!admobAppId) {
+                return;
+            }
+            return await this.adMobApi.postRaw('AdUnitService', 'ListGoogleBiddingAdUnits', <UpdateRequest>{
+                1: admobAppId
+            }).then(r => r[1]);
+        } catch (e) {
+            this.logger.error('Failed to getCreatedBiddingAdUnits ', e);
         }
-        return await this.adMobApi.postRaw('AdUnitService', 'ListGoogleBiddingAdUnits', <UpdateRequest>{
-            1: admobAppId
-        }).then(r => r[1]);
     }
 
     async getCreatedMediationGroup() {
-        this.logger.info(`Getting mediation groups...`);
-        return await this.customEventApi.postRaw(
-            'mediationGroup',
-            'List',
-            {}
-        )
+        try {
+            this.logger.info(`Getting mediation groups...`);
+            return await this.customEventApi.postRaw(
+                'mediationGroup',
+                'List',
+                {}
+            )
+        } catch (e) {
+            this.logger.error('Failed to getCreatedMediationGroup ', e);
+        }
     }
 
     async getCustomEventsListInMediationGroup(id: string) {
-        this.logger.info(`Getting a list of custom events in mediation group...`);
-        return await this.customEventApi.postRaw(
-            'mediationGroup',
-            'Get',
-            {"1": id, "2":false}
-        )
+        try {
+            this.logger.info(`Getting a list of custom events in mediation group...`);
+            return await this.customEventApi.postRaw(
+                'mediationGroup',
+                'Get',
+                {"1": id, "2":false}
+            )
+        } catch (e) {
+            this.logger.error('Failed to getCustomEventsListInMediationGroup ', e);
+        }
     }
 
     async removeMediationGroup(ids: string[]) {
-        this.logger.info(`Getting mediation groups for removal...`);
-        return await this.customEventApi.postRaw(
-            'mediationGroup',
-            'BulkStatusChange',
-            {"1": ids, "2": 3}
-        )
+        try {
+            this.logger.info(`Getting mediation groups for removal...`);
+            return await this.customEventApi.postRaw(
+                'mediationGroup',
+                'BulkStatusChange',
+                {"1": ids, "2": 3}
+            )
+        } catch (e) {
+            this.logger.error('Failed to removeMediationGroup ', e);
+        }
     }
 
     async getCustomEventsList() {
-        this.logger.info(`Getting a list of custom events`);
-        return await this.customEventApi.postRaw(
-            'mediationAllocation',
-            'List',
-            {}
-        );
+        try {
+            this.logger.info(`Getting a list of custom events`);
+            return await this.customEventApi.postRaw(
+                'mediationAllocation',
+                'List',
+                {}
+            );
+        } catch (e) {
+            this.logger.error('Failed to getCustomEventsList ', e);
+        }
     }
 
     async createCustomEvents(adUnit: { admobExistingCustomEvents: AdmobCustomEvent[]; isThirdPartyBidding: boolean; adType: AdType; code: string; customEvents: any[]; format: Format; internalAdmobAdUnitId: string; name: string; ecpmFloor: number; adUnitId: string }) {
-        this.logger.info(`Creating a customEvent named ${adUnit.name}`);
-        let payload = this.customEventPayload(adUnit);
-        if (!payload.length) {
-            return;
-        }
-
-        return await this.customEventApi.postRaw(
-            'mediationAllocation',
-            'Update',
-            {
-                '1': payload,
-                '2': []
+        try {
+            this.logger.info(`Creating a customEvent named ${adUnit.name}`);
+            let payload = this.customEventPayload(adUnit);
+            if (!payload.length) {
+                return;
             }
-        );
+
+            return await this.customEventApi.postRaw(
+                'mediationAllocation',
+                'Update',
+                {
+                    '1': payload,
+                    '2': []
+                }
+            );
+        } catch (e) {
+            this.logger.error('Failed to createCustomEvents ', e);
+        }
     }
 
     async createMediationGroup(app, adUnit) {
-        this.logger.info(`Creating of a mediation group named ${adUnit.name}`);
-        return await this.customEventApi.postRaw(
-            'mediationGroup',
-            'V2Create',
-            this.createV2Param(app, adUnit)
-        )
+        try {
+            this.logger.info(`Creating of a mediation group named ${adUnit.name}`);
+            return await this.customEventApi.postRaw(
+                'mediationGroup',
+                'V2Create',
+                this.createV2Param(app, adUnit)
+            )
+        } catch (e) {
+            this.logger.error('Failed to createMediationGroup ', e);
+        }
     }
 
     async updateMediationGroup(app, adUnit, responseV2Params) {
-        return await this.customEventApi.postRaw(
-            'mediationGroup',
-            'V2Update',
-            this.createV2UpdateParam(app, adUnit, responseV2Params)
-        )
+        try {
+            this.logger.info(`Updating of a mediation group ${adUnit.name}`);
+            return await this.customEventApi.postRaw(
+                'mediationGroup',
+                'V2Update',
+                this.createV2UpdateParam(app, adUnit, responseV2Params)
+            )
+        } catch (e) {
+            this.logger.error('Failed to updateMediationGroup ', e);
+        }
     }
 
     createV2Param(app: AppodealApp, adUnit: any) {
@@ -1035,15 +1116,19 @@ export class Sync {
 
 
     filterAppAdUnits(app: AppodealApp, adUnits: AdMobAdUnit[]) {
-        const pattern = new RegExp('^' + [
-            `(${escapeStringRegexp(defaultAdUnitPrefix)}|${escapeStringRegexp(this.adUnitNamePrefix)})`,
-            app.id,
-            `(${Object.values(AdType).map((v: string) => v.toLowerCase()).join('|')})`,
-            `(${Object.values(Format).map((v: string) => v.toLowerCase()).join('|')})`
-        ].join('\/') + '/?');
-        this.logger.info(`[AppAdUnits name pattern] ${pattern.toString()}`);
+        try {
+            const pattern = new RegExp('^' + [
+                `(${escapeStringRegexp(defaultAdUnitPrefix)}|${escapeStringRegexp(this.adUnitNamePrefix)})`,
+                app.id,
+                `(${Object.values(AdType).map((v: string) => v.toLowerCase()).join('|')})`,
+                `(${Object.values(Format).map((v: string) => v.toLowerCase()).join('|')})`
+            ].join('\/') + '/?');
+            this.logger.info(`[AppAdUnits name pattern] ${pattern.toString()}`);
 
-        return adUnits.filter(adUnit => pattern.test(adUnit.name));
+            return adUnits.filter(adUnit => pattern.test(adUnit.name));
+        } catch (e) {
+            this.logger.error('Failed to filterAppAdUnits ', e);
+        }
     }
 
     adUnitCode(adUnit: AdMobAdUnit) {
@@ -1231,168 +1316,212 @@ export class Sync {
     }
 
     findAdMobApp(app: AppodealApp, apps: AdMobApp[]): AdMobApp {
-        const adMobPlatform = Sync.toAdMobPlatform(app);
+        try {
+            const adMobPlatform = Sync.toAdMobPlatform(app);
 
-        let adMobApp = app.platform !== AppodealPlatform.AMAZON && app.bundleId
-            ? apps.find(adMobApp => adMobApp.platform === adMobPlatform && adMobApp.applicationPackageName === app.bundleId)
-            : null;
-
-        if (adMobApp) {
-            this.logger.info('[FindAdMobApp] Found by bundle ID');
-            return adMobApp;
-        }
-
-        if (app.admobAppId) {
-            adMobApp = apps.find(adMobApp => adMobApp.appId === app.admobAppId);
-            adMobApp = this.validateAdmobApp(app, adMobApp);
+            let adMobApp = app.platform !== AppodealPlatform.AMAZON && app.bundleId
+                ? apps.find(adMobApp => adMobApp.platform === adMobPlatform && adMobApp.applicationPackageName === app.bundleId)
+                : null;
 
             if (adMobApp) {
-                this.logger.info('[FindAdMobApp] Found by adMobAppId');
+                this.logger.info('[FindAdMobApp] Found by bundle ID');
                 return adMobApp;
-            } else {
-                this.logger.info('[FindAdMobApp] has INVALID adMobAppId');
             }
-        }
 
-        const namePattern = this.appNameRegExp(app);
-        adMobApp = apps.find(adMobApp => !adMobApp.hidden && adMobApp.platform === adMobPlatform && namePattern.test(adMobApp.name));
-        if (adMobApp) {
-            this.logger.info('[FindAdMobApp] Found by NAME pattern');
-            return adMobApp;
-        }
+            if (app.admobAppId) {
+                adMobApp = apps.find(adMobApp => adMobApp.appId === app.admobAppId);
+                adMobApp = this.validateAdmobApp(app, adMobApp);
 
-        this.logger.info('[FindAdMobApp] Failed to find App');
-        return null;
+                if (adMobApp) {
+                    this.logger.info('[FindAdMobApp] Found by adMobAppId');
+                    return adMobApp;
+                } else {
+                    this.logger.info('[FindAdMobApp] has INVALID adMobAppId');
+                }
+            }
+
+            const namePattern = this.appNameRegExp(app);
+            adMobApp = apps.find(adMobApp => !adMobApp.hidden && adMobApp.platform === adMobPlatform && namePattern.test(adMobApp.name));
+            if (adMobApp) {
+                this.logger.info('[FindAdMobApp] Found by NAME pattern');
+                return adMobApp;
+            }
+
+            this.logger.info('[FindAdMobApp] Failed to find App');
+            return null;
+        } catch (e) {
+            this.logger.error('Failed to findAdMobApp ', e);
+        }
     }
 
 
     async createAdMobApp(app: AppodealApp, admobAccountId: string): Promise<AdMobApp> {
-
-        const adMobApp: Partial<AdMobApp> = {
-            name: [this.adUnitNamePrefix, app.id, app.name].join('/').substr(0, MAX_APP_NAME_LENGTH),
-            platform: Sync.toAdMobPlatform(app),
-            userMetricsStatus: UserMetricsStatus.DISABLED
-        };
-        return this.adMobApi.postRaw('AppService', 'Create', getTranslator(AppCreateRequestTranslator).encode({
-            app: adMobApp,
-            requestHeader: {
-                context: {
-                    host: Host.ADMOB,
-                    publisherCode: admobAccountId
+        try {
+            const adMobApp: Partial<AdMobApp> = {
+                name: [this.adUnitNamePrefix, app.id, app.name].join('/').substr(0, MAX_APP_NAME_LENGTH),
+                platform: Sync.toAdMobPlatform(app),
+                userMetricsStatus: UserMetricsStatus.DISABLED
+            };
+            return this.adMobApi.postRaw('AppService', 'Create', getTranslator(AppCreateRequestTranslator).encode({
+                app: adMobApp,
+                requestHeader: {
+                    context: {
+                        host: Host.ADMOB,
+                        publisherCode: admobAccountId
+                    }
                 }
-            }
-        } as AppCreateRequest))
-            .then(res => (getTranslator(AppCreateResponseTranslator).decode(res) as AppCreateResponse).app);
+            } as AppCreateRequest))
+                .then(res => (getTranslator(AppCreateResponseTranslator).decode(res) as AppCreateResponse).app);
+        } catch (e) {
+            this.logger.error('Failed to createAdMobApp ', e);
+        }
     }
 
     async updateAdMobAppName(adMobApp: AdMobApp, newName: string): Promise<AdMobApp> {
-        adMobApp.name = newName;
-        return await this.adMobApi.postRaw('AppService', 'Update', <UpdateRequest>{
-            1: getTranslator(AppTranslator).encode(adMobApp),
-            2: {1: ['name']}
-        }).then((res: UpdateResponse) => getTranslator(AppTranslator).decode(res[1]));
+        try {
+            adMobApp.name = newName;
+            return await this.adMobApi.postRaw('AppService', 'Update', <UpdateRequest>{
+                1: getTranslator(AppTranslator).encode(adMobApp),
+                2: {1: ['name']}
+            }).then((res: UpdateResponse) => getTranslator(AppTranslator).decode(res[1]));
+        } catch (e) {
+            this.logger.error('Failed to updateAdMobAppName ', e);
+        }
     }
 
 
     async showAdMobApp(adMobApp: AdMobApp): Promise<AdMobApp> {
-        return this.adMobApi.postRaw(
-            'AppService',
-            'Update',
-            {
-                "1": {"1": {"1": 1, "3": `${this.adMobAccount.id}`}},
-                "2": [{"1": {"19": false, "36": adMobApp['36']}, "2": ["hidden"]}]
-            })
-            .then(() => ({...adMobApp, hidden: false}));
+        try {
+            return this.adMobApi.postRaw(
+                'AppService',
+                'Update',
+                {
+                    "1": {"1": {"1": 1, "3": `${this.adMobAccount.id}`}},
+                    "2": [{"1": {"19": false, "36": adMobApp['36']}, "2": ["hidden"]}]
+                })
+                .then(() => ({...adMobApp, hidden: false}));
+        } catch (e) {
+            this.logger.error('Failed to showAdMobApp ', e);
+        }
     }
 
     async hideAdMobApp(adMobApp: AdMobApp): Promise<AdMobApp> {
-        return this.adMobApi.postRaw(
-            'AppService',
-            'Update',
-            {
-                "1": {"1": {"1": 1, "3": `${this.adMobAccount.id}`}},
-                "2": [{"1": {"19": true, "36": adMobApp['36']}, "2": ["hidden"]}]
-            })
-            .then(() => ({...adMobApp, hidden: true}));
+        try {
+            return this.adMobApi.postRaw(
+                'AppService',
+                'Update',
+                {
+                    "1": {"1": {"1": 1, "3": `${this.adMobAccount.id}`}},
+                    "2": [{"1": {"19": true, "36": adMobApp['36']}, "2": ["hidden"]}]
+                })
+                .then(() => ({...adMobApp, hidden: true}));
+        } catch (e) {
+            this.logger.error('Failed to hideAdMobApp ', e);
+        }
     }
 
     async linkAppWithStore(app: AppodealApp, adMobApp: AdMobApp): Promise<AdMobApp> {
 
-        interface SearchAppRequest {
-            1: string; // query
-            2: number; // offset;
-            3: number; // limit
-            4: AdMobPlatform // "platform"
+        try {
+            interface SearchAppRequest {
+                1: string; // query
+                2: number; // offset;
+                3: number; // limit
+                4: AdMobPlatform // "platform"
+            }
+
+            interface SearchAppResponse {
+                1: number; // number of results
+                2: any[]; // apps ;
+            }
+
+            const searchAppResponse: AdMobApp[] = await this.adMobApi.postRaw('AppService', 'Search', <SearchAppRequest>{
+                1: String(app.bundleId).substr(0, 79),
+                2: 0,
+                3: 100,
+                4: Sync.toAdMobPlatform(app)
+            }).then((response: SearchAppResponse) => response[1] ? response[2].map(getTranslator(AppTranslator).decode) : []);
+
+
+            const publishedApp = searchAppResponse.find(publishedApp => {
+                return app.platform === AppodealPlatform.IOS ? publishedApp.applicationPackageName === app.bundleId : publishedApp.applicationStoreId === app.bundleId;
+            });
+            if (publishedApp) {
+                this.logger.info(`App found in store`);
+                this.stats.appUpdated(app);
+                adMobApp = {...adMobApp, ...publishedApp};
+                let copyAdmobApp = {...adMobApp}
+                delete copyAdmobApp.appId;
+                return await this.adMobApi.postRaw(
+                    'AppService',
+                    'Update',
+                    {
+                        "1": {"1": {"1": 1, "3": this.adMobAccount.id}},
+                        "2": [{
+                            "1": getTranslator(AppTranslator).encode(copyAdmobApp),
+                            "2": ["stores", "application_store_id", "name"]
+                        }]
+                    }
+                ).then((res: UpdateResponse) => getTranslator(AppTranslator).decode(res[2][0]));
+            }
+            this.logger.info(`App NOT found in store`);
+            return adMobApp;
+        } catch (e) {
+            this.logger.error('Failed to linkAppWithStore ', e);
         }
-
-        interface SearchAppResponse {
-            1: number; // number of results
-            2: any[]; // apps ;
-        }
-
-        const searchAppResponse: AdMobApp[] = await this.adMobApi.postRaw('AppService', 'Search', <SearchAppRequest>{
-            1: String(app.bundleId).substr(0, 79),
-            2: 0,
-            3: 100,
-            4: Sync.toAdMobPlatform(app)
-        }).then((response: SearchAppResponse) => response[1] ? response[2].map(getTranslator(AppTranslator).decode) : []);
-
-
-        const publishedApp = searchAppResponse.find(publishedApp => {
-            return app.platform === AppodealPlatform.IOS ? publishedApp.applicationPackageName === app.bundleId : publishedApp.applicationStoreId === app.bundleId;
-        });
-        if (publishedApp) {
-            this.logger.info(`App found in store`);
-            this.stats.appUpdated(app);
-            adMobApp = {...adMobApp, ...publishedApp};
-            let copyAdmobApp = {...adMobApp}
-            delete copyAdmobApp.appId;
-            return await this.adMobApi.postRaw(
-                'AppService',
-                'Update',
-                {
-                    "1": {"1": {"1": 1, "3": this.adMobAccount.id}},
-                    "2": [{
-                        "1": getTranslator(AppTranslator).encode(copyAdmobApp),
-                        "2": ["stores", "application_store_id", "name"]
-                    }]
-                }
-            ).then((res: UpdateResponse) => getTranslator(AppTranslator).decode(res[2][0]));
-        }
-        this.logger.info(`App NOT found in store`);
-        return adMobApp;
     }
 
     async createAdMobAdUnit(adUnit: Partial<AdMobAdUnit>): Promise<AdMobAdUnit> {
-        return this.adMobApi.post(
-            'AdUnitService',
-            'Create',
-            {"1": getTranslator(AdUnitTranslator).encode(adUnit)})
-            .then(res => getTranslator(AdUnitTranslator).decode(res));
+        try {
+            return this.adMobApi.post(
+                'AdUnitService',
+                'Create',
+                {"1": getTranslator(AdUnitTranslator).encode(adUnit)})
+                .then(res => getTranslator(AdUnitTranslator).decode(res));
+        } catch (e) {
+            this.logger.error('Failed to createAdMobAdUnit ', e);
+        }
     }
 
     async updateAdMobAdUnitName(adMobAdUnit: AdMobAdUnit, newName: string): Promise<AdMobAdUnit> {
-        adMobAdUnit.name = newName;
-
-        return await this.adMobApi.postRaw('AdUnitService', 'Update', <UpdateRequest>{
-            1: getTranslator(AdUnitTranslator).encode(adMobAdUnit),
-            2: {1: ['name']}
-        }).then((res: UpdateResponse) => getTranslator(AdUnitTranslator).decode(res[1]));
+        try {
+            adMobAdUnit.name = newName;
+            return await this.adMobApi.postRaw('AdUnitService', 'Update', <UpdateRequest>{
+                1: getTranslator(AdUnitTranslator).encode(adMobAdUnit),
+                2: {1: ['name']}
+            }).then((res: UpdateResponse) => getTranslator(AdUnitTranslator).decode(res[1]));
+        } catch (e) {
+            this.logger.error('Failed to updateAdMobAdUnitName ', e);
+        }
     }
 
     async updateAdMobAdUnitAutomaticRefresh(adMobAdUnit: AdMobAdUnit): Promise<AdMobAdUnit> {
-        return await this.adMobApi.postRaw('AdUnitService', 'Update', <UpdateRequest>{
-            1: getTranslator(AdUnitTranslator).encode(adMobAdUnit),
-            2: {1: ['refresh_period_seconds', 'google_optimized_refresh_rate']}
-        }).then((res: UpdateResponse) => getTranslator(AdUnitTranslator).decode(res[1]));
+        try {
+            return await this.adMobApi.postRaw('AdUnitService', 'Update', <UpdateRequest>{
+                1: getTranslator(AdUnitTranslator).encode(adMobAdUnit),
+                2: {1: ['refresh_period_seconds', 'google_optimized_refresh_rate']}
+            })
+                .then((res: UpdateResponse) => getTranslator(AdUnitTranslator).decode(res[1]))
+                .catch(error => this.logger.error('Failed to AdUnitService ', error));
+        } catch (e) {
+            this.logger.error('Failed to updateAdMobAdUnitAutomaticRefresh ', e);
+        }
     }
 
     async deleteAdMobAdUnits(ids: string[]) {
-        return this.adMobApi.post('AdUnitService', 'BulkRemove', {"1": ids, "2": 1});
+        try {
+            return this.adMobApi.post('AdUnitService', 'BulkRemove', {"1": ids, "2": 1});
+        } catch (e) {
+            this.logger.error('Failed to deleteAdMobAdUnits ', e);
+        }
     }
 
     async deleteAdMobAdUnitsBidding(ids: string[]) {
-        return this.adMobApi.post('AdUnitService', 'BulkRemove', {"1": ids, "2": 2});
+        try {
+            return this.adMobApi.post('AdUnitService', 'BulkRemove', {"1": ids, "2": 2});
+        } catch (e) {
+            this.logger.error('Failed to deleteAdMobAdUnitsBidding ', e);
+        }
     }
 
 
