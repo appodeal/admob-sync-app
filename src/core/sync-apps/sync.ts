@@ -305,39 +305,35 @@ export class Sync {
             return;
         }
 
-        try {
-            yield `Admob xsrf Token Updated`;
+        yield `Admob xsrf Token Updated`;
 
-            this.emit(SyncEventsTypes.CalculatingProgress);
-
-
-            yield `Fetch Admob Apps and AdUnits`;
-
-            this.context.loadAdMob({
-                apps: await this.ejectAppsAppsFromAdmob(),
-                adUnits: await this.ejectAdUnitsFromAdmob()
-            });
-            yield 'Admob Apps and AdUnits fetched';
+        this.emit(SyncEventsTypes.CalculatingProgress);
 
 
-            const accountDetails = await this.appodealApi.fetchApps(this.adMobAccount.id);
-            this.context.addAppodealApps(accountDetails.apps.nodes);
-            yield `Appodeal Apps page 1/${accountDetails.apps.pageInfo.totalPages} fetched`;
+        yield `Fetch Admob Apps and AdUnits`;
 
-            if (accountDetails.apps.pageInfo.totalPages) {
-                for (let pageNumber = 2; pageNumber <= accountDetails.apps.pageInfo.totalPages; pageNumber++) {
-                    const page = await this.appodealApi.fetchApps(this.adMobAccount.id, pageNumber);
-                    this.context.addAppodealApps(page.apps.nodes);
-                    yield `Appodeal Apps page ${pageNumber}/${page.apps.pageInfo.totalPages} fetched`;
-                }
+        this.context.loadAdMob({
+            apps: await this.ejectAppsAppsFromAdmob(),
+            adUnits: await this.ejectAdUnitsFromAdmob()
+        });
+        yield 'Admob Apps and AdUnits fetched';
+
+
+        const accountDetails = await this.appodealApi.fetchApps(this.adMobAccount.id);
+        this.context.addAppodealApps(accountDetails.apps.nodes);
+        yield `Appodeal Apps page 1/${accountDetails.apps.pageInfo.totalPages} fetched`;
+
+        if (accountDetails.apps.pageInfo.totalPages) {
+            for (let pageNumber = 2; pageNumber <= accountDetails.apps.pageInfo.totalPages; pageNumber++) {
+                const page = await this.appodealApi.fetchApps(this.adMobAccount.id, pageNumber);
+                this.context.addAppodealApps(page.apps.nodes);
+                yield `Appodeal Apps page ${pageNumber}/${page.apps.pageInfo.totalPages} fetched`;
             }
-
-            this.logger.info(`Total Appodeal apps to Sync ${this.context.getAppodealApps().length}`);
-
-            yield `All Appodeal Apps fetched`;
-        } catch (e) {
-            this.logger.error('Failed to fetchDataToSync ', e);
         }
+
+        this.logger.info(`Total Appodeal apps to Sync ${this.context.getAppodealApps().length}`);
+
+        yield `All Appodeal Apps fetched`;
     }
 
     async ejectAppsAppsFromAdmob(): Promise<AdMobApp[]> {
