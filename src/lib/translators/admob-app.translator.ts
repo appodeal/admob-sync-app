@@ -1,7 +1,15 @@
 import {BooleanTranslator} from './base-translators/boolean.translator';
 import {ObjectTranslator} from './base-translators/object.translator';
 import {
-    AdMobApp, AppCreateRequest, AppCreateResponse, MonetizationEngineInfo, RequestHeader, ServingSettings, SessionContext
+    AdMobApp,
+    AppCreateRequest,
+    AppCreateResponse,
+    MonetizationEngineInfo,
+    PlatformContext,
+    PlatformTypeContext,
+    RequestHeader,
+    ServingSettings,
+    SessionContext,
 } from './interfaces/admob-app.interface';
 
 
@@ -60,9 +68,26 @@ export class AppCreateResponseTranslator extends ObjectTranslator<AppCreateRespo
     }
 }
 
+export class PlatformTypeContextTranslator extends ObjectTranslator<PlatformTypeContext> {
+    constructor () {
+        super({
+            0: ['platform', PlatformContextTranslator],
+        });
+    }
+}
+
+export class PlatformContextTranslator extends ObjectTranslator<PlatformContext> {
+    constructor () {
+        super({
+            2: 'type',
+        });
+    }
+}
+
 
 export class AppTranslator extends ObjectTranslator<AdMobApp> {
 
+    // All commented keys need to decode. These keys are used in different requests
     constructor () {
         super({
             1: 'appId',
@@ -78,6 +103,9 @@ export class AppTranslator extends ObjectTranslator<AdMobApp> {
             11: 'description',
             12: 'rating',
             13: 'numberRatings',
+            // 14: '',
+            // 16: '',
+            // 18: '',
             19: ['hidden', BooleanTranslator],
             21: ['servingSettings', ServingSettingsTranslator],
             22: 'applicationPackageName',
@@ -86,7 +114,14 @@ export class AppTranslator extends ObjectTranslator<AdMobApp> {
             25: ['admobPlusEapEnabled', BooleanTranslator],
             26: 'enhancedReportingEnabled',
             27: 'userMetricsStatus',
-            28: 'policyData'
+            28: 'policyData',
+            // 30: '',
+            32: ['platformType', PlatformTypeContextTranslator],
+            // 33: '',
+            36: 'publisherId',
+            // 38: '',
+            // 39: '',
+            // 41: '',
         });
     }
 

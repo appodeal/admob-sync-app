@@ -25,6 +25,14 @@ export interface AppCreateResponse {
     app: AdMobApp
 }
 
+export interface PlatformTypeContext {
+    platform: PlatformContext
+}
+
+export interface PlatformContext {
+    type: AdMobPlatform
+}
+
 export interface AdMobApp {
     appId: string,
     name: string,
@@ -48,9 +56,11 @@ export interface AdMobApp {
     firebaseSettings?: any,
     monetizationEngineInfo?: any,
     admobPlusEapEnabled: boolean,
-    enhancedReportingEnabled?: boolean
-    userMetricsStatus: UserMetricsStatus
-    policyData: any
+    enhancedReportingEnabled?: boolean,
+    userMetricsStatus: UserMetricsStatus,
+    policyData: any,
+    platformType: AdMobPlatform,
+    publisherId: string,
 }
 
 export enum UserMetricsStatus {
