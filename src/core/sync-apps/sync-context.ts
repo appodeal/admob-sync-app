@@ -45,7 +45,11 @@ export class SyncContext {
     }
 
     getActiveAdmobApps () {
-        return this.adMob.apps.filter(app => !app.archived);
+        return this.adMob.apps.filter(app => !app.hidden);
+    }
+
+    getHiddenAppsWithStoreLink () {
+        return this.adMob.apps.filter(app => Number(app.hasAppStoreDetailsLink) > 1 && app.hidden);
     }
 
     // ad units

@@ -60,7 +60,9 @@ export interface AdMobApp {
     userMetricsStatus: UserMetricsStatus,
     policyData: any,
     platformType: AdMobPlatform,
+    hasAppStoreDetailsLink: boolean,
     publisherId: string,
+    appStoreDetailsLinkId: string,
 }
 
 export enum UserMetricsStatus {
