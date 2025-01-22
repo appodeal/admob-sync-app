@@ -8,7 +8,7 @@ import {
     AppodealApp,
     AppodealPlatform,
     CustomEvent,
-    Format,
+    Format
 } from 'core/appdeal-api/interfaces/appodeal-app.interface';
 import {getAdUnitTemplate} from 'core/sync-apps/ad-unit-templates';
 import {SyncStats} from 'core/sync-apps/sync-stats';
@@ -17,7 +17,7 @@ import {retryProxy} from 'lib/retry';
 import {
     AppCreateRequestTranslator,
     AppCreateResponseTranslator,
-    AppTranslator,
+    AppTranslator
 } from 'lib/translators/admob-app.translator';
 import {AdmobCustomEventTranslator} from 'lib/translators/admob-event-translator';
 import {AdMobPlatform} from 'lib/translators/admob.constants';
@@ -26,14 +26,14 @@ import {
     AdMobAdUnit,
     AdmobCustomEvent,
     CpmFloorMode,
-    CpmFloorSettings,
+    CpmFloorSettings
 } from 'lib/translators/interfaces/admob-ad-unit.interface';
 import {
     AdMobApp,
     AppCreateRequest,
     AppCreateResponse,
     Host,
-    UserMetricsStatus,
+    UserMetricsStatus
 } from 'lib/translators/interfaces/admob-app.interface';
 import {getTranslator} from 'lib/translators/translator.helpers';
 import uuid from 'uuid';
@@ -82,7 +82,7 @@ const CustomEventPlatform = {
     [AppodealPlatform.IOS]: '13',
     [AppodealPlatform.ANDROID]: '12',
     // same as ANDROID
-    [AppodealPlatform.AMAZON]: '12',
+    [AppodealPlatform.AMAZON]: '12'
 };
 
 enum PlatformGroup {
@@ -112,6 +112,14 @@ export class Sync {
     private syncedAppCount = 0;
     private failedAppCount = 0;
 
+    appServiceFirstParam = {
+        '1': {
+            '1': 1,
+            '3': this.adMobAccount.id,
+            '5': {'4': false, '5': false, '6': false, '7': true, '10': false, '11': false, '12': false}
+        }
+    };
+
     /**
      * if user have no permissions to create native adunits we should not try do it many times.
      */
@@ -128,7 +136,7 @@ export class Sync {
         private customEventApi: CustomEventApiService,
         // some uniq syncId
         public readonly id: string,
-        public readonly runner: SyncRunner,
+        public readonly runner: SyncRunner
     ) {
         this.id = id || uuid.v4();
         this.beforeRun();
@@ -212,7 +220,7 @@ export class Sync {
 
             const currentProgress = this.apps.reduce(
                 (acc, app) => acc + (app.synced ? 2 + app.subProgressTotal : Math.min(app.subProgressCurrent, app.subProgressTotal)),
-                0,
+                0
             );
 
             const totalProgress = this.apps.reduce((acc, app) => acc + 2 + app.subProgressTotal, 0);
@@ -229,7 +237,7 @@ export class Sync {
         this.hasErrors = true;
         return this.emit(<SyncErrorEvent>{
             type: SyncEventsTypes.Error,
-            error,
+            error
         });
     }
 
@@ -237,7 +245,7 @@ export class Sync {
         return this.emit(<SyncStopEvent>{
             type: SyncEventsTypes.Stopped,
             terminated: this.terminated,
-            hasErrors: this.hasErrors,
+            hasErrors: this.hasErrors
         });
     }
 
@@ -314,7 +322,7 @@ export class Sync {
 
         this.context.loadAdMob({
             apps: await this.ejectAppsAppsFromAdmob(),
-            adUnits: await this.ejectAdUnitsFromAdmob(),
+            adUnits: await this.ejectAdUnitsFromAdmob()
         });
         yield 'Admob Apps and AdUnits fetched';
 
@@ -337,14 +345,14 @@ export class Sync {
     }
 
     async ejectAppsAppsFromAdmob(): Promise<AdMobApp[]> {
-        let appsListJson: string = JSON.stringify(await this.adMobApi.getApps());
+        let appsListJson: string = JSON.stringify(await this.getApps());
         if (!appsListJson) {
             // may be user's action required
             throw new Error('Apps not found');
         }
 
         try {
-            const apps = <any[]>JSON.parse(appsListJson)[1] || [];
+            const apps = <any[]>JSON.parse(appsListJson)[2] || [];
             return apps.map<AdMobApp>(getTranslator(AppTranslator).decode);
         } catch (e) {
             console.log('appsJson', appsListJson);
@@ -385,6 +393,23 @@ export class Sync {
 
                 app.customEventsList = [];
 
+                const adMobHiddenApp = this.context.getHiddenAppsWithStoreLink();
+                for (const a of adMobHiddenApp) {
+                    if (a.name === app.name) {
+                        this.linkAppStoreDetails({
+                            '2': a.name,
+                            '4': '',
+                            '36': a.publisherId
+                        }).then(r => {
+                            if (Array.isArray(r[2])) {
+                                this.logger.info('Link was removed from hidden app', r);
+                            } else {
+                                this.logger.error(`Link wasn't remove from second hidden app ${r}`)
+                            }
+                        })
+                    }
+                }
+
                 if (app.isDeleted) {
                     return app;
                 }
@@ -408,10 +433,8 @@ export class Sync {
                     }
                 });
                 app.adUnitsToUpdateName = app.oldGoodAdUnits.filter(
-                    adMobAdUnit => adMobAdUnit.name.substr(0, this.adUnitNamePrefix.length) !== this.adUnitNamePrefix,
+                    adMobAdUnit => adMobAdUnit.name.substr(0, this.adUnitNamePrefix.length) !== this.adUnitNamePrefix
                 );
-
-                // fill customEventsList
 
                 return app;
             } catch (e) {
@@ -625,7 +648,7 @@ export class Sync {
                         ...adUnit,
                         adUnitId: adUnit.internalAdmobAdUnitId,
                         customEvents: [...itemEvents],
-                        admobExistingCustomEvents: allEventEventsForAllApps.filter(e => e.adUnitId === adUnit.adUnitId),
+                        admobExistingCustomEvents: allEventEventsForAllApps.filter(e => e.adUnitId === adUnit.adUnitId)
                     };
 
                     // removing groups before updating the event class_name
@@ -711,7 +734,7 @@ export class Sync {
             return {
                 ...adUnit,
                 isDeleted: false,
-                platform: CustomEventPlatform[app.platform],
+                platform: CustomEventPlatform[app.platform]
             } as (AppodealAdUnit & Record<string, any>);
         });
     }
@@ -719,7 +742,7 @@ export class Sync {
     async getCreatedAdUnitsList(admobAppIds: string[]): Promise<any> {
         try {
             return await this.adMobApi.postRaw('AdUnitService', 'List', <UpdateRequest>{
-                1: admobAppIds,
+                1: admobAppIds
             });
         } catch (e) {
             this.logger.error('Failed to getCreatedAdUnitsList ', e);
@@ -732,7 +755,7 @@ export class Sync {
                 return;
             }
             return await this.adMobApi.postRaw('AdUnitService', 'ListGoogleBiddingAdUnits', <UpdateRequest>{
-                1: admobAppId,
+                1: admobAppId
             }).then(r => r[1]);
         } catch (e) {
             this.logger.error('Failed to getCreatedBiddingAdUnits ', e);
@@ -745,7 +768,7 @@ export class Sync {
             return await this.customEventApi.postRaw(
                 'mediationGroup',
                 'List',
-                {},
+                {}
             );
         } catch (e) {
             this.logger.error('Failed to getCreatedMediationGroup ', e);
@@ -758,8 +781,8 @@ export class Sync {
             return await this.customEventApi.postRaw(
                 'mediationGroup',
                 'Get',
-                {"1": id, "2":false}
-            )
+                {'1': id, '2': false}
+            );
         } catch (e) {
             this.logger.error('Failed to getCustomEventsListInMediationGroup ', e);
         }
@@ -771,8 +794,8 @@ export class Sync {
             return await this.customEventApi.postRaw(
                 'mediationGroup',
                 'BulkStatusChange',
-                {"1": ids, "2": 3}
-            )
+                {'1': ids, '2': 3}
+            );
         } catch (e) {
             this.logger.error('Failed to removeMediationGroup ', e);
         }
@@ -784,7 +807,7 @@ export class Sync {
             return await this.customEventApi.postRaw(
                 'mediationAllocation',
                 'List',
-                {},
+                {}
             );
         } catch (e) {
             this.logger.error('Failed to getCustomEventsList ', e);
@@ -815,8 +838,8 @@ export class Sync {
                 'V2Update',
                 {
                     '1': payload,
-                    '2': [],
-                },
+                    '2': []
+                }
             );
         } catch (e) {
             this.logger.error('Failed to createCustomEvents ', e);
@@ -829,7 +852,7 @@ export class Sync {
             return await this.customEventApi.postRaw(
                 'mediationGroup',
                 'V2Create',
-                this.createV2Param(app, adUnit),
+                this.createV2Param(app, adUnit)
             );
         } catch (e) {
             this.logger.error('Failed to createMediationGroup ', e);
@@ -842,7 +865,7 @@ export class Sync {
             return await this.customEventApi.postRaw(
                 'mediationGroup',
                 'V2Update',
-                this.createV2UpdateParam(app, adUnit, responseV2Params),
+                this.createV2UpdateParam(app, adUnit, responseV2Params)
             );
         } catch (e) {
             this.logger.error('Failed to updateMediationGroup ', e);
@@ -851,26 +874,26 @@ export class Sync {
 
     createV2Param(app: AppodealApp, adUnit: any) {
         return {
-            "1": adUnit.name,
-            "2": 1,
-            "3": {
-                "1": PlatformGroup[app.platform],
-                "2": this.getAdUnitType(adUnit.adType),
-                "3": [adUnit.adUnitId],
-                "6": 1
+            '1': adUnit.name,
+            '2': 1,
+            '3': {
+                '1': PlatformGroup[app.platform],
+                '2': this.getAdUnitType(adUnit.adType),
+                '3': [adUnit.adUnitId],
+                '6': 1
             },
-            "4": [
+            '4': [
                 {
-                    "2": "1",
-                    "3": 1,
-                    "4": 1,
-                    "5": {"1": "10000", "2": "USD"},
-                    "6": false,
-                    "9": "AdMob+Network",
-                    "11": 1,
-                    "14": "2"
-                },
-            ],
+                    '2': '1',
+                    '3': 1,
+                    '4': 1,
+                    '5': {'1': '10000', '2': 'USD'},
+                    '6': false,
+                    '9': 'AdMob+Network',
+                    '11': 1,
+                    '14': '2'
+                }
+            ]
         };
     }
 
@@ -882,34 +905,36 @@ export class Sync {
         adUnit.customEvents.forEach(event => {
             if (!map.has(event.label)) {
                 map.set(event.label, {
-                    "2": "7",
-                    "3": 1,
-                    "4": 2,
-                    "5": {"1": Math.round(parseFloat(event.price) * 1000000).toString(10), "2": "USD"},
-                    "7": [{
-                        "1": adUnit.adUnitId,
-                        "2": {
-                            "1": [
-                                {"1": "class_name", "2": event.className},
-                                {"1": "parameter", "2": event.params},
-                                {"1": "label", "2": event.label}
-                            ]
+                    '2': '7',
+                    '3': 1,
+                    '4': 2,
+                    '5': {'1': Math.round(parseFloat(event.price) * 1000000).toString(10), '2': 'USD'},
+                    '7': [
+                        {
+                            '1': adUnit.adUnitId,
+                            '2': {
+                                '1': [
+                                    {'1': 'class_name', '2': event.className},
+                                    {'1': 'parameter', '2': event.params},
+                                    {'1': 'label', '2': event.label}
+                                ]
+                            }
                         }
-                    }],
-                    "9": event.label,
-                    "11": Boolean(event.removeEvent) ? 3 : 1,
-                    "13": [event.eventId],
-                    "14": adUnit.platform,
-                })
+                    ],
+                    '9': event.label,
+                    '11': Boolean(event.removeEvent) ? 3 : 1,
+                    '13': [event.eventId],
+                    '14': adUnit.platform
+                });
             }
         });
 
         return {
-            "1": {
+            '1': {
                 ...responseV2Param,
-                "5": [...map.values()],
+                '5': [...map.values()]
             }
-        }
+        };
     }
 
     prepareAdUnitForCreateGroup(resp, adUnit) {
@@ -975,8 +1000,8 @@ export class Sync {
                         params: [
                             {key: 'class_name', value: apdEvent.className},
                             {key: 'parameter', value: apdEvent.params},
-                            {key: 'label', value: apdEvent.label},
-                        ],
+                            {key: 'label', value: apdEvent.label}
+                        ]
                     });
                 }
 
@@ -993,19 +1018,19 @@ export class Sync {
     buildCustomEventsList(adUnit, event): any {
         this.logger.info(`Create a customEvent named ${event.label}`);
         return {
-            "1": '-1',
-            "2": true,
-            "3": "7",
-            "4": [
-                {"1": "class_name", "2": event.className},
-                {"1": "parameter", "2": event.params},
-                {"1": "label", "2": event.label}
+            '1': '-1',
+            '2': true,
+            '3': '7',
+            '4': [
+                {'1': 'class_name', '2': event.className},
+                {'1': 'parameter', '2': event.params},
+                {'1': 'label', '2': event.label}
             ],
-            "10": 1,
-            "12": adUnit.adUnitId,
-            "15": event.label,
-            "16": adUnit.platform
-        }
+            '10': 1,
+            '12': adUnit.adUnitId,
+            '15': event.label,
+            '16': adUnit.platform
+        };
     }
 
     async* syncAdUnits(app: AppodealAppToSync, adMobApp: AdMobApp) {
@@ -1036,7 +1061,7 @@ export class Sync {
                 appId: adMobApp.appId,
                 googleOptimizedRefreshRate: adUnitTemplate.__metadata.adType === AdType.BANNER ?
                     false :
-                    adUnitTemplate.googleOptimizedRefreshRate,
+                    adUnitTemplate.googleOptimizedRefreshRate
             }).catch(e => {
                 this.logger.info(`Failed to create AdUnit`);
                 this.logger.info(e);
@@ -1088,7 +1113,7 @@ export class Sync {
                 delete adMobAdUnit.refreshPeriodSeconds;
                 adMobAdUnit = await this.updateAdMobAdUnitAutomaticRefresh({
                     ...adMobAdUnit,
-                    googleOptimizedRefreshRate: false,
+                    googleOptimizedRefreshRate: false
                 });
                 this.context.addAdMobAdUnit(adMobAdUnit);
                 this.stats.appUpdated(app);
@@ -1100,13 +1125,13 @@ export class Sync {
     }
 
     convertToAppodealAdUnit(adMobAdUnit: AdMobAdUnit, template: AdUnitTemplate): AppodealAdUnit {
-        return {
+        return <AppodealAdUnit>{
             isThirdPartyBidding: template.isThirdPartyBidding,
             code: this.adUnitCode(adMobAdUnit),
             internalAdmobAdUnitId: adMobAdUnit.adUnitId,
             adUnitId: adMobAdUnit.adUnitId,
             name: adMobAdUnit.name,
-            ...template.__metadata,
+            ...template.__metadata
         };
     }
 
@@ -1153,7 +1178,7 @@ export class Sync {
                 `(${escapeStringRegexp(defaultAdUnitPrefix)}|${escapeStringRegexp(this.adUnitNamePrefix)})`,
                 app.id,
                 `(${Object.values(AdType).map((v: string) => v.toLowerCase()).join('|')})`,
-                `(${Object.values(Format).map((v: string) => v.toLowerCase()).join('|')})`,
+                `(${Object.values(Format).map((v: string) => v.toLowerCase()).join('|')})`
             ].join('\/') + '/?');
             this.logger.info(`[AppAdUnits name pattern] ${pattern.toString()}`);
 
@@ -1174,7 +1199,7 @@ export class Sync {
             adType.toLowerCase(),
             format.toLowerCase(),
             cpmFloor ? cpmFloor.toFixed(2) : undefined,
-            customName,
+            customName
         ]
             // to remove empty values
             .filter(v => v)
@@ -1185,19 +1210,19 @@ export class Sync {
         // 0 - banner or mrec, 1 - interstital, 3 - native advanced, 5 - revarded, 8 - rewarded interstitial
         switch (adType) {
             // Mrec & banner have same template
-            case AdType.BANNER:
-            case AdType.MREC:
-                return 0;
-            case AdType.INTERSTITIAL:
-                return 1;
-            case AdType.NATIVE:
-                return 3;
-            case AdType.REWARDED_VIDEO:
-                return 5;
-            case AdType.REWARDED_INTERSTITIAL:
-                return 8;
-            default:
-                return null;
+        case AdType.BANNER:
+        case AdType.MREC:
+            return 0;
+        case AdType.INTERSTITIAL:
+            return 1;
+        case AdType.NATIVE:
+            return 3;
+        case AdType.REWARDED_VIDEO:
+            return 5;
+        case AdType.REWARDED_INTERSTITIAL:
+            return 8;
+        default:
+            return null;
         }
     }
 
@@ -1230,20 +1255,20 @@ export class Sync {
                                 adType: floor.adType,
                                 ecpmFloor: ecpmFloor,
                                 customEvents: floor.customEvents,
-                                format: floor.format,
+                                format: floor.format
                             },
                             cpmFloorSettings: <CpmFloorSettings>{
                                 floorMode: CpmFloorMode.Manual,
                                 manual: {
                                     globalFloorValue: {
                                         currencyCode: 'USD',
-                                        ecpm: ecpmFloor,
-                                    },
-                                },
-                            },
-                        })),
+                                        ecpm: ecpmFloor
+                                    }
+                                }
+                            }
+                        }))
                     ];
-                },
+                }
             )
             .flat(1)
             .map(template => {
@@ -1276,10 +1301,10 @@ export class Sync {
                 adType: floor.adType,
                 ecpmFloor: 0,
                 customEvents: floor.customEvents,
-                format: floor.format,
+                format: floor.format
             },
             name: this.buildAdUnitName(app, floor),
-            isThirdPartyBidding: floor.isThirdPartyBidding,
+            isThirdPartyBidding: floor.isThirdPartyBidding
         };
 
         return floor.isThirdPartyBidding === false ? {
@@ -1287,8 +1312,8 @@ export class Sync {
             googleOptimizedRefreshRate: true,
             cpmFloorSettings: {
                 floorMode: CpmFloorMode.OptimizedByGoogle,
-                optimized: 3,
-            },
+                optimized: 3
+            }
         } : adUnitParams;
     }
 
@@ -1305,7 +1330,7 @@ export class Sync {
         return stringify([
             // extract prefix. it has no power here
             Sync.normalizeAdmobAdUnitName(adUnit.name).split('/').slice(1).join('/'),
-            adUnit.adFormat,
+            adUnit.adFormat
         ]);
     }
 
@@ -1392,16 +1417,16 @@ export class Sync {
             const adMobApp: Partial<AdMobApp> = {
                 name: [this.adUnitNamePrefix, app.id, app.name].join('/').substr(0, MAX_APP_NAME_LENGTH),
                 platform: Sync.toAdMobPlatform(app),
-                userMetricsStatus: UserMetricsStatus.DISABLED,
+                userMetricsStatus: UserMetricsStatus.DISABLED
             };
             return this.adMobApi.postRaw('AppService', 'Create', getTranslator(AppCreateRequestTranslator).encode({
                 app: adMobApp,
                 requestHeader: {
                     context: {
                         host: Host.ADMOB,
-                        publisherCode: admobAccountId,
-                    },
-                },
+                        publisherCode: admobAccountId
+                    }
+                }
             } as AppCreateRequest))
                 .then(res => (getTranslator(AppCreateResponseTranslator).decode(res) as AppCreateResponse).app);
         } catch (e) {
@@ -1414,13 +1439,12 @@ export class Sync {
             adMobApp.name = newName;
             return await this.adMobApi.postRaw('AppService', 'Update', <UpdateRequest>{
                 1: getTranslator(AppTranslator).encode(adMobApp),
-                2: {1: ['name']},
+                2: {1: ['name']}
             }).then((res: UpdateResponse) => getTranslator(AppTranslator).decode(res[1]));
         } catch (e) {
             this.logger.error('Failed to updateAdMobAppName ', e);
         }
     }
-
 
     async showAdMobApp(adMobApp: AdMobApp): Promise<AdMobApp> {
         try {
@@ -1428,9 +1452,13 @@ export class Sync {
                 'AppService',
                 'Update',
                 {
-                    "1": {"1": {"1": 1, "3": `${this.adMobAccount.id}`}},
-                    "2": [{"1": {"19": false, "36": adMobApp['36']}, "2": ["hidden"]}]
-                })
+                    '1': this.appServiceFirstParam,
+                    '2': [{
+                        '1': {'19': false, '36': adMobApp.publisherId},
+                        '2': ['hidden']
+                    }]
+                }
+            )
                 .then(() => ({...adMobApp, hidden: false}));
         } catch (e) {
             this.logger.error('Failed to showAdMobApp ', e);
@@ -1443,9 +1471,13 @@ export class Sync {
                 'AppService',
                 'Update',
                 {
-                    "1": {"1": {"1": 1, "3": `${this.adMobAccount.id}`}},
-                    "2": [{"1": {"19": true, "36": adMobApp['36']}, "2": ["hidden"]}]
-                })
+                    '1': this.appServiceFirstParam,
+                    '2': [{
+                        '1': {'19': true, '36': adMobApp.publisherId},
+                        '2': ['hidden']
+                    }]
+                }
+            )
                 .then(() => ({...adMobApp, hidden: true}));
         } catch (e) {
             this.logger.error('Failed to hideAdMobApp ', e);
@@ -1457,122 +1489,88 @@ export class Sync {
         try {
             interface SearchAppRequest {
                 1: {
-                1: {
-                    1: number,
-                    3: string, // 'pub-5724626354699096', // publisher id
-                    5: { 4: boolean, 5: boolean, 6: boolean, 7: boolean, 10: boolean, 11: boolean, 12: boolean },
+                    1: {
+                        1: number,
+                        3: string, // 'pub-5724626354699096', // publisher id
+                        5: { 4: boolean, 5: boolean, 6: boolean, 7: boolean, 10: boolean, 11: boolean, 12: boolean },
+                    },
                 },
-            },
                 2: string, // 'search name'
                 3: number,
                 4: number, // pagination
-            5: AdMobPlatform, // 2, // platform
+                5: AdMobPlatform, // 2, // platform
             }
-
-        interface SearchResponse {
-            2: number; // number of results
-            3: SearchAppResponse[]; // apps ;
-        }
-
             interface SearchAppResponse {
                 2: string, // app name
-            3: number, // 1, // platform
-            4: string, // store id
-            5: string, // developer name
-            6: number, // 1, // ???
-            7: string, // icon
-            8: {
-                2: string // currency
-            },
-            10: string, // store link
-            12: number, // Rating
-            13: number, // position in store
-            22: string, // applicationPackageName
-            32: [
-                {
-                    2: number, // 1 // platform 1-iOs; 2-Android
-                }
-            ]
-            }
-
-            const searchAppResponse: AdMobApp[] = await this.adMobApi.postRaw('AppService', 'Search', <SearchAppRequest>{
-                '1': {
-                '1': {
-                    '1': 1,
-                    '3': this.adMobAccount.id,
-                    '5': {'4': false, '5': false, '6': false, '7': true, '10': false, '11': false, '12': false},
+                3: number, // 1, // platform
+                4: string, // store id
+                5: string, // developer name
+                6: number, // 1, // ???
+                7: string, // icon
+                8: {
+                    2: string // currency
                 },
-            },
-            '2': String(app.bundleId).substr(0, 79),
-                '3': 0,
-                '4': 10,
-            '5': Sync.toAdMobPlatform(app),
-            }).then((response: SearchResponse) => Boolean(response[2]) ? response[3].map(getTranslator(AppTranslator).decode) : []);
-
-        const publishedApp = searchAppResponse.find(publishedApp => {
-            return app.platform === AppodealPlatform.IOS ?
-                publishedApp.applicationPackageName === app.bundleId :
-                publishedApp.applicationStoreId === app.bundleId;
-        });
-        if (publishedApp) {
-            this.logger.info(`App found in store`);
-            this.stats.appUpdated(app);
-            adMobApp = {...adMobApp, ...publishedApp};
-
-            let copyAdmobApp = {
-                name: adMobApp.name,
-                applicationStoreId: adMobApp.applicationStoreId,
-                platformType: adMobApp.platformType, // more options {"2":14},{"2":15},{"2":16},{"2":17},{'2': 18}
-                    publisherId: '',
-            };
-
-            let firstParamPayload = {
-                '1': {
-                    '1': 1,
-                    '3': this.adMobAccount.id,
-                        '5': {'4': false, '5': false, '6': false, '7': true, '10': false, '11': false, '12': false},
-                },
-            }
-
-
-            // getting all list for build 'adMobAppInfo' and Update app
-            await this.adMobApi.postRaw(
-                'AppService',
-                'List',
-                {'1': firstParamPayload, '2': 1},
-            ).then((res: UpdateResponse) => {
-                if (!res[2]) {
-                    return;
-                }
-
-                // find app and take the publisher ID
-                res[2].find(app => {
-                    if (app['1'] === adMobApp.appId) {
-                        copyAdmobApp.publisherId = app['36'];
+                10: string, // store link
+                12: number, // Rating
+                13: number, // position in store
+                22: string, // applicationPackageName
+                32: [
+                    {
+                        2: number, // 1 // platform 1-iOs; 2-Android
                     }
-                });
-            });
-
-            let adMobAppInfo = getTranslator(AppTranslator).encode(copyAdmobApp);
-
-            // build correct type. Object ---> Array
-            adMobAppInfo['32'] = Object.values(adMobAppInfo['32']);
-
-
-            return await this.adMobApi.postRaw(
-                'AppService',
-                'Update',
-                {
-                    '1': firstParamPayload,
-                    '2': [
-                        {
-                            '1': adMobAppInfo,
-                            '2': ['stores', 'application_store_id', 'name'],
-                        },
-                        ],
-                    },
-                ).then((res: UpdateResponse) => getTranslator(AppTranslator).decode(res[2][0]));
+                ]
             }
+            interface SearchResponse {
+                2: number; // number of results
+                3: SearchAppResponse[]; // apps ;
+            }
+
+
+            const searchAppResponse: AdMobApp[] = await this.adMobApi.postRaw(
+                'AppService',
+                'Search',
+                <SearchAppRequest>{
+                    '1': this.appServiceFirstParam,
+                    '2': String(app.bundleId).substr(0, 79),
+                    '3': 0,
+                    '4': 10,
+                    '5': Sync.toAdMobPlatform(app)
+                }
+            ).then((response: SearchResponse) => Boolean(response[2]) ? response[3].map(getTranslator(AppTranslator).decode) : []);
+
+            const publishedApp = searchAppResponse.find(publishedApp => {
+                return app.platform === AppodealPlatform.IOS ?
+                    publishedApp.applicationPackageName === app.bundleId :
+                    publishedApp.applicationStoreId === app.bundleId;
+            });
+            if (publishedApp) {
+                this.logger.info(`App found in store`);
+                this.stats.appUpdated(app);
+                adMobApp = {...adMobApp, ...publishedApp};
+
+                let copyAdmobApp = {
+                    name: adMobApp.name,
+                    applicationStoreId: adMobApp.applicationStoreId,
+                    platformType: adMobApp.platformType, // more options {"2":14},{"2":15},{"2":16},{"2":17},{'2': 18}
+                    publisherId: adMobApp.publisherId,
+                };
+
+                let adMobAppInfo = getTranslator(AppTranslator).encode(copyAdmobApp);
+
+                // build correct type. Object ---> Array
+                adMobAppInfo['32'] = Object.values(adMobAppInfo['32']);
+
+                return await this.linkAppStoreDetails(adMobAppInfo).then((res: UpdateResponse) => {
+                    if (res[1]) {
+                        this.logger.warn(`Please remove the links to the App Store from hidden apps!!`);
+                        return;
+                    }
+
+                    this.logger.info(`The response to the AppService Update is ${JSON.stringify(res)}`);
+                    return getTranslator(AppTranslator).decode(res[2][0]);
+                });
+            }
+
             this.logger.info(`App NOT found in store`);
             return adMobApp;
         } catch (e) {
@@ -1580,13 +1578,37 @@ export class Sync {
         }
     }
 
-    async createAdMobAdUnit(adUnit: Partial<AdMobAdUnit>): Promise<AdMobAdUnit> {
+    async linkAppStoreDetails(adMobAppInfo) {
+        return await this.adMobApi.postRaw(
+            'AppService',
+            'Update',
+            {
+                '1': this.appServiceFirstParam,
+                '2': [
+                    {
+                        '1': adMobAppInfo,
+                        '2': ['stores', 'application_store_id', 'name']
+                    }
+                ]
+            }
+        )
+    }
+
+    async getApps(): Promise<any> {
+        return await this.adMobApi.postRaw(
+            'AppService',
+            'List',
+            {'1': this.appServiceFirstParam, '2': 1}
+        );
+    }
+
+    async createAdMobAdUnit(adUnit: Partial<AdMobAdUnit>): Promise<AdMobAdUnit | any> {
         try {
             return this.adMobApi.post(
                 'AdUnitService',
                 'Create',
-                {"1": getTranslator(AdUnitTranslator).encode(adUnit)})
-                .then(res => getTranslator(AdUnitTranslator).decode(res));
+                {'1': getTranslator(AdUnitTranslator).encode(adUnit)}
+            ).then(res => getTranslator(AdUnitTranslator).decode(res));
         } catch (e) {
             this.logger.error('Failed to createAdMobAdUnit ', e);
         }
@@ -1597,29 +1619,28 @@ export class Sync {
             adMobAdUnit.name = newName;
             return await this.adMobApi.postRaw('AdUnitService', 'Update', <UpdateRequest>{
                 1: getTranslator(AdUnitTranslator).encode(adMobAdUnit),
-                2: {1: ['name']},
+                2: {1: ['name']}
             }).then((res: UpdateResponse) => getTranslator(AdUnitTranslator).decode(res[1]));
         } catch (e) {
             this.logger.error('Failed to updateAdMobAdUnitName ', e);
         }
     }
 
-    async updateAdMobAdUnitAutomaticRefresh(adMobAdUnit: AdMobAdUnit): Promise<AdMobAdUnit> {
-        try {
-            return await this.adMobApi.postRaw('AdUnitService', 'Update', <UpdateRequest>{
+    async updateAdMobAdUnitAutomaticRefresh(adMobAdUnit: AdMobAdUnit): Promise<AdMobAdUnit | any> {
+        return await this.adMobApi.postRaw(
+            'AdUnitService',
+            'Update',
+            <UpdateRequest>{
                 1: getTranslator(AdUnitTranslator).encode(adMobAdUnit),
-                2: {1: ['refresh_period_seconds', 'google_optimized_refresh_rate']},
+                2: {1: ['refresh_period_seconds', 'google_optimized_refresh_rate']}
             })
-                .then((res: UpdateResponse) => getTranslator(AdUnitTranslator).decode(res[1]))
-                .catch(error => this.logger.error('Failed to AdUnitService ', error));
-        } catch (e) {
-            this.logger.error('Failed to updateAdMobAdUnitAutomaticRefresh ', e);
-        }
+            .then((res: UpdateResponse) => getTranslator(AdUnitTranslator).decode(res[1]))
+            .catch(error => this.logger.error('Failed to AdUnitService ', error));
     }
 
     async deleteAdMobAdUnits(ids: string[]) {
         try {
-            return this.adMobApi.post('AdUnitService', 'BulkRemove', {"1": ids, "2": 1});
+            return this.adMobApi.post('AdUnitService', 'BulkRemove', {'1': ids, '2': 1});
         } catch (e) {
             this.logger.error('Failed to deleteAdMobAdUnits ', e);
         }
@@ -1627,7 +1648,7 @@ export class Sync {
 
     async deleteAdMobAdUnitsBidding(ids: string[]) {
         try {
-            return this.adMobApi.post('AdUnitService', 'BulkRemove', {"1": ids, "2": 2});
+            return this.adMobApi.post('AdUnitService', 'BulkRemove', {'1': ids, '2': 2});
         } catch (e) {
             this.logger.error('Failed to deleteAdMobAdUnitsBidding ', e);
         }
