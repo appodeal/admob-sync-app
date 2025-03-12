@@ -1,9 +1,12 @@
-# This file was generated based on ".graphqlconfig". Do not edit manually.
+# This file was generated. Do not edit manually.
 
 schema {
     query: Queries
     mutation: Mutations
 }
+
+"Requires that exactly one field must be supplied and that field must not be `null`."
+directive @oneOf on INPUT_OBJECT
 
 type AdmobAccount {
     "Account apps with pagination"
@@ -22,6 +25,7 @@ type App {
     isDeleted: Boolean!
     name: String!
     platform: Platform!
+    storeId: String!
 }
 
 type AppPaginatableCollection {
