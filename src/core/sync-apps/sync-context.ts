@@ -44,8 +44,8 @@ export class SyncContext {
         this.adMob.adUnits.push(adMobAdUnit);
     }
 
-    getActiveAdmobApps () {
-        return this.adMob.apps.filter(app => !app.hidden);
+    getAllAdmobApps () {
+        return [...this.adMob.apps];
     }
 
     getHiddenAppsWithStoreLink () {

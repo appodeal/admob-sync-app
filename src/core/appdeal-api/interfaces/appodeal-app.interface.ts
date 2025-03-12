@@ -16,6 +16,7 @@ export interface AppodealApp {
     admobAppId: string;
     ecpmFloors: EcpmFloors[]
     customEventsList: any[]
+    storeId: string | null
 }
 
 

@@ -378,7 +378,15 @@ export class Sync {
         }
     }
 
-    prepareApps(apps) {
+    async prepareApps(apps) {
+        const adMobHiddenApp = this.context.getHiddenAppsWithStoreLink();
+        for (const a of adMobHiddenApp) {
+            await this.linkAppStoreDetails({
+                '2': a.name,
+                '4': '',
+                '36': a.publisherId
+            });
+        }
 
         const prepareAppDataToSync = (app: AppodealAppToSync) => {
             try {
@@ -393,28 +401,11 @@ export class Sync {
 
                 app.customEventsList = [];
 
-                const adMobHiddenApp = this.context.getHiddenAppsWithStoreLink();
-                for (const a of adMobHiddenApp) {
-                    if (a.name === app.name) {
-                        this.linkAppStoreDetails({
-                            '2': a.name,
-                            '4': '',
-                            '36': a.publisherId
-                        }).then(r => {
-                            if (Array.isArray(r[2])) {
-                                this.logger.info('Link was removed from hidden app', r);
-                            } else {
-                                this.logger.error(`Link wasn't remove from second hidden app ${r}`)
-                            }
-                        })
-                    }
-                }
-
                 if (app.isDeleted) {
                     return app;
                 }
 
-                const adMobApp = app.admobApp = this.findAdMobApp(app, this.context.getActiveAdmobApps());
+                const adMobApp = app.admobApp = this.findAdMobApp(app, this.context.getAllAdmobApps());
                 app.adUnitTemplatesToCreate = this.buildAdUnitsSchema(app);
 
 
@@ -460,7 +451,7 @@ export class Sync {
 
     async* syncApps() {
 
-        const apps = this.apps = this.prepareApps(this.context.getAppodealApps());
+        const apps = this.apps = await this.prepareApps(this.context.getAppodealApps());
 
         this.emitProgress();
 
@@ -556,7 +547,7 @@ export class Sync {
     async* syncApp(app: AppodealAppToSync) {
         yield `Start Sync App [${app.id}] ${app.name}`;
 
-        let adMobApp = this.findAdMobApp(app, this.context.getActiveAdmobApps());
+        let adMobApp = this.findAdMobApp(app, this.context.getAllAdmobApps());
         if (adMobApp) {
             this.logger.info(`Appodeal App [${app.id}] ${app.name} -> AdMobApp [${adMobApp.appId}] ${adMobApp.name}`);
         }
@@ -575,7 +566,7 @@ export class Sync {
             yield `App created`;
         }
 
-        if (adMobApp.hidden && adMobApp.applicationPackageName) {
+        if (adMobApp.hidden && adMobApp.appId === app.admobAppId) {
             adMobApp = await this.showAdMobApp(adMobApp);
             this.context.updateAdMobApp(adMobApp);
             this.stats.appUpdated(app);
@@ -1352,8 +1343,13 @@ export class Sync {
         const adMobPlatform = Sync.toAdMobPlatform(app);
 
         if (adMobApp.hidden) {
-            this.logger.info('[FindAdMobApp] App become hidden');
-            return null;
+            if (adMobApp.appId === app.admobAppId) {
+                this.logger.info('[FindAdMobApp] Has hidden app');
+                return adMobApp;
+            } else {
+                this.logger.info('[FindAdMobApp] App become hidden');
+                return null;
+            }
         }
 
         if (adMobApp.platform !== adMobPlatform) {
@@ -1361,10 +1357,11 @@ export class Sync {
             return null;
         }
 
-        if (adMobApp.applicationPackageName && app.bundleId && adMobApp.applicationPackageName !== app.bundleId) {
-            this.logger.info(`[FindAdMobApp] Wrong bundle ID. Appodeal bundleId '${app.bundleId}'. Admob applicationPackageName '${adMobApp.applicationPackageName}' `);
+        if (adMobApp.applicationStoreId && app.storeId && adMobApp.applicationStoreId !== app.storeId) {
+            this.logger.info(`[FindAdMobApp] Wrong bundle ID. Appodeal bundleId '${app.storeId}'. Admob applicationStoreId '${adMobApp.applicationStoreId}' `);
             return null;
         }
+
         return adMobApp;
     }
 
@@ -1377,7 +1374,7 @@ export class Sync {
             const adMobPlatform = Sync.toAdMobPlatform(app);
 
             let adMobApp = app.platform !== AppodealPlatform.AMAZON && app.bundleId
-                ? apps.find(adMobApp => adMobApp.platform === adMobPlatform && adMobApp.applicationPackageName === app.bundleId)
+                ? apps.find(adMobApp => adMobApp.platform === adMobPlatform && adMobApp.applicationStoreId === app.storeId)
                 : null;
 
             if (adMobApp) {
@@ -1394,6 +1391,18 @@ export class Sync {
                     return adMobApp;
                 } else {
                     this.logger.info('[FindAdMobApp] has INVALID adMobAppId');
+                }
+            }
+
+            if (app.storeId) {
+                adMobApp = apps.find(adMobApp => adMobApp.applicationStoreId === app.storeId);
+                adMobApp = this.validateAdmobApp(app, adMobApp);
+
+                if (adMobApp) {
+                    this.logger.info('[FindAdMobApp] Found by storeId');
+                    return adMobApp;
+                } else {
+                    this.logger.info('[FindAdMobApp] has INVALID storeId');
                 }
             }
 
@@ -1562,7 +1571,7 @@ export class Sync {
 
                 return await this.linkAppStoreDetails(adMobAppInfo).then((res: UpdateResponse) => {
                     if (res[1]) {
-                        this.logger.warn(`Please remove the links to the App Store from hidden apps!!`);
+                        this.logger.warn(`Please remove the links to the App Store from hidden apps!!`, JSON.stringify(res));
                         return;
                     }
 
