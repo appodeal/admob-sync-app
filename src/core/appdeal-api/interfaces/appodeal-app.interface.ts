@@ -26,6 +26,7 @@ export interface EcpmFloors {
     ecpmFloor: number[]
     format: Format
     isThirdPartyBidding: boolean
+    monetizationEngine: MonetizationEngine
 }
 
 export interface CustomEvent {
@@ -55,6 +56,14 @@ export enum Format {
     REWARDED = 'REWARDED'
 }
 
+export enum MonetizationEngine {
+    APPLOVIN_MAX = 'APPLOVIN_MAX',
+    APPODEAL = 'APPODEAL',
+    BIDON = 'BIDON',
+    LEVEL_PLAY = 'LEVEL_PLAY',
+    RESERVED = 'RESERVED'
+}
+
 export interface AppodealAdUnit {
     code: string;
     adType: AdType;
@@ -64,4 +73,5 @@ export interface AppodealAdUnit {
     internalAdmobAdUnitId: string;
     adUnitId: string;
     name: string;
+    monetizationEngine: MonetizationEngine;
 }

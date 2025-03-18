@@ -46,20 +46,17 @@ const rewardedVideoAdUnitTemplate: Partial<AdMobAdUnit> = {
 };
 
 export function getAdUnitTemplate (adType: AdType) {
-
     switch (adType) {
-    case AdType.INTERSTITIAL:
-        return defaultAUnitTemplate;
-        // Mrec & banner have same template
-    case AdType.BANNER:
-    case AdType.MREC:
-        return bannerAdUnitTemplate;
-    case AdType.REWARDED_VIDEO:
-        return rewardedVideoAdUnitTemplate;
-    case AdType.NATIVE:
-        return nativeAdUnitTemplate;
-
-    default:
-        return null;
+        case AdType.INTERSTITIAL:
+            return defaultAUnitTemplate;
+        case AdType.BANNER:
+        case AdType.MREC:
+            return bannerAdUnitTemplate;
+        case AdType.REWARDED_VIDEO:
+            return rewardedVideoAdUnitTemplate;
+        case AdType.NATIVE:
+            return nativeAdUnitTemplate;
+        default:
+            return null;
     }
 }

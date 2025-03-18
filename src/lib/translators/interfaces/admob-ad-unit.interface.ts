@@ -17,6 +17,15 @@ export interface AdMobAdUnit {
     usageSummary: any,
     cpmFloorSettings: CpmFloorSettings,
     isThirdPartyBidding: boolean,
+    monetizationEngine?: MonetizationEngine
+}
+
+export enum MonetizationEngine {
+    APPLOVIN_MAX = 'APPLOVIN_MAX',
+    APPODEAL = 'APPODEAL',
+    BIDON = 'BIDON',
+    LEVEL_PLAY = 'LEVEL_PLAY',
+    RESERVED = 'RESERVED'
 }
 
 export enum AdMobAdFormat {

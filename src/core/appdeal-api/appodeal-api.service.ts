@@ -265,7 +265,8 @@ export class AppodealApiService {
                     code: v.code,
                     ecpmFloor: v.ecpmFloor,
                     format: v.format,
-                    isThirdPartyBidding: v.isThirdPartyBidding
+                    isThirdPartyBidding: v.isThirdPartyBidding,
+                    monetizationEngine: v.monetizationEngine,
                 }))
             }
         });

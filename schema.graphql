@@ -47,6 +47,7 @@ type EcpmFloors {
     ecpmFloor: [Float!]!
     format: Format!
     isThirdPartyBidding: Boolean
+    monetizationEngine: MonetizationEngine
 }
 
 type Mutations {
@@ -129,6 +130,14 @@ enum Format {
     UNDEFINED
 }
 
+enum MonetizationEngine {
+    APPLOVIN_MAX
+    APPODEAL
+    BIDON
+    LEVEL_PLAY
+    RESERVED
+}
+
 enum Platform {
     "Amazon"
     AMAZON
@@ -146,4 +155,5 @@ input AdUnit {
     ecpmFloor: Float!
     format: Format!
     isThirdPartyBidding: Boolean
+    monetizationEngine: MonetizationEngine
 }

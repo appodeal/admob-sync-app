@@ -21,6 +21,7 @@ query currentUser ($id: ID!, $page: Int, $pageSize: Int) {
                         ecpmFloor
                         format
                         isThirdPartyBidding
+                        monetizationEngine
                     }
                     storeId
                 }
