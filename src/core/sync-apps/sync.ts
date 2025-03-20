@@ -791,7 +791,7 @@ export class Sync {
         }
     }
 
-    async getCreatedBiddingAdUnits(admobAppId: string): Promise<unknown> {
+    async getCreatedBiddingAdUnits(admobAppId: string): Promise<any> {
         if (!admobAppId) {
             return;
         }
@@ -1117,7 +1117,7 @@ export class Sync {
 
                     if (OLDName === NEWName) {
                         value.adUnitId = uTemplate[1];
-                        app.appodealAdUnits.push(this.convertToAppodealAdUnit(value, app.adUnitTemplatesToCreate.get(key)));
+                        app.appodealAdUnits.push(this.convertToAppodealAdUnit((value as any), (app.adUnitTemplatesToCreate.get(key) as any)));
                         app.adUnitTemplatesToCreate.delete(key);
                         return;
                     }
@@ -1156,10 +1156,10 @@ export class Sync {
                         appId: uTemplate[2],
                     });
 
-                    app.appodealAdUnits.push(this.convertToAppodealAdUnit({
+                    app.appodealAdUnits.push(this.convertToAppodealAdUnit(({
                         ...valueCreatedAdUnit,
                         adUnitId: uTemplate[1],
-                    }, app.adUnitTemplatesToCreate.get(keyCreatedAdUnit)));
+                    } as any), app.adUnitTemplatesToCreate.get(keyCreatedAdUnit)));
                     app.adUnitTemplatesToCreate.delete(keyCreatedAdUnit);
                 }
 
