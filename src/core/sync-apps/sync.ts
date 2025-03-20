@@ -14,27 +14,19 @@ import {getAdUnitTemplate} from 'core/sync-apps/ad-unit-templates';
 import {SyncStats} from 'core/sync-apps/sync-stats';
 import stringify from 'json-stable-stringify';
 import {retryProxy} from 'lib/retry';
-import {
-    AppCreateRequestTranslator,
-    AppCreateResponseTranslator,
-    AppTranslator
-} from 'lib/translators/admob-app.translator';
+import {AppCreateRequestTranslator, AppCreateResponseTranslator, AppTranslator} from 'lib/translators/admob-app.translator';
 import {AdmobCustomEventTranslator} from 'lib/translators/admob-event-translator';
 import {AdMobPlatform} from 'lib/translators/admob.constants';
 import {AdUnitTranslator} from 'lib/translators/admop-ad-unit.translator';
 import {
+    AdMobAdFormat,
     AdMobAdUnit,
     AdmobCustomEvent,
     CpmFloorMode,
-    CpmFloorSettings
+    CpmFloorSettings,
+    MonetizationEngine, RewardsSettings
 } from 'lib/translators/interfaces/admob-ad-unit.interface';
-import {
-    AdMobApp,
-    AppCreateRequest,
-    AppCreateResponse,
-    Host,
-    UserMetricsStatus
-} from 'lib/translators/interfaces/admob-app.interface';
+import {AdMobApp, AppCreateRequest, AppCreateResponse, Host, UserMetricsStatus} from 'lib/translators/interfaces/admob-app.interface';
 import {getTranslator} from 'lib/translators/translator.helpers';
 import uuid from 'uuid';
 import {AdMobAccount} from '../appdeal-api/interfaces/admob-account.interface';
@@ -46,8 +38,6 @@ import {SyncEventEmitter} from './sync-event.emitter';
 import {SyncRunner} from './sync-runner';
 import {SyncErrorEvent, SyncEvent, SyncEventsTypes, SyncReportProgressEvent, SyncStopEvent} from './sync.events';
 import escapeStringRegexp = require('escape-string-regexp');
-import {Simulate} from 'react-dom/test-utils';
-import error = Simulate.error;
 
 
 const isObject = (v) => v !== null && typeof v === 'object';
@@ -60,6 +50,7 @@ interface AppodealAppToSync extends AppodealApp {
     subProgressCurrent: number;
     subProgressTotal: number;
     adUnitTemplatesToCreate: Map<AdUnitTemplateId, AdUnitTemplate>;
+    adUnitsMonetizationEngineToUpdate: Map<AdUnitTemplateId, AdUnitTemplate>;
     adUnitsToDelete: AdUnitId[];
     appodealAdUnits: any[];
     oldGoodAdUnits: AdMobAdUnit[];
@@ -121,7 +112,7 @@ export class Sync {
     };
 
     /**
-     * if user have no permissions to create native adunits we should not try do it many times.
+     * if user have no permissions to create native adunits we should not try to do it many times.
      */
     private skipNativeAdUnits = false;
 
@@ -398,6 +389,7 @@ export class Sync {
                 app.oldGoodAdUnits = [];
                 app.adUnitsToUpdateName = [];
                 app.adUnitTemplatesToCreate = new Map();
+                app.adUnitsMonetizationEngineToUpdate = new Map();
 
                 app.customEventsList = [];
 
@@ -406,23 +398,78 @@ export class Sync {
                 }
 
                 const adMobApp = app.admobApp = this.findAdMobApp(app, this.context.getAllAdmobApps());
-                app.adUnitTemplatesToCreate = this.buildAdUnitsSchema(app);
 
 
                 if (!app.admobApp) {
                     return app;
                 }
 
+                app.adUnitTemplatesToCreate = this.buildAdUnitsSchema(app);
+
                 this.getActiveAdmobAdUnitsCreatedByApp(app, adMobApp).forEach((adMobAdUnit: AdMobAdUnit) => {
                     const templateId = Sync.getAdUnitTemplateId(adMobAdUnit);
+                    const monetizationEngine = app.adUnitTemplatesToCreate.get(templateId)?.monetizationEngine;
+
                     if (app.adUnitTemplatesToCreate.has(templateId)) {
+                        // Good AdUnits
                         app.oldGoodAdUnits.push(adMobAdUnit);
                         app.appodealAdUnits.push(this.convertToAppodealAdUnit(adMobAdUnit, app.adUnitTemplatesToCreate.get(templateId)));
                         app.adUnitTemplatesToCreate.delete(templateId);
-                    } else {
+                        return;
+                    }
+
+                    if (!app.adUnitTemplatesToCreate.has(templateId)) {
+                        let hasCreatedAdUnit = [...app.adUnitTemplatesToCreate.entries()].find(([key, value]) => {
+                            let OLDName = adMobAdUnit.name.toLowerCase();
+                            let NEWName = value.name.toLowerCase();
+
+                            if (OLDName === NEWName) {
+                                return true;
+                            }
+
+                            let arrOLDName = OLDName.split('/');
+                            let arrNEWName = NEWName.split('/');
+
+                            if (arrOLDName.length < arrNEWName.length && value.monetizationEngine === MonetizationEngine.APPODEAL) {
+                                arrNEWName.pop();
+                                const name = arrNEWName.join('/').toLowerCase();
+                                return OLDName === name;
+                            }
+
+                            if (arrOLDName.length === arrNEWName.length) {
+                                if (this.isAdUnitPrefixNameIdentity(arrOLDName[arrOLDName.length - 1]) !== value.monetizationEngine) {
+                                    return false;
+                                }
+
+                                arrOLDName.pop();
+                                arrNEWName.pop();
+
+                                return this.isEqual(arrOLDName, arrNEWName);
+                            }
+                        });
+
+                        if (hasCreatedAdUnit) {
+                            const [keyCreatedAdUnit, valueCreatedAdUnit] = hasCreatedAdUnit;
+
+                            app.adUnitsMonetizationEngineToUpdate.set(templateId, {
+                                ...valueCreatedAdUnit,
+                                appId: adMobApp.appId,
+                                adUnitId: adMobAdUnit.adUnitId,
+                            });
+
+                            app.oldGoodAdUnits.push(adMobAdUnit);
+                            app.appodealAdUnits.push(this.convertToAppodealAdUnit(adMobAdUnit, app.adUnitTemplatesToCreate.get(keyCreatedAdUnit)));
+                            app.adUnitTemplatesToCreate.delete(keyCreatedAdUnit);
+                        }
+
+                        return;
+                    }
+
+                    if (!app.adUnitTemplatesToCreate.has(templateId) && !monetizationEngine) {
                         app.adUnitsToDelete.push(adMobAdUnit.adUnitId);
                     }
                 });
+
                 app.adUnitsToUpdateName = app.oldGoodAdUnits.filter(
                     adMobAdUnit => adMobAdUnit.name.substr(0, this.adUnitNamePrefix.length) !== this.adUnitNamePrefix
                 );
@@ -447,6 +494,10 @@ export class Sync {
         } catch (e) {
             this.logger.error('Failed to prepareApps ', e);
         }
+    }
+
+    isEqual(array1, array2) {
+        return JSON.stringify(array1) === JSON.stringify(array2);
     }
 
     async* syncApps() {
@@ -529,7 +580,7 @@ export class Sync {
             yield `No AdUnits to delete`;
         }
 
-        // in case app has at least one active adUnit it should no be hidden
+        // in case app has at least one active adUnit it should not be hidden
         if (!adMobApp.hidden && !this.context.getAdMobAppActiveAdUnits(adMobApp).length) {
             try {
                 yield `Hide App. All its adUnits are archived`;
@@ -576,8 +627,8 @@ export class Sync {
         /**
          * !!! IMPORTANT !!!
          * Admob Does not support amazon platfrom
-         * so we create amazon Apps with Android platform
-         * and we should not link this apps with google play!!!
+         * so we create amazon Apps with Android platform,
+         * and we should not link these apps with Google play!!!
          */
         if (!adMobApp.applicationStoreId && app.platform !== AppodealPlatform.AMAZON) {
             this.logger.info(`Search app in ${app.platform === AppodealPlatform.ANDROID ? 'Google Play' : 'App Store'}`);
@@ -740,17 +791,15 @@ export class Sync {
         }
     }
 
-    async getCreatedBiddingAdUnits(admobAppId: string): Promise<any[]> {
-        try {
-            if (!admobAppId) {
-                return;
-            }
-            return await this.adMobApi.postRaw('AdUnitService', 'ListGoogleBiddingAdUnits', <UpdateRequest>{
-                1: admobAppId
-            }).then(r => r[1]);
-        } catch (e) {
-            this.logger.error('Failed to getCreatedBiddingAdUnits ', e);
+    async getCreatedBiddingAdUnits(admobAppId: string): Promise<unknown> {
+        if (!admobAppId) {
+            return;
         }
+        return await this.adMobApi.postRaw('AdUnitService', 'ListGoogleBiddingAdUnits', <UpdateRequest>{
+            1: admobAppId
+        }).then(r => r[1]).catch(e => {
+            this.logger.error('Failed to getCreatedBiddingAdUnits ', e);
+        });
     }
 
     async getCreatedMediationGroup() {
@@ -1024,54 +1073,161 @@ export class Sync {
         };
     }
 
+    isAdUnitPrefixNameIdentity(name: string): MonetizationEngine {
+        switch (name.toLowerCase()) {
+            case 'appodeal':
+                return MonetizationEngine.APPODEAL;
+            case 'max':
+            case 'applovin_max':
+            case 'applovinmax':
+                return MonetizationEngine.APPLOVIN_MAX;
+            case 'bidon':
+                return MonetizationEngine.BIDON;
+            case 'levelplay':
+                return MonetizationEngine.LEVEL_PLAY;
+            case 'stock':
+            case 'reserved':
+                return MonetizationEngine.RESERVED;
+        }
+    }
+
+    buildAdUnitPrefixName(engine: MonetizationEngine): string {
+        switch (engine) {
+        case MonetizationEngine.APPODEAL:
+            return 'Appodeal';
+        case MonetizationEngine.APPLOVIN_MAX:
+            return 'MAX';
+        case MonetizationEngine.BIDON:
+            return 'Bidon';
+        case MonetizationEngine.LEVEL_PLAY:
+            return 'LevelPlay';
+        case MonetizationEngine.RESERVED:
+            return 'Reserved';
+        }
+    }
+
     async* syncAdUnits(app: AppodealAppToSync, adMobApp: AdMobApp) {
         const createdBiddingAdUnits = await this.getCreatedBiddingAdUnits(adMobApp.appId);
+
         if (createdBiddingAdUnits.length) {
-            app.adUnitTemplatesToCreate.forEach((uTemplate, uName) => {
-                if (createdBiddingAdUnits.some(unit => unit[3] === uTemplate.name)) {
-                    app.adUnitTemplatesToCreate.delete(uName);
+            createdBiddingAdUnits.forEach((uTemplate, uName) => {
+                let hasCreatedAdUnit = [...app.adUnitTemplatesToCreate.entries()].find(([key, value]) => {
+                    let OLDName = uTemplate[3].toLowerCase();
+                    let NEWName = value.name.toLowerCase();
+
+                    if (OLDName === NEWName) {
+                        value.adUnitId = uTemplate[1];
+                        app.appodealAdUnits.push(this.convertToAppodealAdUnit(value, app.adUnitTemplatesToCreate.get(key)));
+                        app.adUnitTemplatesToCreate.delete(key);
+                        return;
+                    }
+
+                    let arrOLDName = OLDName.split('/');
+                    let arrNEWName = NEWName.split('/');
+
+                    const monetizationEngine = value.monetizationEngine;
+
+                    // For default partner bidding UNIT --> monetizationEngine === MonetizationEngine.APPLOVIN_MAX
+                    if (arrOLDName.length < arrNEWName.length && monetizationEngine === MonetizationEngine.APPLOVIN_MAX) {
+                        arrNEWName.pop();
+                        const name = arrNEWName.join('/').toLowerCase();
+                        return OLDName === name;
+                    }
+
+                    if (arrOLDName.length === arrNEWName.length) {
+                        if (this.isAdUnitPrefixNameIdentity(arrOLDName[arrOLDName.length - 1]) !== monetizationEngine) {
+                            return false;
+                        }
+
+                        arrOLDName.pop();
+                        arrNEWName.pop();
+
+                        return this.isEqual(arrOLDName, arrNEWName);
+                    }
+                });
+
+                if (hasCreatedAdUnit) {
+                    const [keyCreatedAdUnit, valueCreatedAdUnit] = hasCreatedAdUnit;
+                    // keyCreatedAdUnit - OLD name
+                    // valueCreatedAdUnit - object with NEw adUnit
+                    app.adUnitsMonetizationEngineToUpdate.set(keyCreatedAdUnit, {
+                        ...valueCreatedAdUnit,
+                        adUnitId: uTemplate[1],
+                        appId: uTemplate[2],
+                    });
+
+                    app.appodealAdUnits.push(this.convertToAppodealAdUnit({
+                        ...valueCreatedAdUnit,
+                        adUnitId: uTemplate[1],
+                    }, app.adUnitTemplatesToCreate.get(keyCreatedAdUnit)));
+                    app.adUnitTemplatesToCreate.delete(keyCreatedAdUnit);
                 }
+
+                return;
             });
         }
 
         const templatesToCreate = app.adUnitTemplatesToCreate;
+        const adUnitsMonetizationEngineToUpdate = app.adUnitsMonetizationEngineToUpdate;
         const {adUnitsToDelete, appodealAdUnits, oldGoodAdUnits} = app;
 
         this.emitProgress();
         this.logger.info(`AdUnits to create ${templatesToCreate.size}. AdUnit to Delete ${adUnitsToDelete.length}. Unchanged AdUnits ${appodealAdUnits.length}`);
 
-        for (const adUnitTemplate of templatesToCreate.values()) {
-            app.subProgressCurrent++;
-            this.emitProgress();
-            if (this.skipNativeAdUnits && adUnitTemplate.__metadata.adType === AdType.NATIVE) {
-                this.logger.info(`Creating Native AdUnit is skipped. ${adUnitTemplate.name}`);
-                continue;
-            }
-            const newAdUnit = await this.createAdMobAdUnit({
-                ...adUnitTemplate,
-                appId: adMobApp.appId,
-                googleOptimizedRefreshRate: adUnitTemplate.__metadata.adType === AdType.BANNER ?
-                    false :
-                    adUnitTemplate.googleOptimizedRefreshRate
-            }).catch(e => {
-                this.logger.info(`Failed to create AdUnit`);
-                this.logger.info(e);
-                if (adUnitTemplate.__metadata.adType === AdType.NATIVE) {
-                    this.skipNativeAdUnits = true;
-                    this.logger.info(`Error while creating Native AdUnit. Skip creating Native AdUnits.`);
-                    this.logger.info(`Creating Native AdUnit is skipped. ${adUnitTemplate.name}`);
-                    // user may be forbidden to create native adunits but have native adunit at appodeal.
-                    // we should emit error & continue sync other adunits
-                    this.emitError(e);
-                    return null;
-                }
-                throw e;
-            });
-            if (newAdUnit) {
-                this.context.addAdMobAdUnit(newAdUnit);
+
+        if (adUnitsMonetizationEngineToUpdate.size > 0) {
+            for (let adUnit of adUnitsMonetizationEngineToUpdate) {
+                const units = Object.assign({}, adUnit[1]);
+                delete units.monetizationEngine;
+
+                let adUnitToUpdate: AdMobAdUnit = await this.updateAdMobAdUnitName(units as AdMobAdUnit);
+                this.context.addAdMobAdUnit(adUnitToUpdate);
                 this.stats.appUpdated(app);
-                appodealAdUnits.push(this.convertToAppodealAdUnit(newAdUnit, adUnitTemplate));
-                yield `AdUnit Created ${this.adUnitCode(newAdUnit)} ${adUnitTemplate.name}`;
+
+                yield `AdUnit Name prefix updated ${this.adUnitCode(adUnitToUpdate)} from ${adUnit[0]} to ${adUnitToUpdate.name}`;
+            }
+        }
+
+
+        if (templatesToCreate.size > 0) {
+            for (const adUnitTemplate of [...templatesToCreate.values()]) {
+                app.subProgressCurrent++;
+                this.emitProgress();
+                if (this.skipNativeAdUnits && adUnitTemplate.__metadata.adType === AdType.NATIVE) {
+                    this.logger.info(`Creating Native AdUnit is skipped. ${adUnitTemplate.name}`);
+                    continue;
+                }
+
+                const units = Object.assign({}, adUnitTemplate);
+                delete units.monetizationEngine;
+
+                const newAdUnit = await this.createAdMobAdUnit({
+                    ...units,
+                    appId: adMobApp.appId,
+                    googleOptimizedRefreshRate: adUnitTemplate.__metadata.adType === AdType.BANNER ?
+                        false :
+                        adUnitTemplate.googleOptimizedRefreshRate
+                }).catch(e => {
+                    this.logger.info(`Failed to create AdUnit`);
+                    this.logger.info(e);
+                    if (adUnitTemplate.__metadata.adType === AdType.NATIVE) {
+                        this.skipNativeAdUnits = true;
+                        this.logger.info(`Error while creating Native AdUnit. Skip creating Native AdUnits.`);
+                        this.logger.info(`Creating Native AdUnit is skipped. ${adUnitTemplate.name}`);
+                        // user may be forbidden to create native adunits but have native adunit at appodeal.
+                        // we should emit error & continue sync other adunits
+                        this.emitError(e);
+                        return null;
+                    }
+                    throw e;
+                });
+
+                if (newAdUnit) {
+                    this.context.addAdMobAdUnit(newAdUnit);
+                    this.stats.appUpdated(app);
+                    appodealAdUnits.push(this.convertToAppodealAdUnit(newAdUnit, adUnitTemplate));
+                    yield `AdUnit Created ${this.adUnitCode(newAdUnit)} ${adUnitTemplate.name}`;
+                }
             }
         }
 
@@ -1087,8 +1243,11 @@ export class Sync {
             if (adMobAdUnit.name.substr(0, this.adUnitNamePrefix.length) !== this.adUnitNamePrefix) {
                 app.subProgressCurrent++;
                 this.emitProgress();
+
                 const oldName = adMobAdUnit.name;
-                adMobAdUnit = await this.updateAdMobAdUnitName(adMobAdUnit, this.patchNamePrefix(adMobAdUnit.name));
+                adMobAdUnit.name = this.patchNamePrefix(adMobAdUnit.name);
+                adMobAdUnit = await this.updateAdMobAdUnitName(adMobAdUnit);
+
                 this.context.addAdMobAdUnit(adMobAdUnit);
                 this.stats.appUpdated(app);
                 yield `AdUnit Name prefix updated ${this.adUnitCode(adMobAdUnit)} from ${oldName} to ${adMobAdUnit.name}`;
@@ -1118,6 +1277,7 @@ export class Sync {
     convertToAppodealAdUnit(adMobAdUnit: AdMobAdUnit, template: AdUnitTemplate): AppodealAdUnit {
         return <AppodealAdUnit>{
             isThirdPartyBidding: template.isThirdPartyBidding,
+            monetizationEngine: template.monetizationEngine,
             code: this.adUnitCode(adMobAdUnit),
             internalAdmobAdUnitId: adMobAdUnit.adUnitId,
             adUnitId: adMobAdUnit.adUnitId,
@@ -1183,14 +1343,22 @@ export class Sync {
         return `ca-app-${this.adMobAccount.id}/${adUnit.adUnitId}`;
     }
 
-    adUnitName(app: AppodealApp, adType: AdType, format: Format, cpmFloor?: number, customName: string = '') {
+    adUnitName(
+        app: AppodealApp,
+        adType: AdType,
+        format: Format,
+        cpmFloor?: number,
+        customName: string = '',
+        monetizationEngine: string = ''
+    ) {
         return [
             this.adUnitNamePrefix,
             app.id,
             adType.toLowerCase(),
             format.toLowerCase(),
             cpmFloor ? cpmFloor.toFixed(2) : undefined,
-            customName
+            customName,
+            monetizationEngine
         ]
             // to remove empty values
             .filter(v => v)
@@ -1233,7 +1401,7 @@ export class Sync {
                 }
                 return true;
             })
-            .map(({floor, template}, i) => {
+            .map(({floor, template}) => {
                     return [
                         // default adUnit with no ecpm
                         this.buildDefaultAdUnitForMediationGroup(app, floor, template),
@@ -1242,6 +1410,7 @@ export class Sync {
                             ...template,
                             name: this.buildAdUnitName(app, floor, ecpmFloor),
                             isThirdPartyBidding: floor.isThirdPartyBidding,
+                            monetizationEngine: floor.monetizationEngine,
                             __metadata: {
                                 adType: floor.adType,
                                 ecpmFloor: ecpmFloor,
@@ -1265,7 +1434,6 @@ export class Sync {
             .map(template => {
                 Object.defineProperty(template, '__metadata', {enumerable: false});
                 return template;
-
             })
             .reduce((map, adUnit) => {
                 map.set(Sync.getAdUnitTemplateId(<AdMobAdUnit>adUnit), adUnit);
@@ -1276,11 +1444,31 @@ export class Sync {
     buildAdUnitName(app, floor, ecpmFloor = null): string {
         switch (floor.isThirdPartyBidding) {
         case true:
-            return this.adUnitName(app, floor.adType, floor.format, ecpmFloor, 'partner_bidding');
+            return this.buildPartnerBiddingAdUnitName(app, floor, ecpmFloor);
         case false:
-            return this.adUnitName(app, floor.adType, floor.format, ecpmFloor, 'mediation_group');
+            return this.buildMediationGroupAdUnitName(app, floor, ecpmFloor);
         default:
             return this.adUnitName(app, floor.adType, floor.format, ecpmFloor);
+        }
+    }
+
+    buildPartnerBiddingAdUnitName(app, floor, ecpmFloor = null) {
+        switch (floor.monetizationEngine) {
+        case MonetizationEngine.BIDON:
+        case MonetizationEngine.APPLOVIN_MAX:
+        case MonetizationEngine.LEVEL_PLAY:
+            return this.adUnitName(app, floor.adType, floor.format, ecpmFloor, 'partner_bidding', this.buildAdUnitPrefixName(floor.monetizationEngine));
+        case MonetizationEngine.APPODEAL:
+        case MonetizationEngine.RESERVED:
+            return this.adUnitName(app, floor.adType, floor.format, ecpmFloor, 'partner_bidding', this.buildAdUnitPrefixName(floor.monetizationEngine));
+        }
+    }
+
+    buildMediationGroupAdUnitName(app, floor, ecpmFloor = null) {
+        switch (floor.monetizationEngine) {
+        case MonetizationEngine.APPODEAL:
+        case MonetizationEngine.BIDON:
+            return this.adUnitName(app, floor.adType, floor.format, ecpmFloor, 'mediation_group', this.buildAdUnitPrefixName(floor.monetizationEngine));
         }
     }
 
@@ -1295,7 +1483,8 @@ export class Sync {
                 format: floor.format
             },
             name: this.buildAdUnitName(app, floor),
-            isThirdPartyBidding: floor.isThirdPartyBidding
+            isThirdPartyBidding: floor.isThirdPartyBidding,
+            monetizationEngine: floor.monetizationEngine
         };
 
         return floor.isThirdPartyBidding === false ? {
@@ -1509,6 +1698,7 @@ export class Sync {
                 4: number, // pagination
                 5: AdMobPlatform, // 2, // platform
             }
+
             interface SearchAppResponse {
                 2: string, // app name
                 3: number, // 1, // platform
@@ -1529,13 +1719,14 @@ export class Sync {
                     }
                 ]
             }
+
             interface SearchResponse {
                 2: number; // number of results
                 3: SearchAppResponse[]; // apps ;
             }
 
 
-            const searchAppResponse: AdMobApp[] = await this.adMobApi.postRaw(
+            const searchAppResponse: unknown[] | AdMobApp[] = await this.adMobApi.postRaw(
                 'AppService',
                 'Search',
                 <SearchAppRequest>{
@@ -1552,10 +1743,11 @@ export class Sync {
                     publishedApp.applicationPackageName === app.bundleId :
                     publishedApp.applicationStoreId === app.bundleId;
             });
+
             if (publishedApp) {
                 this.logger.info(`App found in store`);
                 this.stats.appUpdated(app);
-                adMobApp = {...adMobApp, ...publishedApp};
+                adMobApp = {...(adMobApp as any), ...(publishedApp as any)} as any;
 
                 let copyAdmobApp = {
                     name: adMobApp.name,
@@ -1600,7 +1792,7 @@ export class Sync {
                     }
                 ]
             }
-        )
+        );
     }
 
     async getApps(): Promise<any> {
@@ -1611,7 +1803,28 @@ export class Sync {
         );
     }
 
-    async createAdMobAdUnit(adUnit: Partial<AdMobAdUnit>): Promise<AdMobAdUnit | any> {
+    async createAdMobAdUnit(adUnit: {
+        __metadata: { ecpmFloor: number; adType: AdType; format: Format; customEvents?: CustomEvent[] };
+        adUnitId?: string;
+        appId: string;
+        name?: string;
+        refreshPeriodSeconds?: number;
+        archived?: boolean;
+        mediationEnabled?: boolean;
+        legacyAdmobSiteId?: string;
+        legacyAdLocationId?: string;
+        adFormat?: AdMobAdFormat;
+        liveEcpmEnabled?: boolean;
+        adType?: number[];
+        enableRewardsAds?: boolean;
+        rewardsSettings?: RewardsSettings;
+        frequencyCap?: any;
+        googleOptimizedRefreshRate: boolean;
+        usageSummary?: any;
+        cpmFloorSettings?: CpmFloorSettings;
+        isThirdPartyBidding?: boolean;
+        monetizationEngine?: MonetizationEngine
+    }): Promise<any> {
         try {
             return this.adMobApi.post(
                 'AdUnitService',
@@ -1623,9 +1836,8 @@ export class Sync {
         }
     }
 
-    async updateAdMobAdUnitName(adMobAdUnit: AdMobAdUnit, newName: string): Promise<AdMobAdUnit> {
+    async updateAdMobAdUnitName(adMobAdUnit: AdMobAdUnit): Promise<AdMobAdUnit> {
         try {
-            adMobAdUnit.name = newName;
             return await this.adMobApi.postRaw('AdUnitService', 'Update', <UpdateRequest>{
                 1: getTranslator(AdUnitTranslator).encode(adMobAdUnit),
                 2: {1: ['name']}
@@ -1642,7 +1854,8 @@ export class Sync {
             <UpdateRequest>{
                 1: getTranslator(AdUnitTranslator).encode(adMobAdUnit),
                 2: {1: ['refresh_period_seconds', 'google_optimized_refresh_rate']}
-            })
+            }
+        )
             .then((res: UpdateResponse) => getTranslator(AdUnitTranslator).decode(res[1]))
             .catch(error => this.logger.error('Failed to AdUnitService ', error));
     }
