@@ -18,7 +18,7 @@ function SignInButton () {
 
 function UpdateButton ({minimalVersion}) {
     return (<div className={styles.flexCenter}><h1>Update extension to continue</h1>
-        <div><a className="btn" target="_blank" href="https://chrome.google.com/webstore/detail/appodeal/cnlfcihkilpkgdlnhjonhkfjjmbpbpbj">Update
+        <div><a className="btn" target="_blank" href="https://chromewebstore.google.com/detail/appodeal/ajjgfcnjagcnnhjemgaobibbalkjklhd">Update
             now</a></div>
         <br/>
         <div className={styles.center}><small>Current extension version has become outdated, minimal supported version
