@@ -369,6 +369,110 @@ export class Sync {
         }
     }
 
+    private async prepareAppDataToSync(app: AppodealAppToSync) {
+        try {
+            app.subProgressCurrent = 0;
+            app.subProgressTotal = 0;
+
+            app.adUnitsToDelete = [];
+            app.appodealAdUnits = [];
+            app.oldGoodAdUnits = [];
+            app.adUnitsToUpdateName = [];
+            app.adUnitTemplatesToCreate = new Map();
+            app.adUnitsMonetizationEngineToUpdate = new Map();
+
+            app.customEventsList = [];
+
+            if (app.isDeleted) {
+                return app;
+            }
+
+            const adMobApp = app.admobApp = this.findAdMobApp(app, this.context.getAllAdmobApps());
+
+            if (!app.admobApp) {
+                return app;
+            }
+
+            app.adUnitTemplatesToCreate = this.buildAdUnitsSchema(app);
+
+            this.getActiveAdmobAdUnitsCreatedByApp(app, adMobApp).forEach((adMobAdUnit: AdMobAdUnit) => {
+                const templateId = Sync.getAdUnitTemplateId(adMobAdUnit);
+                const monetizationEngine = app.adUnitTemplatesToCreate.get(templateId)?.monetizationEngine;
+
+                if (app.adUnitTemplatesToCreate.has(templateId)) {
+                    // Good AdUnits
+                    app.oldGoodAdUnits.push(adMobAdUnit);
+                    app.appodealAdUnits.push(this.convertToAppodealAdUnit(adMobAdUnit, app.adUnitTemplatesToCreate.get(templateId)));
+                    app.adUnitTemplatesToCreate.delete(templateId);
+                    return;
+                }
+
+                if (!app.adUnitTemplatesToCreate.has(templateId)) {
+                    let hasCreatedAdUnit = [...app.adUnitTemplatesToCreate.entries()].find(([key, value]) => {
+                        let OLDName = adMobAdUnit.name.toLowerCase();
+                        let NEWName = value.name.toLowerCase();
+
+                        if (OLDName === NEWName) {
+                            return true;
+                        }
+
+                        let arrOLDName = OLDName.split('/');
+                        let arrNEWName = NEWName.split('/');
+
+                        if (arrOLDName.length < arrNEWName.length && value.monetizationEngine === MonetizationEngine.APPODEAL) {
+                            arrNEWName.pop();
+                            const name = arrNEWName.join('/').toLowerCase();
+                            return OLDName === name;
+                        }
+
+                        if (arrOLDName.length === arrNEWName.length) {
+                            if (this.isAdUnitPrefixNameIdentity(arrOLDName[arrOLDName.length - 1]) !== value.monetizationEngine) {
+                                return false;
+                            }
+
+                            arrOLDName.pop();
+                            arrNEWName.pop();
+
+                            return this.isEqual(arrOLDName, arrNEWName);
+                        }
+                    });
+
+                    if (hasCreatedAdUnit) {
+                        const [keyCreatedAdUnit, valueCreatedAdUnit] = hasCreatedAdUnit;
+
+                        app.adUnitsMonetizationEngineToUpdate.set(templateId, {
+                            ...valueCreatedAdUnit,
+                            appId: adMobApp.appId,
+                            adUnitId: adMobAdUnit.adUnitId,
+                        });
+
+                        app.oldGoodAdUnits.push(adMobAdUnit);
+                        app.appodealAdUnits.push(this.convertToAppodealAdUnit(adMobAdUnit, app.adUnitTemplatesToCreate.get(keyCreatedAdUnit)));
+                        app.adUnitTemplatesToCreate.delete(keyCreatedAdUnit);
+                    }
+
+                    return;
+                }
+
+                if (!app.adUnitTemplatesToCreate.has(templateId) && !monetizationEngine) {
+                    app.adUnitsToDelete.push(adMobAdUnit.adUnitId);
+                }
+            });
+
+            app.adUnitsToUpdateName = app.oldGoodAdUnits.filter(
+                adMobAdUnit => adMobAdUnit.name.substr(0, this.adUnitNamePrefix.length) !== this.adUnitNamePrefix
+            );
+
+            return app;
+        } catch (e) {
+            this.logger.error('Failed to prepareAppDataToSync ', e);
+        }
+    };
+    private calculateTotal = app => {
+        app.subProgressTotal += app.adUnitTemplatesToCreate.size + app.adUnitsToUpdateName.length;
+        return app;
+    };
+
     async prepareApps(apps) {
         const adMobHiddenApp = this.context.getHiddenAppsWithStoreLink();
         for (const a of adMobHiddenApp) {
@@ -379,118 +483,13 @@ export class Sync {
             });
         }
 
-        const prepareAppDataToSync = (app: AppodealAppToSync) => {
-            try {
-                app.subProgressCurrent = 0;
-                app.subProgressTotal = 0;
-
-                app.adUnitsToDelete = [];
-                app.appodealAdUnits = [];
-                app.oldGoodAdUnits = [];
-                app.adUnitsToUpdateName = [];
-                app.adUnitTemplatesToCreate = new Map();
-                app.adUnitsMonetizationEngineToUpdate = new Map();
-
-                app.customEventsList = [];
-
-                if (app.isDeleted) {
-                    return app;
-                }
-
-                const adMobApp = app.admobApp = this.findAdMobApp(app, this.context.getAllAdmobApps());
-
-
-                if (!app.admobApp) {
-                    return app;
-                }
-
-                app.adUnitTemplatesToCreate = this.buildAdUnitsSchema(app);
-
-                this.getActiveAdmobAdUnitsCreatedByApp(app, adMobApp).forEach((adMobAdUnit: AdMobAdUnit) => {
-                    const templateId = Sync.getAdUnitTemplateId(adMobAdUnit);
-                    const monetizationEngine = app.adUnitTemplatesToCreate.get(templateId)?.monetizationEngine;
-
-                    if (app.adUnitTemplatesToCreate.has(templateId)) {
-                        // Good AdUnits
-                        app.oldGoodAdUnits.push(adMobAdUnit);
-                        app.appodealAdUnits.push(this.convertToAppodealAdUnit(adMobAdUnit, app.adUnitTemplatesToCreate.get(templateId)));
-                        app.adUnitTemplatesToCreate.delete(templateId);
-                        return;
-                    }
-
-                    if (!app.adUnitTemplatesToCreate.has(templateId)) {
-                        let hasCreatedAdUnit = [...app.adUnitTemplatesToCreate.entries()].find(([key, value]) => {
-                            let OLDName = adMobAdUnit.name.toLowerCase();
-                            let NEWName = value.name.toLowerCase();
-
-                            if (OLDName === NEWName) {
-                                return true;
-                            }
-
-                            let arrOLDName = OLDName.split('/');
-                            let arrNEWName = NEWName.split('/');
-
-                            if (arrOLDName.length < arrNEWName.length && value.monetizationEngine === MonetizationEngine.APPODEAL) {
-                                arrNEWName.pop();
-                                const name = arrNEWName.join('/').toLowerCase();
-                                return OLDName === name;
-                            }
-
-                            if (arrOLDName.length === arrNEWName.length) {
-                                if (this.isAdUnitPrefixNameIdentity(arrOLDName[arrOLDName.length - 1]) !== value.monetizationEngine) {
-                                    return false;
-                                }
-
-                                arrOLDName.pop();
-                                arrNEWName.pop();
-
-                                return this.isEqual(arrOLDName, arrNEWName);
-                            }
-                        });
-
-                        if (hasCreatedAdUnit) {
-                            const [keyCreatedAdUnit, valueCreatedAdUnit] = hasCreatedAdUnit;
-
-                            app.adUnitsMonetizationEngineToUpdate.set(templateId, {
-                                ...valueCreatedAdUnit,
-                                appId: adMobApp.appId,
-                                adUnitId: adMobAdUnit.adUnitId,
-                            });
-
-                            app.oldGoodAdUnits.push(adMobAdUnit);
-                            app.appodealAdUnits.push(this.convertToAppodealAdUnit(adMobAdUnit, app.adUnitTemplatesToCreate.get(keyCreatedAdUnit)));
-                            app.adUnitTemplatesToCreate.delete(keyCreatedAdUnit);
-                        }
-
-                        return;
-                    }
-
-                    if (!app.adUnitTemplatesToCreate.has(templateId) && !monetizationEngine) {
-                        app.adUnitsToDelete.push(adMobAdUnit.adUnitId);
-                    }
-                });
-
-                app.adUnitsToUpdateName = app.oldGoodAdUnits.filter(
-                    adMobAdUnit => adMobAdUnit.name.substr(0, this.adUnitNamePrefix.length) !== this.adUnitNamePrefix
-                );
-
-                return app;
-            } catch (e) {
-                this.logger.error('Failed to prepareAppDataToSync ', e);
-            }
-        };
-
-        const calculateTotal = app => {
-            app.subProgressTotal += app.adUnitTemplatesToCreate.size + app.adUnitsToUpdateName.length;
-
-            return app;
-        };
-
-
         try {
-            return apps
-                .map(prepareAppDataToSync)
-                .map(calculateTotal);
+            let preparedApps = [];
+            for (const app of apps) {
+                preparedApps.push(await this.prepareAppDataToSync(app));
+            }
+
+            return preparedApps.map(this.calculateTotal);
         } catch (e) {
             this.logger.error('Failed to prepareApps ', e);
         }
@@ -615,6 +614,9 @@ export class Sync {
             this.context.addAdMobApp(adMobApp);
             this.stats.appCreated(app);
             yield `App created`;
+
+            app = await this.prepareAppDataToSync(app);
+            yield `App prepared and now it has all list of adUnits to create`;
         }
 
         if (adMobApp.hidden && adMobApp.appId === app.admobAppId) {
