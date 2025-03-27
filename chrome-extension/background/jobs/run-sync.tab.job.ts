@@ -148,33 +148,38 @@ export class RunSyncTabJob implements IJob {
     updateSyncProgress (event) {
         this.syncProgress.lastEvent = event;
         switch (event.type) {
-        case SyncEventsTypes.ReportProgress:
-            const pEvent = <SyncReportProgressEvent>event;
-            this.syncProgress.id = event.id;
-            this.syncProgress.totalApps = event.total;
-            this.syncProgress.completedApps = event.synced;
-            this.syncProgress.failedApps = event.failed;
-            this.syncProgress.percent = pEvent.percent;
-            this.reportProgressToTab();
-            break;
-        case SyncEventsTypes.Stopped:
-            const {adMobAccount, currentUser} = this;
-            this.syncProgress.hasErrors = event.hasErrors;
-            this.syncProgress.isTerminated = event.terminated;
-            if (event.hasErrors) {
-                this.notify('Sync has finished with Errors', `While sync Admob ${adMobAccount.email} account some error occurred.`);
-            } else if (event.terminated) {
-                this.notify('Sync has been canceled', `${adMobAccount.email} sync has been canceled.`);
-            } else {
-                this.notify(
-                    'Sync has finished',
-                    `Appodeal's ${currentUser.email} and Admob ${adMobAccount.email} accounts are in sync.`
-                );
-            }
-            break;
-        default:
-            this.reportProgressToTab();
-            break;
+            case SyncEventsTypes.ReportProgress:
+                const pEvent = <SyncReportProgressEvent>event;
+                this.syncProgress.id = event.id;
+                this.syncProgress.totalApps = event.total;
+                this.syncProgress.completedApps = event.synced;
+                this.syncProgress.failedApps = event.failed;
+                this.syncProgress.percent = pEvent.percent;
+                this.reportProgressToTab();
+                break;
+            case SyncEventsTypes.Stopped:
+                const {adMobAccount, currentUser} = this;
+                this.syncProgress.hasErrors = event.hasErrors;
+                this.syncProgress.isTerminated = event.terminated;
+                if (event.hasErrors) {
+                    this.notify('Sync has finished with Errors', `While sync Admob <b>${adMobAccount.email}</b> account some error occurred.`);
+                } else if (event.terminated) {
+                    this.notify('Sync has been canceled', `<b>${adMobAccount.email}</b> sync has been canceled.`);
+                } else if (event.isDisabled) {
+                    this.notify(
+                        '<b>Sync has been canceled.</b>',
+                        `<br><br>All applications are disabled. Please change the general settings for the required applications in Appodeal.`
+                    );
+                } else {
+                    this.notify(
+                        'Sync has finished',
+                        `Appodeal's <b>${currentUser.email}</b> and Admob <b>${adMobAccount.email}</b> accounts are in sync.`
+                    );
+                }
+                break;
+            default:
+                this.reportProgressToTab();
+                break;
         }
     }
 

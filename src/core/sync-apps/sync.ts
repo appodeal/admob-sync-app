@@ -93,6 +93,7 @@ export class Sync {
      */
     public hasErrors = false;
     private terminated = true;
+    private disabled = false;
 
 
     public readonly stats = new SyncStats(this);
@@ -236,7 +237,8 @@ export class Sync {
         return this.emit(<SyncStopEvent>{
             type: SyncEventsTypes.Stopped,
             terminated: this.terminated,
-            hasErrors: this.hasErrors
+            hasErrors: this.hasErrors,
+            isDisabled: this.disabled,
         });
     }
 
@@ -319,13 +321,22 @@ export class Sync {
 
 
         const accountDetails = await this.appodealApi.fetchApps(this.adMobAccount.id);
-        this.context.addAppodealApps(accountDetails.apps.nodes);
+        const actualApps = accountDetails.apps.nodes.filter(app => !app.isAdmobDisabled);
+        if (!actualApps.length) {
+            this.disabled = true;
+            this.emitStop();
+            return;
+        }
+
+
+        this.context.addAppodealApps(actualApps);
         yield `Appodeal Apps page 1/${accountDetails.apps.pageInfo.totalPages} fetched`;
 
         if (accountDetails.apps.pageInfo.totalPages) {
             for (let pageNumber = 2; pageNumber <= accountDetails.apps.pageInfo.totalPages; pageNumber++) {
                 const page = await this.appodealApi.fetchApps(this.adMobAccount.id, pageNumber);
-                this.context.addAppodealApps(page.apps.nodes);
+                const actualApps = page.apps.nodes.filter(app => !app.isAdmobDisabled);
+                this.context.addAppodealApps(actualApps);
                 yield `Appodeal Apps page ${pageNumber}/${page.apps.pageInfo.totalPages} fetched`;
             }
         }

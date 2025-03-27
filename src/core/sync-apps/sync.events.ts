@@ -29,6 +29,7 @@ export interface SyncStopEvent extends SyncEvent {
     type: SyncEventsTypes.Stopped;
     terminated: true;
     hasErrors: true;
+    isDisabled: false;
 }
 
 export interface SyncEvent {

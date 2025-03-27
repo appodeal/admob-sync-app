@@ -17,6 +17,7 @@ export interface AppodealApp {
     ecpmFloors: EcpmFloors[]
     customEventsList: any[]
     storeId: string | null
+    isAdmobDisabled: boolean
 }
 
 
