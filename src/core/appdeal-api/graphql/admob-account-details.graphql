@@ -24,6 +24,7 @@ query currentUser ($id: ID!, $page: Int, $pageSize: Int) {
                         monetizationEngine
                     }
                     storeId
+                    isAdmobDisabled
                 }
                 pageInfo {
                     currentPage
