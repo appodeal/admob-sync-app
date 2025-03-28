@@ -230,36 +230,38 @@ export class Store {
     @action
     updateSyncProgress (account: AdMobAccount, event: SyncEvent) {
         switch (event.type) {
-        case SyncEventsTypes.Started:
-            this.pushLogs(account);
+            case SyncEventsTypes.Started:
+                this.pushLogs(account);
+                return;
             case SyncEventsTypes.CalculatingProgress:
-            this.state.syncProgress[event.accountId] = {
-                id: event.id,
-                totalApps: 0,
-                completedApps: 0,
-                failedApps: 0,
-                percent: 0,
-                lastEvent: event.type
-            };
-            return this.fireSyncUpdated();
-        case SyncEventsTypes.ReportProgress:
-            const pEvent = <SyncReportProgressEvent>event;
-            this.state.syncProgress[event.accountId] = {
-                id: event.id,
-                totalApps: pEvent.total,
-                completedApps: pEvent.synced,
-                failedApps: pEvent.failed,
-                percent: pEvent.percent,
-                lastEvent: event.type,
-            };
-            this.pushLogs(account);
-            return this.fireSyncUpdated();
-        case SyncEventsTypes.Stopped:
-            delete this.state.syncProgress[event.accountId];
-            this.fireSyncUpdated();
-            this.pushLogs(account);
-            return this.updateAdMobAccountInfo(account);
-        }
+                this.state.syncProgress[event.accountId] = {
+                    id: event.id,
+                    totalApps: 0,
+                    completedApps: 0,
+                    failedApps: 0,
+                    percent: 0,
+                    lastEvent: event.type
+                };
+                this.pushLogs(account);
+                return this.fireSyncUpdated();
+            case SyncEventsTypes.ReportProgress:
+                const pEvent = <SyncReportProgressEvent>event;
+                this.state.syncProgress[event.accountId] = {
+                    id: event.id,
+                    totalApps: pEvent.total,
+                    completedApps: pEvent.synced,
+                    failedApps: pEvent.failed,
+                    percent: pEvent.percent,
+                    lastEvent: event.type,
+                };
+                this.pushLogs(account);
+                return this.fireSyncUpdated();
+            case SyncEventsTypes.Stopped:
+                delete this.state.syncProgress[event.accountId];
+                this.fireSyncUpdated();
+                this.pushLogs(account);
+                return this.updateAdMobAccountInfo(account);
+            }
     }
 
     @action

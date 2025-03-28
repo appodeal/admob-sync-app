@@ -168,7 +168,7 @@ export class RunSyncTabJob implements IJob {
                 } else if (event.isDisabled) {
                     this.notify(
                         '<b>Sync has been canceled.</b>',
-                        `<br><br>All applications are disabled. Please change the general settings for the required applications in Appodeal.`
+                        `<br><br>Admob account is not selected. Please go to <b>"App Settings-> Ad Units"</b> and choose the required account for AdMob.`
                     );
                 } else {
                     this.notify(
