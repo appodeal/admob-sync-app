@@ -22,6 +22,7 @@ type App {
     bundleId: String!
     ecpmFloors: [EcpmFloors!]!
     id: ID!
+    isAdmobDisabled: Boolean!
     isDeleted: Boolean!
     name: String!
     platform: Platform!

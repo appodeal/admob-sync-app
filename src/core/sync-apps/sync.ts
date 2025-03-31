@@ -93,6 +93,7 @@ export class Sync {
      */
     public hasErrors = false;
     private terminated = true;
+    private disabled = false;
 
 
     public readonly stats = new SyncStats(this);
@@ -204,13 +205,17 @@ export class Sync {
 
     emitProgress() {
         try {
+            if (!this.apps) {
+                return;
+            }
+
             const progress: Partial<SyncReportProgressEvent> = {};
             progress.synced = this.syncedAppCount;
             progress.failed = this.failedAppCount;
             progress.total = this.apps.length;
 
             const currentProgress = this.apps.reduce(
-                (acc, app) => acc + (app.synced ? 2 + app.subProgressTotal : Math.min(app.subProgressCurrent, app.subProgressTotal)),
+                (acc, app) => acc + Math.min(app.subProgressCurrent, app.subProgressTotal),
                 0
             );
 
@@ -236,7 +241,8 @@ export class Sync {
         return this.emit(<SyncStopEvent>{
             type: SyncEventsTypes.Stopped,
             terminated: this.terminated,
-            hasErrors: this.hasErrors
+            hasErrors: this.hasErrors,
+            isDisabled: this.disabled,
         });
     }
 
@@ -245,13 +251,13 @@ export class Sync {
             this.stats.start();
             this.emit(SyncEventsTypes.Started);
             this.logger.info(`Sync Params
-        uuid: ${this.id}
-        AppodealAccount: 
-            id: ${this.appodealAccount.id}
-        AdmobAccount: 
-            id: ${this.adMobAccount.id}
-            email: ${this.adMobAccount.email}
-        `);
+                uuid: ${this.id}
+                AppodealAccount: 
+                    id: ${this.appodealAccount.id}
+                AdmobAccount: 
+                    id: ${this.adMobAccount.id}
+                    email: ${this.adMobAccount.email}
+                `);
             await this.appodealApi.reportSyncStart(this.id, this.adMobAccount.id);
         } catch (e) {
             this.logger.error('Failed to doSync ', e);
@@ -319,13 +325,22 @@ export class Sync {
 
 
         const accountDetails = await this.appodealApi.fetchApps(this.adMobAccount.id);
-        this.context.addAppodealApps(accountDetails.apps.nodes);
+        const actualApps = accountDetails.apps.nodes.filter(app => !app.isAdmobDisabled);
+        if (!actualApps.length) {
+            this.disabled = true;
+            this.emitStop();
+            return;
+        }
+
+
+        this.context.addAppodealApps(actualApps);
         yield `Appodeal Apps page 1/${accountDetails.apps.pageInfo.totalPages} fetched`;
 
         if (accountDetails.apps.pageInfo.totalPages) {
             for (let pageNumber = 2; pageNumber <= accountDetails.apps.pageInfo.totalPages; pageNumber++) {
                 const page = await this.appodealApi.fetchApps(this.adMobAccount.id, pageNumber);
-                this.context.addAppodealApps(page.apps.nodes);
+                const actualApps = page.apps.nodes.filter(app => !app.isAdmobDisabled);
+                this.context.addAppodealApps(actualApps);
                 yield `Appodeal Apps page ${pageNumber}/${page.apps.pageInfo.totalPages} fetched`;
             }
         }
@@ -369,6 +384,110 @@ export class Sync {
         }
     }
 
+    private async prepareAppDataToSync(app: AppodealAppToSync) {
+        try {
+            app.subProgressCurrent = 0;
+            app.subProgressTotal = 0;
+
+            app.adUnitsToDelete = [];
+            app.appodealAdUnits = [];
+            app.oldGoodAdUnits = [];
+            app.adUnitsToUpdateName = [];
+            app.adUnitTemplatesToCreate = new Map();
+            app.adUnitsMonetizationEngineToUpdate = new Map();
+
+            app.customEventsList = [];
+
+            if (app.isDeleted) {
+                return app;
+            }
+
+            const adMobApp = app.admobApp = this.findAdMobApp(app, this.context.getAllAdmobApps());
+
+            if (!app.admobApp) {
+                return app;
+            }
+
+            app.adUnitTemplatesToCreate = this.buildAdUnitsSchema(app);
+
+            this.getActiveAdmobAdUnitsCreatedByApp(app, adMobApp).forEach((adMobAdUnit: AdMobAdUnit) => {
+                const templateId = Sync.getAdUnitTemplateId(adMobAdUnit);
+                const monetizationEngine = app.adUnitTemplatesToCreate.get(templateId)?.monetizationEngine;
+
+                if (app.adUnitTemplatesToCreate.has(templateId)) {
+                    // Good AdUnits
+                    app.oldGoodAdUnits.push(adMobAdUnit);
+                    app.appodealAdUnits.push(this.convertToAppodealAdUnit(adMobAdUnit, app.adUnitTemplatesToCreate.get(templateId)));
+                    app.adUnitTemplatesToCreate.delete(templateId);
+                    return;
+                }
+
+                if (!app.adUnitTemplatesToCreate.has(templateId)) {
+                    let hasCreatedAdUnit = [...app.adUnitTemplatesToCreate.entries()].find(([key, value]) => {
+                        let OLDName = adMobAdUnit.name.toLowerCase();
+                        let NEWName = value.name.toLowerCase();
+
+                        if (OLDName === NEWName) {
+                            return true;
+                        }
+
+                        let arrOLDName = OLDName.split('/');
+                        let arrNEWName = NEWName.split('/');
+
+                        if (arrOLDName.length < arrNEWName.length && value.monetizationEngine === MonetizationEngine.APPODEAL) {
+                            arrNEWName.pop();
+                            const name = arrNEWName.join('/').toLowerCase();
+                            return OLDName === name;
+                        }
+
+                        if (arrOLDName.length === arrNEWName.length) {
+                            if (this.isAdUnitPrefixNameIdentity(arrOLDName[arrOLDName.length - 1]) !== value.monetizationEngine) {
+                                return false;
+                            }
+
+                            arrOLDName.pop();
+                            arrNEWName.pop();
+
+                            return this.isEqual(arrOLDName, arrNEWName);
+                        }
+                    });
+
+                    if (hasCreatedAdUnit) {
+                        const [keyCreatedAdUnit, valueCreatedAdUnit] = hasCreatedAdUnit;
+
+                        app.adUnitsMonetizationEngineToUpdate.set(templateId, {
+                            ...valueCreatedAdUnit,
+                            appId: adMobApp.appId,
+                            adUnitId: adMobAdUnit.adUnitId,
+                        });
+
+                        app.oldGoodAdUnits.push(adMobAdUnit);
+                        app.appodealAdUnits.push(this.convertToAppodealAdUnit(adMobAdUnit, app.adUnitTemplatesToCreate.get(keyCreatedAdUnit)));
+                        app.adUnitTemplatesToCreate.delete(keyCreatedAdUnit);
+                    }
+
+                    return;
+                }
+
+                if (!app.adUnitTemplatesToCreate.has(templateId) && !monetizationEngine) {
+                    app.adUnitsToDelete.push(adMobAdUnit.adUnitId);
+                }
+            });
+
+            app.adUnitsToUpdateName = app.oldGoodAdUnits.filter(
+                adMobAdUnit => adMobAdUnit.name.substr(0, this.adUnitNamePrefix.length) !== this.adUnitNamePrefix
+            );
+
+            return app;
+        } catch (e) {
+            this.logger.error('Failed to prepareAppDataToSync ', e);
+        }
+    };
+    private calculateTotal = app => {
+        app.subProgressTotal += app.adUnitTemplatesToCreate.size + app.adUnitsToUpdateName.length;
+        return app;
+    };
+
     async prepareApps(apps) {
         const adMobHiddenApp = this.context.getHiddenAppsWithStoreLink();
         for (const a of adMobHiddenApp) {
@@ -379,118 +498,15 @@ export class Sync {
             });
         }
 
-        const prepareAppDataToSync = (app: AppodealAppToSync) => {
-            try {
-                app.subProgressCurrent = 0;
-                app.subProgressTotal = 0;
-
-                app.adUnitsToDelete = [];
-                app.appodealAdUnits = [];
-                app.oldGoodAdUnits = [];
-                app.adUnitsToUpdateName = [];
-                app.adUnitTemplatesToCreate = new Map();
-                app.adUnitsMonetizationEngineToUpdate = new Map();
-
-                app.customEventsList = [];
-
-                if (app.isDeleted) {
-                    return app;
-                }
-
-                const adMobApp = app.admobApp = this.findAdMobApp(app, this.context.getAllAdmobApps());
-
-
-                if (!app.admobApp) {
-                    return app;
-                }
-
-                app.adUnitTemplatesToCreate = this.buildAdUnitsSchema(app);
-
-                this.getActiveAdmobAdUnitsCreatedByApp(app, adMobApp).forEach((adMobAdUnit: AdMobAdUnit) => {
-                    const templateId = Sync.getAdUnitTemplateId(adMobAdUnit);
-                    const monetizationEngine = app.adUnitTemplatesToCreate.get(templateId)?.monetizationEngine;
-
-                    if (app.adUnitTemplatesToCreate.has(templateId)) {
-                        // Good AdUnits
-                        app.oldGoodAdUnits.push(adMobAdUnit);
-                        app.appodealAdUnits.push(this.convertToAppodealAdUnit(adMobAdUnit, app.adUnitTemplatesToCreate.get(templateId)));
-                        app.adUnitTemplatesToCreate.delete(templateId);
-                        return;
-                    }
-
-                    if (!app.adUnitTemplatesToCreate.has(templateId)) {
-                        let hasCreatedAdUnit = [...app.adUnitTemplatesToCreate.entries()].find(([key, value]) => {
-                            let OLDName = adMobAdUnit.name.toLowerCase();
-                            let NEWName = value.name.toLowerCase();
-
-                            if (OLDName === NEWName) {
-                                return true;
-                            }
-
-                            let arrOLDName = OLDName.split('/');
-                            let arrNEWName = NEWName.split('/');
-
-                            if (arrOLDName.length < arrNEWName.length && value.monetizationEngine === MonetizationEngine.APPODEAL) {
-                                arrNEWName.pop();
-                                const name = arrNEWName.join('/').toLowerCase();
-                                return OLDName === name;
-                            }
-
-                            if (arrOLDName.length === arrNEWName.length) {
-                                if (this.isAdUnitPrefixNameIdentity(arrOLDName[arrOLDName.length - 1]) !== value.monetizationEngine) {
-                                    return false;
-                                }
-
-                                arrOLDName.pop();
-                                arrNEWName.pop();
-
-                                return this.isEqual(arrOLDName, arrNEWName);
-                            }
-                        });
-
-                        if (hasCreatedAdUnit) {
-                            const [keyCreatedAdUnit, valueCreatedAdUnit] = hasCreatedAdUnit;
-
-                            app.adUnitsMonetizationEngineToUpdate.set(templateId, {
-                                ...valueCreatedAdUnit,
-                                appId: adMobApp.appId,
-                                adUnitId: adMobAdUnit.adUnitId,
-                            });
-
-                            app.oldGoodAdUnits.push(adMobAdUnit);
-                            app.appodealAdUnits.push(this.convertToAppodealAdUnit(adMobAdUnit, app.adUnitTemplatesToCreate.get(keyCreatedAdUnit)));
-                            app.adUnitTemplatesToCreate.delete(keyCreatedAdUnit);
-                        }
-
-                        return;
-                    }
-
-                    if (!app.adUnitTemplatesToCreate.has(templateId) && !monetizationEngine) {
-                        app.adUnitsToDelete.push(adMobAdUnit.adUnitId);
-                    }
-                });
-
-                app.adUnitsToUpdateName = app.oldGoodAdUnits.filter(
-                    adMobAdUnit => adMobAdUnit.name.substr(0, this.adUnitNamePrefix.length) !== this.adUnitNamePrefix
-                );
-
-                return app;
-            } catch (e) {
-                this.logger.error('Failed to prepareAppDataToSync ', e);
-            }
-        };
-
-        const calculateTotal = app => {
-            app.subProgressTotal += app.adUnitTemplatesToCreate.size + app.adUnitsToUpdateName.length;
-
-            return app;
-        };
-
-
         try {
-            return apps
-                .map(prepareAppDataToSync)
-                .map(calculateTotal);
+            let preparedApps = [];
+            for (const app of apps) {
+                preparedApps.push(await this.prepareAppDataToSync(app));
+            }
+
+            this.emitProgress();
+
+            return preparedApps.map(this.calculateTotal);
         } catch (e) {
             this.logger.error('Failed to prepareApps ', e);
         }
@@ -596,6 +612,7 @@ export class Sync {
     }
 
     async* syncApp(app: AppodealAppToSync) {
+        app.subProgressCurrent++;
         yield `Start Sync App [${app.id}] ${app.name}`;
 
         let adMobApp = this.findAdMobApp(app, this.context.getAllAdmobApps());
@@ -615,6 +632,9 @@ export class Sync {
             this.context.addAdMobApp(adMobApp);
             this.stats.appCreated(app);
             yield `App created`;
+
+            app = await this.prepareAppDataToSync(app);
+            yield `App prepared and now it has all list of adUnits to create`;
         }
 
         if (adMobApp.hidden && adMobApp.appId === app.admobAppId) {
@@ -678,6 +698,7 @@ export class Sync {
         // groups
         this.createdGroupList = await this.getCreatedMediationGroup();
 
+        app.subProgressCurrent++;
         //  create events
         for (const adUnit of adUnitsForCustomEvents) {
 
@@ -685,7 +706,9 @@ export class Sync {
 
                 // split to chunks by 50 event in each request
                 let splitCustomEventsList = this.slicingListCustomEvents(adUnit.customEvents);
+                    app.subProgressCurrent++;
                 for (const itemEvents of splitCustomEventsList) {
+
                     let payload = {
                         ...adUnit,
                         adUnitId: adUnit.internalAdmobAdUnitId,
@@ -698,8 +721,12 @@ export class Sync {
 
                     this.prepareAdUnitForCreateGroup(await this.createCustomEvents(payload), adUnit);
                 }
+
+                this.emitProgress();
             }
         }
+
+        this.emitProgress();
 
         await this.createGroups(app, adUnitsForCustomEvents);
     }
@@ -732,11 +759,17 @@ export class Sync {
                     }
                 }
             }
+
+            this.emitProgress();
         }
     }
 
     async createGroups(app, adUnitsForCustomEvents) {
+        app.subProgressCurrent++;
+
         for (const adUnit of adUnitsForCustomEvents) {
+            app.subProgressCurrent++;
+
             if (adUnit.customEvents.length) {
                 let adMobMediationGroup = this.createdGroupList[1].find(e => e['2'] === adUnit.name);
 
@@ -759,7 +792,11 @@ export class Sync {
                     }
                 }
             }
+
+            this.emitProgress();
         }
+
+        this.emitProgress();
     }
 
     slicingListCustomEvents(array: any[]): any[] {
@@ -1109,6 +1146,8 @@ export class Sync {
     async* syncAdUnits(app: AppodealAppToSync, adMobApp: AdMobApp) {
         const createdBiddingAdUnits = await this.getCreatedBiddingAdUnits(adMobApp.appId);
 
+        app.subProgressCurrent++;
+
         if (createdBiddingAdUnits.length) {
             createdBiddingAdUnits.forEach((uTemplate, uName) => {
                 let hasCreatedAdUnit = [...app.adUnitTemplatesToCreate.entries()].find(([key, value]) => {
@@ -1165,17 +1204,20 @@ export class Sync {
 
                 return;
             });
+
+            this.emitProgress();
         }
 
         const templatesToCreate = app.adUnitTemplatesToCreate;
         const adUnitsMonetizationEngineToUpdate = app.adUnitsMonetizationEngineToUpdate;
         const {adUnitsToDelete, appodealAdUnits, oldGoodAdUnits} = app;
 
-        this.emitProgress();
         this.logger.info(`AdUnits to create ${templatesToCreate.size}. AdUnit to Delete ${adUnitsToDelete.length}. Unchanged AdUnits ${appodealAdUnits.length}`);
 
 
         if (adUnitsMonetizationEngineToUpdate.size > 0) {
+            app.subProgressCurrent++;
+
             for (let adUnit of adUnitsMonetizationEngineToUpdate) {
                 const units = Object.assign({}, adUnit[1]);
                 delete units.monetizationEngine;
@@ -1186,13 +1228,16 @@ export class Sync {
 
                 yield `AdUnit Name prefix updated ${this.adUnitCode(adUnitToUpdate)} from ${adUnit[0]} to ${adUnitToUpdate.name}`;
             }
+
+            this.emitProgress();
         }
 
 
         if (templatesToCreate.size > 0) {
+            app.subProgressCurrent++;
+
             for (const adUnitTemplate of [...templatesToCreate.values()]) {
-                app.subProgressCurrent++;
-                this.emitProgress();
+
                 if (this.skipNativeAdUnits && adUnitTemplate.__metadata.adType === AdType.NATIVE) {
                     this.logger.info(`Creating Native AdUnit is skipped. ${adUnitTemplate.name}`);
                     continue;
@@ -1229,6 +1274,8 @@ export class Sync {
                     yield `AdUnit Created ${this.adUnitCode(newAdUnit)} ${adUnitTemplate.name}`;
                 }
             }
+
+            this.emitProgress();
         }
 
         // delete bad AdUnits
@@ -1238,11 +1285,10 @@ export class Sync {
             yield `Bad AdUnits (${adUnitsToDelete}) was deleted`;
         }
 
+        app.subProgressCurrent++;
         // rename adUnits if needed
         for (let adMobAdUnit of oldGoodAdUnits) {
             if (adMobAdUnit.name.substr(0, this.adUnitNamePrefix.length) !== this.adUnitNamePrefix) {
-                app.subProgressCurrent++;
-                this.emitProgress();
 
                 const oldName = adMobAdUnit.name;
                 adMobAdUnit.name = this.patchNamePrefix(adMobAdUnit.name);
@@ -1258,8 +1304,8 @@ export class Sync {
                 const name = n.toUpperCase();
                 return name === AdType.BANNER || name === AdType.MREC;
             });
+
             if (isBanner && (adMobAdUnit.googleOptimizedRefreshRate === true || adMobAdUnit.refreshPeriodSeconds)) {
-                app.subProgressCurrent++;
                 delete adMobAdUnit.refreshPeriodSeconds;
                 adMobAdUnit = await this.updateAdMobAdUnitAutomaticRefresh({
                     ...adMobAdUnit,
@@ -1270,6 +1316,8 @@ export class Sync {
                 yield `The 'Automatic Update' field in AdUnit ${this.adUnitCode(adMobAdUnit)} has been changed to 'disabled'`;
             }
         }
+
+        this.emitProgress();
 
         return appodealAdUnits;
     }
