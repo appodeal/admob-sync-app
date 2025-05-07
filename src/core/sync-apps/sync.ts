@@ -593,7 +593,7 @@ export class Sync {
                 yield `Failed to adUnitsBiddingToDelete ${e}`;
             }
         } else {
-            yield `No AdUnits to delete`;
+            yield `No AdUnits Bidding to delete`;
         }
 
         // in case app has at least one active adUnit it should not be hidden
@@ -1610,7 +1610,7 @@ export class Sync {
         try {
             const adMobPlatform = Sync.toAdMobPlatform(app);
 
-            let adMobApp = app.platform !== AppodealPlatform.AMAZON && app.bundleId
+            let adMobApp = app.platform !== AppodealPlatform.AMAZON && app.storeId
                 ? apps.find(adMobApp => adMobApp.platform === adMobPlatform && adMobApp.applicationStoreId === app.storeId)
                 : null;
 
