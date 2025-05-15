@@ -12,6 +12,7 @@ type AdmobAccount {
     "Account apps with pagination"
     apps(page: Int = 1, pageSize: Int = 100): AppPaginatableCollection!
     email: String!
+    enableImpressionLevelAdRevenue: Boolean!
     "Admob AccountId"
     id: ID!
     isReadyForReports: Boolean!

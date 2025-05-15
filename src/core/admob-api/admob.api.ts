@@ -152,6 +152,14 @@ export class AdmobApiService {
         );
     }
 
+    async updatePublisherAdMobImpressionLevelAdRevenue(body): Promise<string> {
+        return this.fetch(
+            'https://admob.google.com/v2/publisher/_/rpc/PublisherService/UpdatePublisherAdMobInfo?authuser=0&authuser=0',
+            'application/x-www-form-urlencoded',
+            body,
+        );
+    }
+
     private handleError(e: InternalError) {
         if (e && this.onError) {
             return this.onError(e);
