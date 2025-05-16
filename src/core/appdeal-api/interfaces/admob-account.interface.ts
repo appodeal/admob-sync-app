@@ -5,6 +5,7 @@ import {UserAccount} from 'interfaces/common.interfaces';
 export interface AdMobAccount extends UserAccount {
     isReadyForReports: boolean;
     __typename: string;
+    enableImpressionLevelAdRevenue: boolean;
 }
 
 export interface AdMobAccountDetails extends AdMobAccount {

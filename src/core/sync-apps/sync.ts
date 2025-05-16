@@ -282,15 +282,27 @@ export class Sync {
         }
     }
 
+    async changePublisherAdMobImpressionLevel() {
+        const impressionLevelAdRevenue = this.adMobAccount.enableImpressionLevelAdRevenue;
+        let payload = `f.req=${JSON.stringify({"1": {"1": {"1": impressionLevelAdRevenue}}})}`;
+
+        try {
+            await this.adMobApi.updatePublisherAdMobImpressionLevelAdRevenue(payload);
+            this.logger.info(`[Account] Impression-level ad revenue switched ${impressionLevelAdRevenue ? 'ON' : 'OFF'}`);
+        } catch (e) {
+            this.logger.error(e, 'Something went wrong while updating Impression-level ad revenue');
+        }
+    }
+
     async* fetchDataToSync() {
-
-
         yield `refrech Admob xsrf Token`;
         let pageBody: string;
         try {
             pageBody = await this.adMobApi.fetchHomePage().then(response => response.text());
             this.adMobApi.refreshXsrfToken(pageBody);
             this.customEventApi.refreshXsrfToken(pageBody);
+
+            await this.changePublisherAdMobImpressionLevel();
 
             const body = await this.adMobApi.fetchCamApiAppsSettings(this.adMobAccount.id).then(response => response.text());
             this.adMobApi.setCamApiXsrfToken(this.adMobApi.ejectCamApiXsrfToken(body));
