@@ -1,0 +1,16 @@
+name: x Jira automation Pull request
+
+on:
+  pull_request:
+    types:
+      - opened
+      - edited
+      - closed
+
+jobs:
+  jira-automation:
+    name: Issues tracking
+    uses: appodeal/devops/.github/workflows/shared-jira-automation-pull-request.yml@master
+    with:
+      github_event: "${{ toJson(github.event) }}"
+    secrets: inherit
