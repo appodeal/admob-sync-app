@@ -198,8 +198,6 @@ ReportingStepFourController = (function () {
 
     function addCredentials () {
         const origins = [
-            APPODEAL_URL,
-            APPODEAL_URL_NOT_WWW,
             APPODEAL_URL_SSL,
             APPODEAL_URL_SSL_NOT_WWW
         ].concat(environment.setupOptions.allowedJs).filter(onlyUniqueCaseInsensitive);
