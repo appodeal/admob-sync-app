@@ -1,7 +1,5 @@
 var icon_url = '../img/icon/icon-64.png';
-var APPODEAL_URL = 'http://www.appodeal.com';
-var APPODEAL_URL_NOT_WWW = 'http://appodeal.com';
-var APPODEAL_URL_SSL = 'https://www.appodeal.com';
+var APPODEAL_URL_SSL = 'https://app.appodeal.com';
 var APPODEAL_URL_SSL_NOT_WWW = 'https://appodeal.com';
 var APPODEAL_API_URL = 'https://api-services.appodeal.com';
 var APPODEAL_URL_SSL_SIGN = APPODEAL_URL_SSL + '/signin';
